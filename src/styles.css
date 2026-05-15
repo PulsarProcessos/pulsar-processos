@@ -62,9 +62,12 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
+  --radius: 0.75rem;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  /* #F8F9FC */
+  --background: oklch(0.98 0.005 270);
+  /* #1A1A2E */
+  --foreground: oklch(0.205 0.04 280);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.129 0.042 264.695);
   --popover: oklch(1 0 0);
