@@ -9,38 +9,153 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MarketingIndexRouteImport } from './routes/marketing.index'
+import { Route as FinanceiroIndexRouteImport } from './routes/financeiro.index'
+import { Route as ComercialIndexRouteImport } from './routes/comercial.index'
+import { Route as MarketingCampanhasRouteImport } from './routes/marketing.campanhas'
+import { Route as FinanceiroMetasRouteImport } from './routes/financeiro.metas'
+import { Route as FinanceiroLancamentosRouteImport } from './routes/financeiro.lancamentos'
+import { Route as ComercialClientesRouteImport } from './routes/comercial.clientes'
 
+const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MarketingIndexRoute = MarketingIndexRouteImport.update({
+  id: '/marketing/',
+  path: '/marketing/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FinanceiroIndexRoute = FinanceiroIndexRouteImport.update({
+  id: '/financeiro/',
+  path: '/financeiro/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComercialIndexRoute = ComercialIndexRouteImport.update({
+  id: '/comercial/',
+  path: '/comercial/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketingCampanhasRoute = MarketingCampanhasRouteImport.update({
+  id: '/marketing/campanhas',
+  path: '/marketing/campanhas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FinanceiroMetasRoute = FinanceiroMetasRouteImport.update({
+  id: '/financeiro/metas',
+  path: '/financeiro/metas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FinanceiroLancamentosRoute = FinanceiroLancamentosRouteImport.update({
+  id: '/financeiro/lancamentos',
+  path: '/financeiro/lancamentos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComercialClientesRoute = ComercialClientesRouteImport.update({
+  id: '/comercial/clientes',
+  path: '/comercial/clientes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/comercial/clientes': typeof ComercialClientesRoute
+  '/financeiro/lancamentos': typeof FinanceiroLancamentosRoute
+  '/financeiro/metas': typeof FinanceiroMetasRoute
+  '/marketing/campanhas': typeof MarketingCampanhasRoute
+  '/comercial/': typeof ComercialIndexRoute
+  '/financeiro/': typeof FinanceiroIndexRoute
+  '/marketing/': typeof MarketingIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/comercial/clientes': typeof ComercialClientesRoute
+  '/financeiro/lancamentos': typeof FinanceiroLancamentosRoute
+  '/financeiro/metas': typeof FinanceiroMetasRoute
+  '/marketing/campanhas': typeof MarketingCampanhasRoute
+  '/comercial': typeof ComercialIndexRoute
+  '/financeiro': typeof FinanceiroIndexRoute
+  '/marketing': typeof MarketingIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/comercial/clientes': typeof ComercialClientesRoute
+  '/financeiro/lancamentos': typeof FinanceiroLancamentosRoute
+  '/financeiro/metas': typeof FinanceiroMetasRoute
+  '/marketing/campanhas': typeof MarketingCampanhasRoute
+  '/comercial/': typeof ComercialIndexRoute
+  '/financeiro/': typeof FinanceiroIndexRoute
+  '/marketing/': typeof MarketingIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/configuracoes'
+    | '/comercial/clientes'
+    | '/financeiro/lancamentos'
+    | '/financeiro/metas'
+    | '/marketing/campanhas'
+    | '/comercial/'
+    | '/financeiro/'
+    | '/marketing/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/configuracoes'
+    | '/comercial/clientes'
+    | '/financeiro/lancamentos'
+    | '/financeiro/metas'
+    | '/marketing/campanhas'
+    | '/comercial'
+    | '/financeiro'
+    | '/marketing'
+  id:
+    | '__root__'
+    | '/'
+    | '/configuracoes'
+    | '/comercial/clientes'
+    | '/financeiro/lancamentos'
+    | '/financeiro/metas'
+    | '/marketing/campanhas'
+    | '/comercial/'
+    | '/financeiro/'
+    | '/marketing/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ConfiguracoesRoute: typeof ConfiguracoesRoute
+  ComercialClientesRoute: typeof ComercialClientesRoute
+  FinanceiroLancamentosRoute: typeof FinanceiroLancamentosRoute
+  FinanceiroMetasRoute: typeof FinanceiroMetasRoute
+  MarketingCampanhasRoute: typeof MarketingCampanhasRoute
+  ComercialIndexRoute: typeof ComercialIndexRoute
+  FinanceiroIndexRoute: typeof FinanceiroIndexRoute
+  MarketingIndexRoute: typeof MarketingIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/configuracoes': {
+      id: '/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof ConfiguracoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +163,69 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/marketing/': {
+      id: '/marketing/'
+      path: '/marketing'
+      fullPath: '/marketing/'
+      preLoaderRoute: typeof MarketingIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/financeiro/': {
+      id: '/financeiro/'
+      path: '/financeiro'
+      fullPath: '/financeiro/'
+      preLoaderRoute: typeof FinanceiroIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/comercial/': {
+      id: '/comercial/'
+      path: '/comercial'
+      fullPath: '/comercial/'
+      preLoaderRoute: typeof ComercialIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/marketing/campanhas': {
+      id: '/marketing/campanhas'
+      path: '/marketing/campanhas'
+      fullPath: '/marketing/campanhas'
+      preLoaderRoute: typeof MarketingCampanhasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/financeiro/metas': {
+      id: '/financeiro/metas'
+      path: '/financeiro/metas'
+      fullPath: '/financeiro/metas'
+      preLoaderRoute: typeof FinanceiroMetasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/financeiro/lancamentos': {
+      id: '/financeiro/lancamentos'
+      path: '/financeiro/lancamentos'
+      fullPath: '/financeiro/lancamentos'
+      preLoaderRoute: typeof FinanceiroLancamentosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/comercial/clientes': {
+      id: '/comercial/clientes'
+      path: '/comercial/clientes'
+      fullPath: '/comercial/clientes'
+      preLoaderRoute: typeof ComercialClientesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ConfiguracoesRoute: ConfiguracoesRoute,
+  ComercialClientesRoute: ComercialClientesRoute,
+  FinanceiroLancamentosRoute: FinanceiroLancamentosRoute,
+  FinanceiroMetasRoute: FinanceiroMetasRoute,
+  MarketingCampanhasRoute: MarketingCampanhasRoute,
+  ComercialIndexRoute: ComercialIndexRoute,
+  FinanceiroIndexRoute: FinanceiroIndexRoute,
+  MarketingIndexRoute: MarketingIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
