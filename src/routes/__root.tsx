@@ -108,10 +108,11 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const Shell = AppShell;
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AppShell />
+      <Shell />
     </QueryClientProvider>
   );
 }
