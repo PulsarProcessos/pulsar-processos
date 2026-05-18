@@ -15,6 +15,7 @@ import { Route as MarketingIndexRouteImport } from './routes/marketing.index'
 import { Route as FinanceiroIndexRouteImport } from './routes/financeiro.index'
 import { Route as ComercialIndexRouteImport } from './routes/comercial.index'
 import { Route as MarketingCampanhasRouteImport } from './routes/marketing.campanhas'
+import { Route as MarketingCalendarioRouteImport } from './routes/marketing.calendario'
 import { Route as FinanceiroMetasRouteImport } from './routes/financeiro.metas'
 import { Route as FinanceiroLancamentosRouteImport } from './routes/financeiro.lancamentos'
 import { Route as FinanceiroCadastrosRouteImport } from './routes/financeiro.cadastros'
@@ -50,6 +51,11 @@ const MarketingCampanhasRoute = MarketingCampanhasRouteImport.update({
   path: '/marketing/campanhas',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MarketingCalendarioRoute = MarketingCalendarioRouteImport.update({
+  id: '/marketing/calendario',
+  path: '/marketing/calendario',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FinanceiroMetasRoute = FinanceiroMetasRouteImport.update({
   id: '/financeiro/metas',
   path: '/financeiro/metas',
@@ -78,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/financeiro/cadastros': typeof FinanceiroCadastrosRoute
   '/financeiro/lancamentos': typeof FinanceiroLancamentosRoute
   '/financeiro/metas': typeof FinanceiroMetasRoute
+  '/marketing/calendario': typeof MarketingCalendarioRoute
   '/marketing/campanhas': typeof MarketingCampanhasRoute
   '/comercial/': typeof ComercialIndexRoute
   '/financeiro/': typeof FinanceiroIndexRoute
@@ -90,6 +97,7 @@ export interface FileRoutesByTo {
   '/financeiro/cadastros': typeof FinanceiroCadastrosRoute
   '/financeiro/lancamentos': typeof FinanceiroLancamentosRoute
   '/financeiro/metas': typeof FinanceiroMetasRoute
+  '/marketing/calendario': typeof MarketingCalendarioRoute
   '/marketing/campanhas': typeof MarketingCampanhasRoute
   '/comercial': typeof ComercialIndexRoute
   '/financeiro': typeof FinanceiroIndexRoute
@@ -103,6 +111,7 @@ export interface FileRoutesById {
   '/financeiro/cadastros': typeof FinanceiroCadastrosRoute
   '/financeiro/lancamentos': typeof FinanceiroLancamentosRoute
   '/financeiro/metas': typeof FinanceiroMetasRoute
+  '/marketing/calendario': typeof MarketingCalendarioRoute
   '/marketing/campanhas': typeof MarketingCampanhasRoute
   '/comercial/': typeof ComercialIndexRoute
   '/financeiro/': typeof FinanceiroIndexRoute
@@ -117,6 +126,7 @@ export interface FileRouteTypes {
     | '/financeiro/cadastros'
     | '/financeiro/lancamentos'
     | '/financeiro/metas'
+    | '/marketing/calendario'
     | '/marketing/campanhas'
     | '/comercial/'
     | '/financeiro/'
@@ -129,6 +139,7 @@ export interface FileRouteTypes {
     | '/financeiro/cadastros'
     | '/financeiro/lancamentos'
     | '/financeiro/metas'
+    | '/marketing/calendario'
     | '/marketing/campanhas'
     | '/comercial'
     | '/financeiro'
@@ -141,6 +152,7 @@ export interface FileRouteTypes {
     | '/financeiro/cadastros'
     | '/financeiro/lancamentos'
     | '/financeiro/metas'
+    | '/marketing/calendario'
     | '/marketing/campanhas'
     | '/comercial/'
     | '/financeiro/'
@@ -154,6 +166,7 @@ export interface RootRouteChildren {
   FinanceiroCadastrosRoute: typeof FinanceiroCadastrosRoute
   FinanceiroLancamentosRoute: typeof FinanceiroLancamentosRoute
   FinanceiroMetasRoute: typeof FinanceiroMetasRoute
+  MarketingCalendarioRoute: typeof MarketingCalendarioRoute
   MarketingCampanhasRoute: typeof MarketingCampanhasRoute
   ComercialIndexRoute: typeof ComercialIndexRoute
   FinanceiroIndexRoute: typeof FinanceiroIndexRoute
@@ -204,6 +217,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarketingCampanhasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/marketing/calendario': {
+      id: '/marketing/calendario'
+      path: '/marketing/calendario'
+      fullPath: '/marketing/calendario'
+      preLoaderRoute: typeof MarketingCalendarioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/financeiro/metas': {
       id: '/financeiro/metas'
       path: '/financeiro/metas'
@@ -242,6 +262,7 @@ const rootRouteChildren: RootRouteChildren = {
   FinanceiroCadastrosRoute: FinanceiroCadastrosRoute,
   FinanceiroLancamentosRoute: FinanceiroLancamentosRoute,
   FinanceiroMetasRoute: FinanceiroMetasRoute,
+  MarketingCalendarioRoute: MarketingCalendarioRoute,
   MarketingCampanhasRoute: MarketingCampanhasRoute,
   ComercialIndexRoute: ComercialIndexRoute,
   FinanceiroIndexRoute: FinanceiroIndexRoute,

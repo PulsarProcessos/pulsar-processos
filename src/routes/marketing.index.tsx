@@ -39,7 +39,7 @@ const statusBadge: Record<LeadStatus, string> = {
 const PIE_COLORS = ["#6C63FF", "#FF6584", "#22C55E", "#F59E0B", "#94A3B8"];
 
 function Leads() {
-  const { leads, advanceLeadStatus, removeLead } = useData();
+  const { leads, advanceLeadStatus } = useData();
   const [fOrigem, setFOrigem] = useState<string>("todas");
   const [fStatus, setFStatus] = useState<string>("todos");
   const [openNew, setOpenNew] = useState(false);
