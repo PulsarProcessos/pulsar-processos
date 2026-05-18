@@ -15,8 +15,10 @@ import { Route as MarketingIndexRouteImport } from './routes/marketing.index'
 import { Route as FinanceiroIndexRouteImport } from './routes/financeiro.index'
 import { Route as ComercialIndexRouteImport } from './routes/comercial.index'
 import { Route as MarketingCampanhasRouteImport } from './routes/marketing.campanhas'
+import { Route as MarketingCalendarioRouteImport } from './routes/marketing.calendario'
 import { Route as FinanceiroMetasRouteImport } from './routes/financeiro.metas'
 import { Route as FinanceiroLancamentosRouteImport } from './routes/financeiro.lancamentos'
+import { Route as FinanceiroCadastrosRouteImport } from './routes/financeiro.cadastros'
 import { Route as ComercialClientesRouteImport } from './routes/comercial.clientes'
 
 const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
@@ -49,6 +51,11 @@ const MarketingCampanhasRoute = MarketingCampanhasRouteImport.update({
   path: '/marketing/campanhas',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MarketingCalendarioRoute = MarketingCalendarioRouteImport.update({
+  id: '/marketing/calendario',
+  path: '/marketing/calendario',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FinanceiroMetasRoute = FinanceiroMetasRouteImport.update({
   id: '/financeiro/metas',
   path: '/financeiro/metas',
@@ -57,6 +64,11 @@ const FinanceiroMetasRoute = FinanceiroMetasRouteImport.update({
 const FinanceiroLancamentosRoute = FinanceiroLancamentosRouteImport.update({
   id: '/financeiro/lancamentos',
   path: '/financeiro/lancamentos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FinanceiroCadastrosRoute = FinanceiroCadastrosRouteImport.update({
+  id: '/financeiro/cadastros',
+  path: '/financeiro/cadastros',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ComercialClientesRoute = ComercialClientesRouteImport.update({
@@ -69,8 +81,10 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/comercial/clientes': typeof ComercialClientesRoute
+  '/financeiro/cadastros': typeof FinanceiroCadastrosRoute
   '/financeiro/lancamentos': typeof FinanceiroLancamentosRoute
   '/financeiro/metas': typeof FinanceiroMetasRoute
+  '/marketing/calendario': typeof MarketingCalendarioRoute
   '/marketing/campanhas': typeof MarketingCampanhasRoute
   '/comercial/': typeof ComercialIndexRoute
   '/financeiro/': typeof FinanceiroIndexRoute
@@ -80,8 +94,10 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/comercial/clientes': typeof ComercialClientesRoute
+  '/financeiro/cadastros': typeof FinanceiroCadastrosRoute
   '/financeiro/lancamentos': typeof FinanceiroLancamentosRoute
   '/financeiro/metas': typeof FinanceiroMetasRoute
+  '/marketing/calendario': typeof MarketingCalendarioRoute
   '/marketing/campanhas': typeof MarketingCampanhasRoute
   '/comercial': typeof ComercialIndexRoute
   '/financeiro': typeof FinanceiroIndexRoute
@@ -92,8 +108,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/comercial/clientes': typeof ComercialClientesRoute
+  '/financeiro/cadastros': typeof FinanceiroCadastrosRoute
   '/financeiro/lancamentos': typeof FinanceiroLancamentosRoute
   '/financeiro/metas': typeof FinanceiroMetasRoute
+  '/marketing/calendario': typeof MarketingCalendarioRoute
   '/marketing/campanhas': typeof MarketingCampanhasRoute
   '/comercial/': typeof ComercialIndexRoute
   '/financeiro/': typeof FinanceiroIndexRoute
@@ -105,8 +123,10 @@ export interface FileRouteTypes {
     | '/'
     | '/configuracoes'
     | '/comercial/clientes'
+    | '/financeiro/cadastros'
     | '/financeiro/lancamentos'
     | '/financeiro/metas'
+    | '/marketing/calendario'
     | '/marketing/campanhas'
     | '/comercial/'
     | '/financeiro/'
@@ -116,8 +136,10 @@ export interface FileRouteTypes {
     | '/'
     | '/configuracoes'
     | '/comercial/clientes'
+    | '/financeiro/cadastros'
     | '/financeiro/lancamentos'
     | '/financeiro/metas'
+    | '/marketing/calendario'
     | '/marketing/campanhas'
     | '/comercial'
     | '/financeiro'
@@ -127,8 +149,10 @@ export interface FileRouteTypes {
     | '/'
     | '/configuracoes'
     | '/comercial/clientes'
+    | '/financeiro/cadastros'
     | '/financeiro/lancamentos'
     | '/financeiro/metas'
+    | '/marketing/calendario'
     | '/marketing/campanhas'
     | '/comercial/'
     | '/financeiro/'
@@ -139,8 +163,10 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   ComercialClientesRoute: typeof ComercialClientesRoute
+  FinanceiroCadastrosRoute: typeof FinanceiroCadastrosRoute
   FinanceiroLancamentosRoute: typeof FinanceiroLancamentosRoute
   FinanceiroMetasRoute: typeof FinanceiroMetasRoute
+  MarketingCalendarioRoute: typeof MarketingCalendarioRoute
   MarketingCampanhasRoute: typeof MarketingCampanhasRoute
   ComercialIndexRoute: typeof ComercialIndexRoute
   FinanceiroIndexRoute: typeof FinanceiroIndexRoute
@@ -191,6 +217,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarketingCampanhasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/marketing/calendario': {
+      id: '/marketing/calendario'
+      path: '/marketing/calendario'
+      fullPath: '/marketing/calendario'
+      preLoaderRoute: typeof MarketingCalendarioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/financeiro/metas': {
       id: '/financeiro/metas'
       path: '/financeiro/metas'
@@ -203,6 +236,13 @@ declare module '@tanstack/react-router' {
       path: '/financeiro/lancamentos'
       fullPath: '/financeiro/lancamentos'
       preLoaderRoute: typeof FinanceiroLancamentosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/financeiro/cadastros': {
+      id: '/financeiro/cadastros'
+      path: '/financeiro/cadastros'
+      fullPath: '/financeiro/cadastros'
+      preLoaderRoute: typeof FinanceiroCadastrosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/comercial/clientes': {
@@ -219,8 +259,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
   ComercialClientesRoute: ComercialClientesRoute,
+  FinanceiroCadastrosRoute: FinanceiroCadastrosRoute,
   FinanceiroLancamentosRoute: FinanceiroLancamentosRoute,
   FinanceiroMetasRoute: FinanceiroMetasRoute,
+  MarketingCalendarioRoute: MarketingCalendarioRoute,
   MarketingCampanhasRoute: MarketingCampanhasRoute,
   ComercialIndexRoute: ComercialIndexRoute,
   FinanceiroIndexRoute: FinanceiroIndexRoute,
