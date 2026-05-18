@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,17 +56,19 @@ function ContatosPanel({ tipo }: { tipo: ContatoTipo }) {
               : "Vinculados a lançamentos de despesa."}
           </CardDescription>
         </div>
-        <ContatoDialog
-          open={open}
-          onOpenChange={(v) => { setOpen(v); if (!v) setEditando(null); }}
-          editando={editando}
-          tipo={tipo}
-          trigger={
+        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditando(null); }}>
+          <DialogTrigger asChild>
             <Button onClick={() => setEditando(null)}>
               <Plus className="h-4 w-4" /> Novo {tipo}
             </Button>
-          }
-        />
+          </DialogTrigger>
+          <ContatoForm
+            key={editando?.id ?? "novo"}
+            editando={editando}
+            tipo={tipo}
+            onClose={() => setOpen(false)}
+          />
+        </Dialog>
       </CardHeader>
       <CardContent>
         <Table>
@@ -114,37 +116,20 @@ function ContatosPanel({ tipo }: { tipo: ContatoTipo }) {
   );
 }
 
-function ContatoDialog({
-  open, onOpenChange, editando, tipo, trigger,
+function ContatoForm({
+  editando, tipo, onClose,
 }: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
   editando: Contato | null;
   tipo: ContatoTipo;
-  trigger: React.ReactNode;
+  onClose: () => void;
 }) {
   const { addContato, updateContato } = useData();
-  const [nome, setNome] = useState("");
-  const [documento, setDocumento] = useState("");
-  const [email, setEmail] = useState("");
-  const [telefone, setTelefone] = useState("");
-  const [obs, setObs] = useState("");
+  const [nome, setNome] = useState(editando?.nome ?? "");
+  const [documento, setDocumento] = useState(editando?.documento ?? "");
+  const [email, setEmail] = useState(editando?.email ?? "");
+  const [telefone, setTelefone] = useState(editando?.telefone ?? "");
+  const [obs, setObs] = useState(editando?.obs ?? "");
   const [erro, setErro] = useState("");
-
-  // Reset on edit change
-  const eid = editando?.id ?? null;
-  useState(() => 0);
-  // sync
-  if (open && (editando?.id ?? "") !== (sync.current ?? "")) {
-    sync.current = editando?.id ?? "";
-    setNome(editando?.nome ?? "");
-    setDocumento(editando?.documento ?? "");
-    setEmail(editando?.email ?? "");
-    setTelefone(editando?.telefone ?? "");
-    setObs(editando?.obs ?? "");
-    setErro("");
-  }
-  void eid;
 
   const submit = () => {
     if (!nome.trim()) { setErro("Nome é obrigatório."); return; }
@@ -157,55 +142,46 @@ function ContatoDialog({
     };
     if (editando) updateContato(editando.id, payload);
     else addContato(payload);
-    sync.current = "";
-    onOpenChange(false);
+    onClose();
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {editando ? `Editar ${tipo.toLowerCase()}` : `Novo ${tipo.toLowerCase()}`}
-          </DialogTitle>
-        </DialogHeader>
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <Label>Nome</Label>
-            <Input value={nome} onChange={(e) => setNome(e.target.value)} maxLength={120} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>CNPJ / CPF</Label>
-            <Input value={documento} onChange={(e) => setDocumento(e.target.value)} maxLength={20} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>Email</Label>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={120} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Telefone</Label>
-              <Input value={telefone} onChange={(e) => setTelefone(e.target.value)} maxLength={20} />
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Observações</Label>
-            <Input value={obs} onChange={(e) => setObs(e.target.value)} maxLength={200} />
-          </div>
-          {erro && <p className="text-sm text-red-500">{erro}</p>}
+    <DialogContent className="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>{editando ? `Editar ${tipo.toLowerCase()}` : `Novo ${tipo.toLowerCase()}`}</DialogTitle>
+      </DialogHeader>
+      <div className="space-y-3">
+        <div className="space-y-1.5">
+          <Label>Nome</Label>
+          <Input value={nome} onChange={(e) => setNome(e.target.value)} maxLength={120} />
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={submit}>{editando ? "Salvar alterações" : "Salvar"}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <div className="space-y-1.5">
+          <Label>CNPJ / CPF</Label>
+          <Input value={documento} onChange={(e) => setDocumento(e.target.value)} maxLength={20} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label>Email</Label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={120} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Telefone</Label>
+            <Input value={telefone} onChange={(e) => setTelefone(e.target.value)} maxLength={20} />
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Observações</Label>
+          <Input value={obs} onChange={(e) => setObs(e.target.value)} maxLength={200} />
+        </div>
+        {erro && <p className="text-sm text-red-500">{erro}</p>}
+      </div>
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>Cancelar</Button>
+        <Button onClick={submit}>{editando ? "Salvar alterações" : "Salvar"}</Button>
+      </DialogFooter>
+    </DialogContent>
   );
 }
-
-// Pequeno hack de ref entre renders sem useEffect/useRef extras
-const sync: { current: string } = { current: "" };
 
 function PlanoContas() {
   const { categorias, removeCategoria } = useData();
@@ -217,20 +193,20 @@ function PlanoContas() {
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle>Plano de Contas</CardTitle>
-          <CardDescription>
-            Categorias usadas nos lançamentos financeiros.
-          </CardDescription>
+          <CardDescription>Categorias usadas nos lançamentos financeiros.</CardDescription>
         </div>
-        <CategoriaDialog
-          open={open}
-          onOpenChange={(v) => { setOpen(v); if (!v) setEditando(null); }}
-          editando={editando}
-          trigger={
+        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditando(null); }}>
+          <DialogTrigger asChild>
             <Button onClick={() => setEditando(null)}>
               <Plus className="h-4 w-4" /> Nova Categoria
             </Button>
-          }
-        />
+          </DialogTrigger>
+          <CategoriaForm
+            key={editando?.id ?? "novo"}
+            editando={editando}
+            onClose={() => setOpen(false)}
+          />
+        </Dialog>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4 md:grid-cols-2">
@@ -272,66 +248,49 @@ function PlanoContas() {
   );
 }
 
-const syncCat: { current: string } = { current: "" };
-
-function CategoriaDialog({
-  open, onOpenChange, editando, trigger,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  editando: Categoria | null;
-  trigger: React.ReactNode;
-}) {
+function CategoriaForm({
+  editando, onClose,
+}: { editando: Categoria | null; onClose: () => void }) {
   const { addCategoria, updateCategoria } = useData();
-  const [nome, setNome] = useState("");
-  const [tipo, setTipo] = useState<"Receita" | "Despesa">("Despesa");
+  const [nome, setNome] = useState(editando?.nome ?? "");
+  const [tipo, setTipo] = useState<"Receita" | "Despesa">(editando?.tipo ?? "Despesa");
   const [erro, setErro] = useState("");
-
-  if (open && (editando?.id ?? "") !== (syncCat.current ?? "")) {
-    syncCat.current = editando?.id ?? "";
-    setNome(editando?.nome ?? "");
-    setTipo(editando?.tipo ?? "Despesa");
-    setErro("");
-  }
+  useEffect(() => { setErro(""); }, []);
 
   const submit = () => {
     if (!nome.trim()) { setErro("Nome é obrigatório."); return; }
     const payload = { nome: nome.trim(), tipo };
     if (editando) updateCategoria(editando.id, payload);
     else addCategoria(payload);
-    syncCat.current = "";
-    onOpenChange(false);
+    onClose();
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle>{editando ? "Editar categoria" : "Nova categoria"}</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <Label>Nome</Label>
-            <Input value={nome} onChange={(e) => setNome(e.target.value)} maxLength={60} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Tipo</Label>
-            <Select value={tipo} onValueChange={(v) => setTipo(v as "Receita" | "Despesa")}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Receita">Receita</SelectItem>
-                <SelectItem value="Despesa">Despesa</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {erro && <p className="text-sm text-red-500">{erro}</p>}
+    <DialogContent className="sm:max-w-sm">
+      <DialogHeader>
+        <DialogTitle>{editando ? "Editar categoria" : "Nova categoria"}</DialogTitle>
+      </DialogHeader>
+      <div className="space-y-3">
+        <div className="space-y-1.5">
+          <Label>Nome</Label>
+          <Input value={nome} onChange={(e) => setNome(e.target.value)} maxLength={60} />
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={submit}>{editando ? "Salvar alterações" : "Salvar"}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <div className="space-y-1.5">
+          <Label>Tipo</Label>
+          <Select value={tipo} onValueChange={(v) => setTipo(v as "Receita" | "Despesa")}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Receita">Receita</SelectItem>
+              <SelectItem value="Despesa">Despesa</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {erro && <p className="text-sm text-red-500">{erro}</p>}
+      </div>
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>Cancelar</Button>
+        <Button onClick={submit}>{editando ? "Salvar alterações" : "Salvar"}</Button>
+      </DialogFooter>
+    </DialogContent>
   );
 }
