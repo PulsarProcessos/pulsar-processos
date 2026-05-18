@@ -95,16 +95,18 @@ function Lancamentos() {
               </Select>
             </div>
           </div>
-          <LancamentoDialog
-            open={open}
-            onOpenChange={(v) => { setOpen(v); if (!v) setEditando(null); }}
-            editando={editando}
-            trigger={
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditando(null); }}>
+            <DialogTrigger asChild>
               <Button onClick={() => setEditando(null)}>
                 <Plus className="h-4 w-4" /> Novo Lançamento
               </Button>
-            }
-          />
+            </DialogTrigger>
+            <LancamentoForm
+              key={editando?.id ?? "novo"}
+              editando={editando}
+              onClose={() => setOpen(false)}
+            />
+          </Dialog>
         </CardHeader>
         <CardContent>
           <Table>
@@ -173,14 +175,9 @@ function Lancamentos() {
   );
 }
 
-function LancamentoDialog({
-  open, onOpenChange, editando, trigger,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  editando: Lancamento | null;
-  trigger: React.ReactNode;
-}) {
+function LancamentoForm({
+  editando, onClose,
+}: { editando: Lancamento | null; onClose: () => void }) {
   const { categorias, contatos, addLancamento, updateLancamento } = useData();
   const [tipo, setTipo] = useState<LancTipo>(editando?.tipo ?? "Receita");
   const [desc, setDesc] = useState(editando?.desc ?? "");
@@ -190,19 +187,6 @@ function LancamentoDialog({
   const [contatoId, setContatoId] = useState(editando?.contatoId ?? "");
   const [status, setStatus] = useState<LancStatus>(editando?.status ?? "Pago");
   const [erro, setErro] = useState("");
-
-  // sincroniza quando muda editando
-  const editingId = editando?.id ?? null;
-  useMemo(() => {
-    setTipo(editando?.tipo ?? "Receita");
-    setDesc(editando?.desc ?? "");
-    setValor(editando ? String(editando.valor) : "");
-    setData(editando?.data ?? "");
-    setCategoriaId(editando?.categoriaId ?? "");
-    setContatoId(editando?.contatoId ?? "");
-    setStatus(editando?.status ?? "Pago");
-    setErro("");
-  }, [editingId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const catsFiltradas = categorias.filter((c) => c.tipo === tipo);
   const contatosFiltrados = contatos.filter((c) =>
@@ -221,94 +205,93 @@ function LancamentoDialog({
     };
     if (editando) updateLancamento(editando.id, payload);
     else addLancamento(payload);
-    onOpenChange(false);
+    onClose();
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{editando ? "Editar lançamento" : "Novo lançamento"}</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted p-1">
-            {(["Receita", "Despesa"] as LancTipo[]).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => { setTipo(t); setCategoriaId(""); setContatoId(""); }}
-                className={`rounded-md py-2 text-sm font-medium transition-colors ${
-                  tipo === t
-                    ? t === "Receita" ? "bg-emerald-500 text-white" : "bg-red-500 text-white"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >{t}</button>
-            ))}
+    <DialogContent className="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>{editando ? "Editar lançamento" : "Novo lançamento"}</DialogTitle>
+      </DialogHeader>
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted p-1">
+          {(["Receita", "Despesa"] as LancTipo[]).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => { setTipo(t); setCategoriaId(""); setContatoId(""); }}
+              className={`rounded-md py-2 text-sm font-medium transition-colors ${
+                tipo === t
+                  ? t === "Receita" ? "bg-emerald-500 text-white" : "bg-red-500 text-white"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >{t}</button>
+          ))}
+        </div>
+        <div className="space-y-1.5">
+          <Label>Descrição</Label>
+          <Input value={desc} onChange={(e) => setDesc(e.target.value)} maxLength={120} />
+        </div>
+        <div className="space-y-1.5">
+          <Label>{tipo === "Receita" ? "Cliente" : "Fornecedor"}</Label>
+          <Select value={contatoId} onValueChange={setContatoId}>
+            <SelectTrigger>
+              <SelectValue placeholder={`Selecione um ${tipo === "Receita" ? "cliente" : "fornecedor"}`} />
+            </SelectTrigger>
+            <SelectContent>
+              {contatosFiltrados.length === 0 ? (
+                <div className="px-2 py-3 text-xs text-muted-foreground">
+                  Nenhum cadastro. Crie em Cadastros.
+                </div>
+              ) : contatosFiltrados.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label>Valor (R$)</Label>
+            <Input type="number" min="0" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <Label>Descrição</Label>
-            <Input value={desc} onChange={(e) => setDesc(e.target.value)} maxLength={120} />
+            <Label>Data</Label>
+            <Input placeholder="dd/mm" value={data} onChange={(e) => setData(e.target.value)} maxLength={10} />
           </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <Label>{tipo === "Receita" ? "Cliente" : "Fornecedor"}</Label>
-            <Select value={contatoId} onValueChange={setContatoId}>
-              <SelectTrigger><SelectValue placeholder={`Selecione um ${tipo === "Receita" ? "cliente" : "fornecedor"}`} /></SelectTrigger>
+            <Label>Categoria</Label>
+            <Select value={categoriaId} onValueChange={setCategoriaId}>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>
-                {contatosFiltrados.length === 0 ? (
+                {catsFiltradas.length === 0 ? (
                   <div className="px-2 py-3 text-xs text-muted-foreground">
-                    Nenhum cadastro. Crie em Cadastros.
+                    Crie em Cadastros.
                   </div>
-                ) : contatosFiltrados.map((c) => (
+                ) : catsFiltradas.map((c) => (
                   <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>Valor (R$)</Label>
-              <Input type="number" min="0" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Data</Label>
-              <Input placeholder="dd/mm" value={data} onChange={(e) => setData(e.target.value)} maxLength={10} />
-            </div>
+          <div className="space-y-1.5">
+            <Label>Status</Label>
+            <Select value={status} onValueChange={(v) => setStatus(v as LancStatus)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Pago">Pago</SelectItem>
+                <SelectItem value="Pendente">Pendente</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>Categoria</Label>
-              <Select value={categoriaId} onValueChange={setCategoriaId}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  {catsFiltradas.length === 0 ? (
-                    <div className="px-2 py-3 text-xs text-muted-foreground">
-                      Crie em Cadastros.
-                    </div>
-                  ) : catsFiltradas.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Status</Label>
-              <Select value={status} onValueChange={(v) => setStatus(v as LancStatus)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Pago">Pago</SelectItem>
-                  <SelectItem value="Pendente">Pendente</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          {erro && <p className="text-sm text-red-500">{erro}</p>}
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={submit}>{editando ? "Salvar alterações" : "Salvar"}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        {erro && <p className="text-sm text-red-500">{erro}</p>}
+      </div>
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>Cancelar</Button>
+        <Button onClick={submit}>{editando ? "Salvar alterações" : "Salvar"}</Button>
+      </DialogFooter>
+    </DialogContent>
   );
 }
