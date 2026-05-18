@@ -17,6 +17,7 @@ import { Route as ComercialIndexRouteImport } from './routes/comercial.index'
 import { Route as MarketingCampanhasRouteImport } from './routes/marketing.campanhas'
 import { Route as FinanceiroMetasRouteImport } from './routes/financeiro.metas'
 import { Route as FinanceiroLancamentosRouteImport } from './routes/financeiro.lancamentos'
+import { Route as FinanceiroCadastrosRouteImport } from './routes/financeiro.cadastros'
 import { Route as ComercialClientesRouteImport } from './routes/comercial.clientes'
 
 const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
@@ -59,6 +60,11 @@ const FinanceiroLancamentosRoute = FinanceiroLancamentosRouteImport.update({
   path: '/financeiro/lancamentos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FinanceiroCadastrosRoute = FinanceiroCadastrosRouteImport.update({
+  id: '/financeiro/cadastros',
+  path: '/financeiro/cadastros',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ComercialClientesRoute = ComercialClientesRouteImport.update({
   id: '/comercial/clientes',
   path: '/comercial/clientes',
@@ -69,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/comercial/clientes': typeof ComercialClientesRoute
+  '/financeiro/cadastros': typeof FinanceiroCadastrosRoute
   '/financeiro/lancamentos': typeof FinanceiroLancamentosRoute
   '/financeiro/metas': typeof FinanceiroMetasRoute
   '/marketing/campanhas': typeof MarketingCampanhasRoute
@@ -80,6 +87,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/comercial/clientes': typeof ComercialClientesRoute
+  '/financeiro/cadastros': typeof FinanceiroCadastrosRoute
   '/financeiro/lancamentos': typeof FinanceiroLancamentosRoute
   '/financeiro/metas': typeof FinanceiroMetasRoute
   '/marketing/campanhas': typeof MarketingCampanhasRoute
@@ -92,6 +100,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/comercial/clientes': typeof ComercialClientesRoute
+  '/financeiro/cadastros': typeof FinanceiroCadastrosRoute
   '/financeiro/lancamentos': typeof FinanceiroLancamentosRoute
   '/financeiro/metas': typeof FinanceiroMetasRoute
   '/marketing/campanhas': typeof MarketingCampanhasRoute
@@ -105,6 +114,7 @@ export interface FileRouteTypes {
     | '/'
     | '/configuracoes'
     | '/comercial/clientes'
+    | '/financeiro/cadastros'
     | '/financeiro/lancamentos'
     | '/financeiro/metas'
     | '/marketing/campanhas'
@@ -116,6 +126,7 @@ export interface FileRouteTypes {
     | '/'
     | '/configuracoes'
     | '/comercial/clientes'
+    | '/financeiro/cadastros'
     | '/financeiro/lancamentos'
     | '/financeiro/metas'
     | '/marketing/campanhas'
@@ -127,6 +138,7 @@ export interface FileRouteTypes {
     | '/'
     | '/configuracoes'
     | '/comercial/clientes'
+    | '/financeiro/cadastros'
     | '/financeiro/lancamentos'
     | '/financeiro/metas'
     | '/marketing/campanhas'
@@ -139,6 +151,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   ComercialClientesRoute: typeof ComercialClientesRoute
+  FinanceiroCadastrosRoute: typeof FinanceiroCadastrosRoute
   FinanceiroLancamentosRoute: typeof FinanceiroLancamentosRoute
   FinanceiroMetasRoute: typeof FinanceiroMetasRoute
   MarketingCampanhasRoute: typeof MarketingCampanhasRoute
@@ -205,6 +218,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FinanceiroLancamentosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/financeiro/cadastros': {
+      id: '/financeiro/cadastros'
+      path: '/financeiro/cadastros'
+      fullPath: '/financeiro/cadastros'
+      preLoaderRoute: typeof FinanceiroCadastrosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/comercial/clientes': {
       id: '/comercial/clientes'
       path: '/comercial/clientes'
@@ -219,6 +239,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
   ComercialClientesRoute: ComercialClientesRoute,
+  FinanceiroCadastrosRoute: FinanceiroCadastrosRoute,
   FinanceiroLancamentosRoute: FinanceiroLancamentosRoute,
   FinanceiroMetasRoute: FinanceiroMetasRoute,
   MarketingCampanhasRoute: MarketingCampanhasRoute,
@@ -229,3 +250,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
