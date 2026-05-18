@@ -20,6 +20,8 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DataProvider } from "@/lib/data-store";
+import { Toaster } from "@/components/ui/sonner";
 
 const titles: Record<string, string> = {
   "/": "Dashboard",
@@ -28,8 +30,10 @@ const titles: Record<string, string> = {
   "/financeiro/metas": "Financeiro · Metas",
   "/comercial": "Comercial · Pipeline",
   "/comercial/clientes": "Comercial · Clientes",
+  "/financeiro/cadastros": "Financeiro · Cadastros",
   "/marketing": "Marketing · Leads",
   "/marketing/campanhas": "Marketing · Campanhas",
+  "/marketing/calendario": "Marketing · Calendário",
   "/configuracoes": "Configurações",
 };
 
@@ -180,7 +184,10 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AppShell />
+      <DataProvider>
+        <AppShell />
+        <Toaster />
+      </DataProvider>
     </QueryClientProvider>
   );
 }
