@@ -83,6 +83,42 @@ export type Database = {
         }
         Relationships: []
       }
+      clientes: {
+        Row: {
+          created_at: string
+          documento: string | null
+          email: string | null
+          id: string
+          nome: string
+          obs: string | null
+          telefone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          documento?: string | null
+          email?: string | null
+          id?: string
+          nome: string
+          obs?: string | null
+          telefone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          documento?: string | null
+          email?: string | null
+          id?: string
+          nome?: string
+          obs?: string | null
+          telefone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       contatos: {
         Row: {
           created_at: string
@@ -209,13 +245,51 @@ export type Database = {
         }
         Relationships: []
       }
+      fornecedores: {
+        Row: {
+          created_at: string
+          documento: string | null
+          email: string | null
+          id: string
+          nome: string
+          obs: string | null
+          telefone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          documento?: string | null
+          email?: string | null
+          id?: string
+          nome: string
+          obs?: string | null
+          telefone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          documento?: string | null
+          email?: string | null
+          id?: string
+          nome?: string
+          obs?: string | null
+          telefone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       lancamentos: {
         Row: {
           categoria_id: string | null
+          cliente_id: string | null
           contato_id: string | null
           created_at: string
           data: string
           descricao: string
+          fornecedor_id: string | null
           id: string
           status: Database["public"]["Enums"]["lancamento_status"]
           tipo: Database["public"]["Enums"]["movimento_tipo"]
@@ -225,10 +299,12 @@ export type Database = {
         }
         Insert: {
           categoria_id?: string | null
+          cliente_id?: string | null
           contato_id?: string | null
           created_at?: string
           data: string
           descricao: string
+          fornecedor_id?: string | null
           id?: string
           status?: Database["public"]["Enums"]["lancamento_status"]
           tipo: Database["public"]["Enums"]["movimento_tipo"]
@@ -238,10 +314,12 @@ export type Database = {
         }
         Update: {
           categoria_id?: string | null
+          cliente_id?: string | null
           contato_id?: string | null
           created_at?: string
           data?: string
           descricao?: string
+          fornecedor_id?: string | null
           id?: string
           status?: Database["public"]["Enums"]["lancamento_status"]
           tipo?: Database["public"]["Enums"]["movimento_tipo"]
@@ -258,10 +336,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "lancamentos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "lancamentos_contato_id_fkey"
             columns: ["contato_id"]
             isOneToOne: false
             referencedRelation: "contatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
             referencedColumns: ["id"]
           },
         ]
