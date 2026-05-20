@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,19 +23,14 @@ export const Route = createFileRoute("/comercial/")({
   component: Pipeline,
 });
 
-const STAGES: DealStage[] = ["Lead", "Qualificado", "Proposta Enviada", "Negociação", "Ganho", "Perdido"];
-
-const stageColor: Record<DealStage, string> = {
-  "Lead": "bg-slate-400",
-  "Qualificado": "bg-blue-500",
-  "Proposta Enviada": "bg-violet-500",
-  "Negociação": "bg-amber-500",
-  "Ganho": "bg-emerald-500",
-  "Perdido": "bg-red-500",
-};
+const STAGE_COLORS = [
+  "bg-slate-400", "bg-blue-500", "bg-violet-500",
+  "bg-amber-500", "bg-emerald-500", "bg-red-500",
+  "bg-cyan-500", "bg-pink-500", "bg-indigo-500", "bg-orange-500",
+];
 
 function Pipeline() {
-  const { deals, updateDeal } = useData();
+  const { deals, etapas, updateDeal } = useData();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [openNew, setOpenNew] = useState(false);
   const [selected, setSelected] = useState<Deal | null>(null);
@@ -43,12 +38,14 @@ function Pipeline() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const grouped = useMemo(() => {
-    const g: Record<DealStage, Deal[]> = {
-      "Lead": [], "Qualificado": [], "Proposta Enviada": [], "Negociação": [], "Ganho": [], "Perdido": [],
-    };
-    deals.forEach((d) => g[d.stage].push(d));
+    const g: Record<string, Deal[]> = {};
+    etapas.forEach((e) => { g[e] = []; });
+    deals.forEach((d) => {
+      if (g[d.stage]) g[d.stage].push(d);
+      else (g[etapas[0]] ||= []).push(d);
+    });
     return g;
-  }, [deals]);
+  }, [deals, etapas]);
 
   const onDragEnd = (e: DragEndEvent) => {
     setActiveId(null);
@@ -61,7 +58,11 @@ function Pipeline() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex justify-between items-center">
+        <p className="text-sm text-muted-foreground">
+          Personalize etapas e produtos em{" "}
+          <Link to="/comercial/cadastros" className="text-primary underline">Cadastros</Link>.
+        </p>
         <Dialog open={openNew} onOpenChange={setOpenNew}>
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4" /> Nova Oportunidade</Button>
@@ -76,8 +77,9 @@ function Pipeline() {
         onDragCancel={() => setActiveId(null)}
       >
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-          {STAGES.map((s) => (
-            <Column key={s} stage={s} deals={grouped[s]} onSelect={setSelected} />
+          {etapas.map((s, i) => (
+            <Column key={s} stage={s} color={STAGE_COLORS[i % STAGE_COLORS.length]}
+              deals={grouped[s] ?? []} onSelect={setSelected} />
           ))}
         </div>
         <DragOverlay>{active ? <DealCard deal={active} dragging /> : null}</DragOverlay>
@@ -93,8 +95,8 @@ function Pipeline() {
 }
 
 function Column({
-  stage, deals, onSelect,
-}: { stage: DealStage; deals: Deal[]; onSelect: (d: Deal) => void }) {
+  stage, color, deals, onSelect,
+}: { stage: DealStage; color: string; deals: Deal[]; onSelect: (d: Deal) => void }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage });
   const total = deals.reduce((s, d) => s + d.valor, 0);
   return (
@@ -105,7 +107,7 @@ function Column({
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className={`h-2 w-2 rounded-full ${stageColor[stage]}`} />
+            <span className={`h-2 w-2 rounded-full ${color}`} />
             <CardTitle className="text-sm font-semibold">{stage}</CardTitle>
           </div>
           <Badge variant="secondary">{deals.length}</Badge>
@@ -131,7 +133,6 @@ function DealCard({
       {...attributes}
       {...listeners}
       onClick={(e) => {
-        // Só dispara click se não veio de drag
         if (!isDragging && onClick) onClick();
         e.stopPropagation();
       }}
@@ -155,16 +156,26 @@ function DealCard({
 function DealForm({
   editando, onClose,
 }: { editando: Deal | null; onClose: () => void }) {
-  const { addDeal, updateDeal, removeDeal } = useData();
+  const { addDeal, updateDeal, removeDeal, etapas, produtos } = useData();
   const [cliente, setCliente] = useState(editando?.cliente ?? "");
   const [titulo, setTitulo] = useState(editando?.titulo ?? "");
   const [valor, setValor] = useState(editando ? String(editando.valor) : "");
-  const [stage, setStage] = useState<DealStage>(editando?.stage ?? "Lead");
+  const [stage, setStage] = useState<DealStage>(editando?.stage ?? etapas[0] ?? "Lead");
   const [prob, setProb] = useState(editando ? String(editando.prob) : "20");
+  const [produtoId, setProdutoId] = useState(editando?.produtoId ?? "");
   const [contato, setContato] = useState(editando?.contato ?? "");
   const [email, setEmail] = useState(editando?.email ?? "");
   const [obs, setObs] = useState(editando?.obs ?? "");
   const [erro, setErro] = useState("");
+
+  const onProdutoChange = (id: string) => {
+    setProdutoId(id);
+    const p = produtos.find((x) => x.id === id);
+    if (p) {
+      if (!titulo.trim()) setTitulo(p.nome);
+      if (!valor) setValor(String(p.preco));
+    }
+  };
 
   const submit = () => {
     if (!cliente.trim() || !titulo.trim() || !valor) { setErro("Preencha cliente, título e valor."); return; }
@@ -174,6 +185,7 @@ function DealForm({
     const payload = {
       cliente: cliente.trim(), titulo: titulo.trim(), valor: v,
       stage, prob: Number.isNaN(p) ? 0 : p,
+      produtoId: produtoId || undefined,
       contato: contato.trim() || undefined,
       email: email.trim() || undefined,
       obs: obs.trim() || undefined,
@@ -195,6 +207,23 @@ function DealForm({
           <div className="space-y-1.5"><Label>Título</Label>
             <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} maxLength={120} /></div>
         </div>
+        <div className="space-y-1.5">
+          <Label>Produto / Serviço</Label>
+          <Select value={produtoId} onValueChange={onProdutoChange}>
+            <SelectTrigger><SelectValue placeholder="Selecione (opcional)" /></SelectTrigger>
+            <SelectContent>
+              {produtos.length === 0 ? (
+                <div className="px-2 py-3 text-xs text-muted-foreground">
+                  Nenhum produto. Cadastre em Cadastros.
+                </div>
+              ) : produtos.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.nome} — R$ {p.preco.toLocaleString("pt-BR")}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <div className="grid grid-cols-3 gap-3">
           <div className="space-y-1.5"><Label>Valor (R$)</Label>
             <Input type="number" min="0" value={valor} onChange={(e) => setValor(e.target.value)} /></div>
@@ -202,7 +231,7 @@ function DealForm({
             <Select value={stage} onValueChange={(v) => setStage(v as DealStage)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {STAGES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                {etapas.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>

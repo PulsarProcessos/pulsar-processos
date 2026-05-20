@@ -24,10 +24,11 @@ export const Route = createFileRoute("/financeiro/lancamentos")({
 });
 
 function Lancamentos() {
-  const { lancamentos, categorias, contatos, removeLancamento } = useData();
+  const { lancamentos, categorias, contatos, bancos, saldoBanco, removeLancamento } = useData();
   const [filtroTipo, setFiltroTipo] = useState<string>("todos");
   const [filtroCat, setFiltroCat] = useState<string>("todas");
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
+  const [filtroBanco, setFiltroBanco] = useState<string>("todos");
   const [open, setOpen] = useState(false);
   const [editando, setEditando] = useState<Lancamento | null>(null);
 
@@ -37,33 +38,53 @@ function Lancamentos() {
         (r) =>
           (filtroTipo === "todos" || r.tipo === filtroTipo) &&
           (filtroCat === "todas" || r.categoriaId === filtroCat) &&
-          (filtroStatus === "todos" || r.status === filtroStatus),
+          (filtroStatus === "todos" || r.status === filtroStatus) &&
+          (filtroBanco === "todos" || r.bancoId === filtroBanco),
       ),
-    [lancamentos, filtroTipo, filtroCat, filtroStatus],
+    [lancamentos, filtroTipo, filtroCat, filtroStatus, filtroBanco],
   );
 
   const catName = (id: string) => categorias.find((c) => c.id === id)?.nome ?? "—";
   const contName = (id?: string) =>
     id ? contatos.find((c) => c.id === id)?.nome ?? "—" : "—";
+  const bancoName = (id?: string) =>
+    id ? bancos.find((b) => b.id === id)?.nome ?? "—" : "—";
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          Gerencie clientes, fornecedores e plano de contas em{" "}
-          <Link to="/financeiro/cadastros" className="text-primary underline">
-            Cadastros
-          </Link>
-          .
-        </p>
-      </div>
+      <p className="text-sm text-muted-foreground">
+        Gerencie clientes, fornecedores, bancos e plano de contas em{" "}
+        <Link to="/financeiro/cadastros" className="text-primary underline">
+          Cadastros
+        </Link>
+        .
+      </p>
+
+      {bancos.length > 0 && (
+        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+          {bancos.map((b) => {
+            const s = saldoBanco(b.id);
+            return (
+              <Card key={b.id} className="border-border/60">
+                <CardContent className="py-3">
+                  <p className="text-xs text-muted-foreground">{b.nome}</p>
+                  <p className={`text-lg font-semibold ${s < 0 ? "text-red-500" : "text-foreground"}`}>
+                    R$ {s.toLocaleString("pt-BR")}
+                  </p>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
       <Card className="border-border/60">
         <CardHeader className="flex flex-row flex-wrap items-end justify-between gap-3">
           <div className="flex flex-wrap items-end gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Tipo</Label>
               <Select value={filtroTipo} onValueChange={setFiltroTipo}>
-                <SelectTrigger className="h-9 w-36"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 w-32"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
                   <SelectItem value="Receita">Receita</SelectItem>
@@ -74,7 +95,7 @@ function Lancamentos() {
             <div className="space-y-1">
               <Label className="text-xs">Categoria</Label>
               <Select value={filtroCat} onValueChange={setFiltroCat}>
-                <SelectTrigger className="h-9 w-44"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 w-40"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todas">Todas</SelectItem>
                   {categorias.map((c) => (
@@ -84,9 +105,21 @@ function Lancamentos() {
               </Select>
             </div>
             <div className="space-y-1">
+              <Label className="text-xs">Banco</Label>
+              <Select value={filtroBanco} onValueChange={setFiltroBanco}>
+                <SelectTrigger className="h-9 w-40"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {bancos.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
               <Label className="text-xs">Status</Label>
               <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-                <SelectTrigger className="h-9 w-36"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 w-32"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
                   <SelectItem value="Pago">Pago</SelectItem>
@@ -116,6 +149,7 @@ function Lancamentos() {
                 <TableHead>Descrição</TableHead>
                 <TableHead>Cliente / Fornecedor</TableHead>
                 <TableHead>Categoria</TableHead>
+                <TableHead>Banco</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
                 <TableHead>Status</TableHead>
@@ -129,6 +163,7 @@ function Lancamentos() {
                   <TableCell className="font-medium">{r.desc}</TableCell>
                   <TableCell className="text-sm">{contName(r.contatoId)}</TableCell>
                   <TableCell><Badge variant="outline">{catName(r.categoriaId)}</Badge></TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{bancoName(r.bancoId)}</TableCell>
                   <TableCell>
                     {r.tipo === "Receita" ? (
                       <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/20 border-0">Receita</Badge>
@@ -162,7 +197,7 @@ function Lancamentos() {
               ))}
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="py-8 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={9} className="py-8 text-center text-sm text-muted-foreground">
                     Nenhum lançamento encontrado.
                   </TableCell>
                 </TableRow>
@@ -178,13 +213,14 @@ function Lancamentos() {
 function LancamentoForm({
   editando, onClose,
 }: { editando: Lancamento | null; onClose: () => void }) {
-  const { categorias, contatos, addLancamento, updateLancamento } = useData();
+  const { categorias, contatos, bancos, addLancamento, updateLancamento } = useData();
   const [tipo, setTipo] = useState<LancTipo>(editando?.tipo ?? "Receita");
   const [desc, setDesc] = useState(editando?.desc ?? "");
   const [valor, setValor] = useState(editando ? String(editando.valor) : "");
   const [data, setData] = useState(editando?.data ?? "");
   const [categoriaId, setCategoriaId] = useState(editando?.categoriaId ?? "");
   const [contatoId, setContatoId] = useState(editando?.contatoId ?? "");
+  const [bancoId, setBancoId] = useState(editando?.bancoId ?? "");
   const [status, setStatus] = useState<LancStatus>(editando?.status ?? "Pago");
   const [erro, setErro] = useState("");
 
@@ -201,6 +237,7 @@ function LancamentoForm({
     const payload = {
       data, desc: desc.trim(), categoriaId,
       contatoId: contatoId || undefined,
+      bancoId: bancoId || undefined,
       tipo, valor: v, status,
     };
     if (editando) updateLancamento(editando.id, payload);
@@ -276,15 +313,30 @@ function LancamentoForm({
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label>Status</Label>
-            <Select value={status} onValueChange={(v) => setStatus(v as LancStatus)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Label>Banco</Label>
+            <Select value={bancoId} onValueChange={setBancoId}>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="Pago">Pago</SelectItem>
-                <SelectItem value="Pendente">Pendente</SelectItem>
+                {bancos.length === 0 ? (
+                  <div className="px-2 py-3 text-xs text-muted-foreground">
+                    Cadastre um banco em Cadastros.
+                  </div>
+                ) : bancos.map((b) => (
+                  <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Status</Label>
+          <Select value={status} onValueChange={(v) => setStatus(v as LancStatus)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Pago">Pago</SelectItem>
+              <SelectItem value="Pendente">Pendente</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         {erro && <p className="text-sm text-red-500">{erro}</p>}
       </div>
