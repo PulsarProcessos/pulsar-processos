@@ -56,7 +56,7 @@ const items: NavItem[] = [
     icon: Handshake,
     children: [
       { title: "Pipeline", url: "/comercial" },
-      { title: "Clientes", url: "/comercial/clientes" },
+      { title: "Cadastros", url: "/comercial/cadastros" },
     ],
   },
   {
