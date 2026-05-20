@@ -226,8 +226,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { /* */ }
   }, [state, loaded]);
 
-  const patch = <K extends keyof State>(k: K, v: State[K]) =>
-    setState((p) => ({ ...p, [k]: v }));
 
   // ----- Contatos -----
   const addContato = useCallback((c: Omit<Contato, "id">) => {
