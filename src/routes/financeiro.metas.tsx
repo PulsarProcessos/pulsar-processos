@@ -21,13 +21,7 @@ export const Route = createFileRoute("/financeiro/metas")({
 
 type Meta = { mes: string; meta: number; realizado: number };
 
-const inicial: Meta[] = [
-  { mes: "Janeiro/26", meta: 7000, realizado: 7200 },
-  { mes: "Fevereiro/26", meta: 7500, realizado: 7500 },
-  { mes: "Março/26", meta: 8000, realizado: 7900 },
-  { mes: "Abril/26", meta: 8000, realizado: 8000 },
-  { mes: "Maio/26", meta: 8500, realizado: 8200 },
-];
+const inicial: Meta[] = [];
 
 function Metas() {
   const [metas, setMetas] = useState<Meta[]>(inicial);
