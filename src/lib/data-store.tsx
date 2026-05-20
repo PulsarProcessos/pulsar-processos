@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode, useCallback } from "react";
+import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react";
 
 // ============ TIPOS ============
 export type ContatoTipo = "Cliente" | "Fornecedor";
@@ -18,6 +18,21 @@ export type Categoria = {
   tipo: "Receita" | "Despesa";
 };
 
+export type Banco = {
+  id: string;
+  nome: string;
+  agencia?: string;
+  conta?: string;
+  saldoInicial: number;
+};
+
+export type Produto = {
+  id: string;
+  nome: string;
+  preco: number;
+  descricao?: string;
+};
+
 export type LancTipo = "Receita" | "Despesa";
 export type LancStatus = "Pago" | "Pendente";
 export type Lancamento = {
@@ -26,18 +41,13 @@ export type Lancamento = {
   desc: string;
   categoriaId: string;
   contatoId?: string;
+  bancoId?: string;
   tipo: LancTipo;
   valor: number;
   status: LancStatus;
 };
 
-export type DealStage =
-  | "Lead"
-  | "Qualificado"
-  | "Proposta Enviada"
-  | "Negociação"
-  | "Ganho"
-  | "Perdido";
+export type DealStage = string;
 export type Deal = {
   id: string;
   cliente: string;
@@ -46,6 +56,7 @@ export type Deal = {
   dias: number;
   prob: number;
   stage: DealStage;
+  produtoId?: string;
   contato?: string;
   email?: string;
   obs?: string;
@@ -97,6 +108,9 @@ export type Evento = {
 type State = {
   contatos: Contato[];
   categorias: Categoria[];
+  bancos: Banco[];
+  produtos: Produto[];
+  etapas: DealStage[];
   lancamentos: Lancamento[];
   deals: Deal[];
   leads: Lead[];
@@ -105,32 +119,45 @@ type State = {
 };
 
 type Ctx = State & {
-  // contatos
   addContato: (c: Omit<Contato, "id">) => Contato;
   updateContato: (id: string, p: Partial<Contato>) => void;
   removeContato: (id: string) => void;
-  // categorias
+
   addCategoria: (c: Omit<Categoria, "id">) => void;
   updateCategoria: (id: string, p: Partial<Categoria>) => void;
   removeCategoria: (id: string) => void;
-  // lançamentos
+
+  addBanco: (b: Omit<Banco, "id">) => void;
+  updateBanco: (id: string, p: Partial<Banco>) => void;
+  removeBanco: (id: string) => void;
+  saldoBanco: (id: string) => number;
+
+  addProduto: (p: Omit<Produto, "id">) => void;
+  updateProduto: (id: string, p: Partial<Produto>) => void;
+  removeProduto: (id: string) => void;
+
+  addEtapa: (nome: string) => void;
+  renameEtapa: (antigo: string, novo: string) => void;
+  removeEtapa: (nome: string) => void;
+  moveEtapa: (nome: string, dir: -1 | 1) => void;
+
   addLancamento: (l: Omit<Lancamento, "id">) => void;
   updateLancamento: (id: string, p: Partial<Lancamento>) => void;
   removeLancamento: (id: string) => void;
-  // deals
+
   addDeal: (d: Omit<Deal, "id">) => void;
   updateDeal: (id: string, p: Partial<Deal>) => void;
   removeDeal: (id: string) => void;
-  // leads
+
   addLead: (l: Omit<Lead, "id">) => void;
   updateLead: (id: string, p: Partial<Lead>) => void;
   removeLead: (id: string) => void;
   advanceLeadStatus: (id: string) => void;
-  // campanhas
+
   addCampanha: (c: Omit<Campanha, "id">) => void;
   updateCampanha: (id: string, p: Partial<Campanha>) => void;
   removeCampanha: (id: string) => void;
-  // eventos
+
   addEvento: (e: Omit<Evento, "id">) => void;
   updateEvento: (id: string, p: Partial<Evento>) => void;
   removeEvento: (id: string) => void;
@@ -143,144 +170,172 @@ const uid = () =>
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2);
 
-// ============ SEEDS ============
-const seedContatos: Contato[] = [
-  { id: "c1", nome: "Acme Corp", tipo: "Cliente", email: "contato@acme.com", telefone: "(11) 4002-8922" },
-  { id: "c2", nome: "Globex", tipo: "Cliente", email: "ops@globex.com" },
-  { id: "c3", nome: "Initech", tipo: "Cliente", email: "fin@initech.com" },
-  { id: "c4", nome: "Meta Plataformas", tipo: "Fornecedor", email: "billing@meta.com" },
-  { id: "c5", nome: "Imobiliária Centro", tipo: "Fornecedor", telefone: "(11) 3333-4444" },
-  { id: "c6", nome: "Folha de Pagamento", tipo: "Fornecedor" },
+const STORAGE_KEY = "pulsar.data.v1";
+
+const DEFAULT_ETAPAS: DealStage[] = [
+  "Lead",
+  "Qualificado",
+  "Proposta Enviada",
+  "Negociação",
+  "Ganho",
+  "Perdido",
 ];
 
-const seedCategorias: Categoria[] = [
-  { id: "cat1", nome: "Vendas", tipo: "Receita" },
-  { id: "cat2", nome: "Consultoria", tipo: "Receita" },
-  { id: "cat3", nome: "Marketing", tipo: "Despesa" },
-  { id: "cat4", nome: "Folha", tipo: "Despesa" },
-  { id: "cat5", nome: "Operacional", tipo: "Despesa" },
-  { id: "cat6", nome: "Impostos", tipo: "Despesa" },
-];
-
-const seedLancamentos: Lancamento[] = [
-  { id: "l1", data: "12/05", desc: "Mensalidade · Acme Corp", categoriaId: "cat1", contatoId: "c1", tipo: "Receita", valor: 2400, status: "Pago" },
-  { id: "l2", data: "11/05", desc: "Anúncios Meta Ads", categoriaId: "cat3", contatoId: "c4", tipo: "Despesa", valor: 480, status: "Pago" },
-  { id: "l3", data: "10/05", desc: "Mensalidade · Globex", categoriaId: "cat1", contatoId: "c2", tipo: "Receita", valor: 1800, status: "Pago" },
-  { id: "l4", data: "09/05", desc: "Salários", categoriaId: "cat4", contatoId: "c6", tipo: "Despesa", valor: 2400, status: "Pago" },
-  { id: "l5", data: "08/05", desc: "Consultoria · Initech", categoriaId: "cat2", contatoId: "c3", tipo: "Receita", valor: 1500, status: "Pendente" },
-  { id: "l6", data: "05/05", desc: "Aluguel sala", categoriaId: "cat5", contatoId: "c5", tipo: "Despesa", valor: 1800, status: "Pendente" },
-];
-
-const seedDeals: Deal[] = [
-  { id: "d1", cliente: "Acme Corp", titulo: "Implementação CRM", valor: 4800, dias: 2, prob: 20, stage: "Lead" },
-  { id: "d2", cliente: "Soylent", titulo: "Consultoria mensal", valor: 2400, dias: 5, prob: 30, stage: "Lead" },
-  { id: "d3", cliente: "Globex", titulo: "Auditoria fiscal", valor: 3200, dias: 3, prob: 50, stage: "Qualificado" },
-  { id: "d4", cliente: "Initech", titulo: "Setup financeiro", valor: 1800, dias: 7, prob: 60, stage: "Proposta Enviada" },
-  { id: "d5", cliente: "Umbrella", titulo: "Pacote anual", valor: 9600, dias: 4, prob: 65, stage: "Proposta Enviada" },
-  { id: "d6", cliente: "Hooli", titulo: "Mentoria executiva", valor: 5400, dias: 1, prob: 80, stage: "Negociação" },
-  { id: "d7", cliente: "Wayne Ent.", titulo: "Plano corporativo", valor: 7200, dias: 10, prob: 100, stage: "Ganho" },
-  { id: "d8", cliente: "Stark Ind.", titulo: "Projeto pontual", valor: 2400, dias: 14, prob: 0, stage: "Perdido" },
-];
-
-const seedLeads: Lead[] = [
-  { id: "ld1", nome: "Camila Souza", email: "camila@x.com", tel: "(11) 99876-1100", origem: "Google", status: "Novo", data: "14/05" },
-  { id: "ld2", nome: "Rafael Lima", email: "rafa@x.com", tel: "(11) 99776-2200", origem: "Instagram", status: "Contatado", data: "13/05" },
-  { id: "ld3", nome: "Juliana Paes", email: "ju@x.com", tel: "(11) 99876-2300", origem: "Indicação", status: "Qualificado", data: "12/05" },
-  { id: "ld4", nome: "Pedro Mendes", email: "pedro@x.com", tel: "(11) 99876-2400", origem: "Google", status: "Novo", data: "12/05" },
-  { id: "ld5", nome: "Bianca Reis", email: "bianca@x.com", tel: "(11) 99876-2500", origem: "Evento", status: "Contatado", data: "11/05" },
-  { id: "ld6", nome: "Marcos Vinícius", email: "marcos@x.com", tel: "(11) 99876-2600", origem: "Instagram", status: "Qualificado", data: "11/05" },
-  { id: "ld7", nome: "Ana Beatriz", email: "ana@x.com", tel: "(11) 99876-2700", origem: "Indicação", status: "Novo", data: "10/05" },
-  { id: "ld8", nome: "Tiago Ferreira", email: "tiago@x.com", tel: "(11) 99876-2800", origem: "Google", status: "Perdido", data: "09/05" },
-  { id: "ld9", nome: "Letícia Almeida", email: "leticia@x.com", tel: "(11) 99876-2900", origem: "Instagram", status: "Contatado", data: "09/05" },
-  { id: "ld10", nome: "Bruno Costa", email: "bruno@x.com", tel: "(11) 99876-3000", origem: "Outro", status: "Novo", data: "08/05" },
-  { id: "ld11", nome: "Fernanda Dias", email: "fer@x.com", tel: "(11) 99876-3100", origem: "Evento", status: "Qualificado", data: "08/05" },
-  { id: "ld12", nome: "Lucas Ramos", email: "lucas@x.com", tel: "(11) 99876-3200", origem: "Google", status: "Novo", data: "07/05" },
-  { id: "ld13", nome: "Patrícia Melo", email: "patricia@x.com", tel: "(11) 99876-3300", origem: "Instagram", status: "Contatado", data: "06/05" },
-  { id: "ld14", nome: "Gustavo Pires", email: "gustavo@x.com", tel: "(11) 99876-3400", origem: "Indicação", status: "Qualificado", data: "05/05" },
-  { id: "ld15", nome: "Helena Castro", email: "helena@x.com", tel: "(11) 99876-3500", origem: "Outro", status: "Perdido", data: "04/05" },
-];
-
-const seedCampanhas: Campanha[] = [
-  { id: "cp1", nome: "Lançamento Plano Pro", canal: "Google Ads", orcamento: 1200, inicio: "01/05", fim: "31/05", leads: 18, status: "Ativa" },
-  { id: "cp2", nome: "Indicação Premiada", canal: "Email", orcamento: 400, inicio: "15/04", fim: "15/05", leads: 9, status: "Encerrada" },
-  { id: "cp3", nome: "Conteúdo Instagram", canal: "Instagram", orcamento: 800, inicio: "20/04", fim: "20/06", leads: 12, status: "Ativa" },
-];
-
-const today = new Date();
-const ymd = (d: Date) => d.toISOString().slice(0, 10);
-const offset = (n: number) => {
-  const d = new Date(today);
-  d.setDate(d.getDate() + n);
-  return ymd(d);
+const emptyState: State = {
+  contatos: [],
+  categorias: [],
+  bancos: [],
+  produtos: [],
+  etapas: DEFAULT_ETAPAS,
+  lancamentos: [],
+  deals: [],
+  leads: [],
+  campanhas: [],
+  eventos: [],
 };
 
-const seedEventos: Evento[] = [
-  { id: "ev1", titulo: "Post lançamento Plano Pro", data: offset(1), tipo: "Postagem", canal: "Instagram" },
-  { id: "ev2", titulo: "Reels bastidores", data: offset(3), tipo: "Postagem", canal: "Instagram" },
-  { id: "ev3", titulo: "Reunião pauta semanal", data: offset(2), tipo: "Reunião" },
-  { id: "ev4", titulo: "Disparo de email · base ativa", data: offset(5), tipo: "Atividade", canal: "Email" },
-  { id: "ev5", titulo: "Carrossel benefícios", data: offset(7), tipo: "Postagem", canal: "Instagram" },
-  { id: "ev6", titulo: "Webinar gratuito", data: offset(10), tipo: "Atividade", canal: "Zoom" },
-];
+function loadState(): State {
+  if (typeof window === "undefined") return emptyState;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return emptyState;
+    const parsed = JSON.parse(raw);
+    return {
+      ...emptyState,
+      ...parsed,
+      etapas: Array.isArray(parsed.etapas) && parsed.etapas.length > 0
+        ? parsed.etapas
+        : DEFAULT_ETAPAS,
+    };
+  } catch {
+    return emptyState;
+  }
+}
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const [contatos, setContatos] = useState<Contato[]>(seedContatos);
-  const [categorias, setCategorias] = useState<Categoria[]>(seedCategorias);
-  const [lancamentos, setLancamentos] = useState<Lancamento[]>(seedLancamentos);
-  const [deals, setDeals] = useState<Deal[]>(seedDeals);
-  const [leads, setLeads] = useState<Lead[]>(seedLeads);
-  const [campanhas, setCampanhas] = useState<Campanha[]>(seedCampanhas);
-  const [eventos, setEventos] = useState<Evento[]>(seedEventos);
+  const [state, setState] = useState<State>(emptyState);
+  const [loaded, setLoaded] = useState(false);
 
+  useEffect(() => {
+    setState(loadState());
+    setLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!loaded || typeof window === "undefined") return;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { /* */ }
+  }, [state, loaded]);
+
+  const patch = <K extends keyof State>(k: K, v: State[K]) =>
+    setState((p) => ({ ...p, [k]: v }));
+
+  // ----- Contatos -----
   const addContato = useCallback((c: Omit<Contato, "id">) => {
     const novo = { ...c, id: uid() };
-    setContatos((p) => [novo, ...p]);
+    setState((p) => ({ ...p, contatos: [novo, ...p.contatos] }));
     return novo;
   }, []);
-  const updateContato = useCallback((id: string, patch: Partial<Contato>) =>
-    setContatos((p) => p.map((x) => (x.id === id ? { ...x, ...patch } : x))), []);
+  const updateContato = useCallback((id: string, pa: Partial<Contato>) =>
+    setState((p) => ({ ...p, contatos: p.contatos.map((x) => (x.id === id ? { ...x, ...pa } : x)) })), []);
   const removeContato = useCallback((id: string) =>
-    setContatos((p) => p.filter((x) => x.id !== id)), []);
+    setState((p) => ({ ...p, contatos: p.contatos.filter((x) => x.id !== id) })), []);
 
+  // ----- Categorias -----
   const addCategoria = useCallback((c: Omit<Categoria, "id">) =>
-    setCategorias((p) => [{ ...c, id: uid() }, ...p]), []);
-  const updateCategoria = useCallback((id: string, patch: Partial<Categoria>) =>
-    setCategorias((p) => p.map((x) => (x.id === id ? { ...x, ...patch } : x))), []);
+    setState((p) => ({ ...p, categorias: [{ ...c, id: uid() }, ...p.categorias] })), []);
+  const updateCategoria = useCallback((id: string, pa: Partial<Categoria>) =>
+    setState((p) => ({ ...p, categorias: p.categorias.map((x) => (x.id === id ? { ...x, ...pa } : x)) })), []);
   const removeCategoria = useCallback((id: string) =>
-    setCategorias((p) => p.filter((x) => x.id !== id)), []);
+    setState((p) => ({ ...p, categorias: p.categorias.filter((x) => x.id !== id) })), []);
 
+  // ----- Bancos -----
+  const addBanco = useCallback((b: Omit<Banco, "id">) =>
+    setState((p) => ({ ...p, bancos: [{ ...b, id: uid() }, ...p.bancos] })), []);
+  const updateBanco = useCallback((id: string, pa: Partial<Banco>) =>
+    setState((p) => ({ ...p, bancos: p.bancos.map((x) => (x.id === id ? { ...x, ...pa } : x)) })), []);
+  const removeBanco = useCallback((id: string) =>
+    setState((p) => ({ ...p, bancos: p.bancos.filter((x) => x.id !== id) })), []);
+  const saldoBanco = useCallback((id: string) => {
+    const b = state.bancos.find((x) => x.id === id);
+    if (!b) return 0;
+    const mov = state.lancamentos
+      .filter((l) => l.bancoId === id && l.status === "Pago")
+      .reduce((s, l) => s + (l.tipo === "Receita" ? l.valor : -l.valor), 0);
+    return b.saldoInicial + mov;
+  }, [state.bancos, state.lancamentos]);
+
+  // ----- Produtos -----
+  const addProduto = useCallback((pr: Omit<Produto, "id">) =>
+    setState((p) => ({ ...p, produtos: [{ ...pr, id: uid() }, ...p.produtos] })), []);
+  const updateProduto = useCallback((id: string, pa: Partial<Produto>) =>
+    setState((p) => ({ ...p, produtos: p.produtos.map((x) => (x.id === id ? { ...x, ...pa } : x)) })), []);
+  const removeProduto = useCallback((id: string) =>
+    setState((p) => ({ ...p, produtos: p.produtos.filter((x) => x.id !== id) })), []);
+
+  // ----- Etapas -----
+  const addEtapa = useCallback((nome: string) =>
+    setState((p) => p.etapas.includes(nome) ? p : ({ ...p, etapas: [...p.etapas, nome] })), []);
+  const renameEtapa = useCallback((antigo: string, novo: string) =>
+    setState((p) => ({
+      ...p,
+      etapas: p.etapas.map((e) => (e === antigo ? novo : e)),
+      deals: p.deals.map((d) => (d.stage === antigo ? { ...d, stage: novo } : d)),
+    })), []);
+  const removeEtapa = useCallback((nome: string) =>
+    setState((p) => {
+      if (p.etapas.length <= 1) return p;
+      const fallback = p.etapas.find((e) => e !== nome) ?? p.etapas[0];
+      return {
+        ...p,
+        etapas: p.etapas.filter((e) => e !== nome),
+        deals: p.deals.map((d) => (d.stage === nome ? { ...d, stage: fallback } : d)),
+      };
+    }), []);
+  const moveEtapa = useCallback((nome: string, dir: -1 | 1) =>
+    setState((p) => {
+      const i = p.etapas.indexOf(nome);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= p.etapas.length) return p;
+      const next = [...p.etapas];
+      [next[i], next[j]] = [next[j], next[i]];
+      return { ...p, etapas: next };
+    }), []);
+
+  // ----- Lançamentos -----
   const addLancamento = useCallback((l: Omit<Lancamento, "id">) =>
-    setLancamentos((p) => [{ ...l, id: uid() }, ...p]), []);
-  const updateLancamento = useCallback((id: string, patch: Partial<Lancamento>) =>
-    setLancamentos((p) => p.map((x) => (x.id === id ? { ...x, ...patch } : x))), []);
+    setState((p) => ({ ...p, lancamentos: [{ ...l, id: uid() }, ...p.lancamentos] })), []);
+  const updateLancamento = useCallback((id: string, pa: Partial<Lancamento>) =>
+    setState((p) => ({ ...p, lancamentos: p.lancamentos.map((x) => (x.id === id ? { ...x, ...pa } : x)) })), []);
   const removeLancamento = useCallback((id: string) =>
-    setLancamentos((p) => p.filter((x) => x.id !== id)), []);
+    setState((p) => ({ ...p, lancamentos: p.lancamentos.filter((x) => x.id !== id) })), []);
 
+  // ----- Deals -----
   const addDeal = useCallback((d: Omit<Deal, "id">) =>
-    setDeals((p) => [{ ...d, id: uid() }, ...p]), []);
-  const updateDeal = useCallback((id: string, patch: Partial<Deal>) =>
-    setDeals((p) => p.map((x) => (x.id === id ? { ...x, ...patch } : x))), []);
+    setState((p) => ({ ...p, deals: [{ ...d, id: uid() }, ...p.deals] })), []);
+  const updateDeal = useCallback((id: string, pa: Partial<Deal>) =>
+    setState((p) => ({ ...p, deals: p.deals.map((x) => (x.id === id ? { ...x, ...pa } : x)) })), []);
   const removeDeal = useCallback((id: string) =>
-    setDeals((p) => p.filter((x) => x.id !== id)), []);
+    setState((p) => ({ ...p, deals: p.deals.filter((x) => x.id !== id) })), []);
 
+  // ----- Leads -----
   const addLead = useCallback((l: Omit<Lead, "id">) =>
-    setLeads((p) => [{ ...l, id: uid() }, ...p]), []);
-  const updateLead = useCallback((id: string, patch: Partial<Lead>) =>
-    setLeads((p) => p.map((x) => (x.id === id ? { ...x, ...patch } : x))), []);
+    setState((p) => ({ ...p, leads: [{ ...l, id: uid() }, ...p.leads] })), []);
+  const updateLead = useCallback((id: string, pa: Partial<Lead>) =>
+    setState((p) => ({ ...p, leads: p.leads.map((x) => (x.id === id ? { ...x, ...pa } : x)) })), []);
   const removeLead = useCallback((id: string) =>
-    setLeads((p) => p.filter((x) => x.id !== id)), []);
+    setState((p) => ({ ...p, leads: p.leads.filter((x) => x.id !== id) })), []);
 
   const advanceLeadStatus = useCallback((id: string) => {
-    setLeads((prev) => {
-      const lead = prev.find((l) => l.id === id);
+    setState((prev) => {
+      const lead = prev.leads.find((l) => l.id === id);
       if (!lead) return prev;
-      const idx = LEAD_STATUS.indexOf(lead.status);
-      // Não avança após "Convertido" ou "Perdido"
       if (lead.status === "Convertido" || lead.status === "Perdido") return prev;
+      const idx = LEAD_STATUS.indexOf(lead.status);
       const next = LEAD_STATUS[Math.min(idx + 1, LEAD_STATUS.length - 1)];
-      // Se virar Convertido, criar deal no pipeline
+      const novosLeads = prev.leads.map((l) => (l.id === id ? { ...l, status: next } : l));
+      let novosDeals = prev.deals;
       if (next === "Convertido") {
-        setDeals((d) => [
+        novosDeals = [
           {
             id: uid(),
             cliente: lead.nome,
@@ -288,38 +343,43 @@ export function DataProvider({ children }: { children: ReactNode }) {
             valor: 0,
             dias: 0,
             prob: 20,
-            stage: "Lead",
+            stage: prev.etapas[0] ?? "Lead",
             contato: lead.tel,
             email: lead.email,
             origemLeadId: lead.id,
           },
-          ...d,
-        ]);
+          ...prev.deals,
+        ];
       }
-      return prev.map((l) => (l.id === id ? { ...l, status: next } : l));
+      return { ...prev, leads: novosLeads, deals: novosDeals };
     });
   }, []);
 
+  // ----- Campanhas -----
   const addCampanha = useCallback((c: Omit<Campanha, "id">) =>
-    setCampanhas((p) => [{ ...c, id: uid() }, ...p]), []);
-  const updateCampanha = useCallback((id: string, patch: Partial<Campanha>) =>
-    setCampanhas((p) => p.map((x) => (x.id === id ? { ...x, ...patch } : x))), []);
+    setState((p) => ({ ...p, campanhas: [{ ...c, id: uid() }, ...p.campanhas] })), []);
+  const updateCampanha = useCallback((id: string, pa: Partial<Campanha>) =>
+    setState((p) => ({ ...p, campanhas: p.campanhas.map((x) => (x.id === id ? { ...x, ...pa } : x)) })), []);
   const removeCampanha = useCallback((id: string) =>
-    setCampanhas((p) => p.filter((x) => x.id !== id)), []);
+    setState((p) => ({ ...p, campanhas: p.campanhas.filter((x) => x.id !== id) })), []);
 
+  // ----- Eventos -----
   const addEvento = useCallback((e: Omit<Evento, "id">) =>
-    setEventos((p) => [{ ...e, id: uid() }, ...p]), []);
-  const updateEvento = useCallback((id: string, patch: Partial<Evento>) =>
-    setEventos((p) => p.map((x) => (x.id === id ? { ...x, ...patch } : x))), []);
+    setState((p) => ({ ...p, eventos: [{ ...e, id: uid() }, ...p.eventos] })), []);
+  const updateEvento = useCallback((id: string, pa: Partial<Evento>) =>
+    setState((p) => ({ ...p, eventos: p.eventos.map((x) => (x.id === id ? { ...x, ...pa } : x)) })), []);
   const removeEvento = useCallback((id: string) =>
-    setEventos((p) => p.filter((x) => x.id !== id)), []);
+    setState((p) => ({ ...p, eventos: p.eventos.filter((x) => x.id !== id) })), []);
 
   return (
     <DataContext.Provider
       value={{
-        contatos, categorias, lancamentos, deals, leads, campanhas, eventos,
+        ...state,
         addContato, updateContato, removeContato,
         addCategoria, updateCategoria, removeCategoria,
+        addBanco, updateBanco, removeBanco, saldoBanco,
+        addProduto, updateProduto, removeProduto,
+        addEtapa, renameEtapa, removeEtapa, moveEtapa,
         addLancamento, updateLancamento, removeLancamento,
         addDeal, updateDeal, removeDeal,
         addLead, updateLead, removeLead, advanceLeadStatus,
