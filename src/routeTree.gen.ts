@@ -19,7 +19,6 @@ import { Route as MarketingCalendarioRouteImport } from './routes/marketing.cale
 import { Route as FinanceiroMetasRouteImport } from './routes/financeiro.metas'
 import { Route as FinanceiroLancamentosRouteImport } from './routes/financeiro.lancamentos'
 import { Route as FinanceiroCadastrosRouteImport } from './routes/financeiro.cadastros'
-import { Route as ComercialClientesRouteImport } from './routes/comercial.clientes'
 
 const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
   id: '/configuracoes',
@@ -71,16 +70,10 @@ const FinanceiroCadastrosRoute = FinanceiroCadastrosRouteImport.update({
   path: '/financeiro/cadastros',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ComercialClientesRoute = ComercialClientesRouteImport.update({
-  id: '/comercial/clientes',
-  path: '/comercial/clientes',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/configuracoes': typeof ConfiguracoesRoute
-  '/comercial/clientes': typeof ComercialClientesRoute
   '/financeiro/cadastros': typeof FinanceiroCadastrosRoute
   '/financeiro/lancamentos': typeof FinanceiroLancamentosRoute
   '/financeiro/metas': typeof FinanceiroMetasRoute
@@ -93,7 +86,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/configuracoes': typeof ConfiguracoesRoute
-  '/comercial/clientes': typeof ComercialClientesRoute
   '/financeiro/cadastros': typeof FinanceiroCadastrosRoute
   '/financeiro/lancamentos': typeof FinanceiroLancamentosRoute
   '/financeiro/metas': typeof FinanceiroMetasRoute
@@ -107,7 +99,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/configuracoes': typeof ConfiguracoesRoute
-  '/comercial/clientes': typeof ComercialClientesRoute
   '/financeiro/cadastros': typeof FinanceiroCadastrosRoute
   '/financeiro/lancamentos': typeof FinanceiroLancamentosRoute
   '/financeiro/metas': typeof FinanceiroMetasRoute
@@ -122,7 +113,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/configuracoes'
-    | '/comercial/clientes'
     | '/financeiro/cadastros'
     | '/financeiro/lancamentos'
     | '/financeiro/metas'
@@ -135,7 +125,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/configuracoes'
-    | '/comercial/clientes'
     | '/financeiro/cadastros'
     | '/financeiro/lancamentos'
     | '/financeiro/metas'
@@ -148,7 +137,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/configuracoes'
-    | '/comercial/clientes'
     | '/financeiro/cadastros'
     | '/financeiro/lancamentos'
     | '/financeiro/metas'
@@ -162,7 +150,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
-  ComercialClientesRoute: typeof ComercialClientesRoute
   FinanceiroCadastrosRoute: typeof FinanceiroCadastrosRoute
   FinanceiroLancamentosRoute: typeof FinanceiroLancamentosRoute
   FinanceiroMetasRoute: typeof FinanceiroMetasRoute
@@ -245,20 +232,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FinanceiroCadastrosRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/comercial/clientes': {
-      id: '/comercial/clientes'
-      path: '/comercial/clientes'
-      fullPath: '/comercial/clientes'
-      preLoaderRoute: typeof ComercialClientesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
-  ComercialClientesRoute: ComercialClientesRoute,
   FinanceiroCadastrosRoute: FinanceiroCadastrosRoute,
   FinanceiroLancamentosRoute: FinanceiroLancamentosRoute,
   FinanceiroMetasRoute: FinanceiroMetasRoute,

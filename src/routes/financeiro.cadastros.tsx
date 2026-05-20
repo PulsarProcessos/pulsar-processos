@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import {
-  useData, Contato, ContatoTipo, Categoria,
+  useData, Contato, ContatoTipo, Categoria, Banco,
 } from "@/lib/data-store";
 
 export const Route = createFileRoute("/financeiro/cadastros")({
@@ -30,10 +30,12 @@ function Cadastros() {
       <TabsList>
         <TabsTrigger value="clientes">Clientes</TabsTrigger>
         <TabsTrigger value="fornecedores">Fornecedores</TabsTrigger>
+        <TabsTrigger value="bancos">Bancos</TabsTrigger>
         <TabsTrigger value="plano">Plano de Contas</TabsTrigger>
       </TabsList>
       <TabsContent value="clientes"><ContatosPanel tipo="Cliente" /></TabsContent>
       <TabsContent value="fornecedores"><ContatosPanel tipo="Fornecedor" /></TabsContent>
+      <TabsContent value="bancos"><BancosPanel /></TabsContent>
       <TabsContent value="plano"><PlanoContas /></TabsContent>
     </Tabs>
   );
@@ -151,28 +153,148 @@ function ContatoForm({
         <DialogTitle>{editando ? `Editar ${tipo.toLowerCase()}` : `Novo ${tipo.toLowerCase()}`}</DialogTitle>
       </DialogHeader>
       <div className="space-y-3">
-        <div className="space-y-1.5">
-          <Label>Nome</Label>
-          <Input value={nome} onChange={(e) => setNome(e.target.value)} maxLength={120} />
-        </div>
-        <div className="space-y-1.5">
-          <Label>CNPJ / CPF</Label>
-          <Input value={documento} onChange={(e) => setDocumento(e.target.value)} maxLength={20} />
-        </div>
+        <div className="space-y-1.5"><Label>Nome</Label>
+          <Input value={nome} onChange={(e) => setNome(e.target.value)} maxLength={120} /></div>
+        <div className="space-y-1.5"><Label>CNPJ / CPF</Label>
+          <Input value={documento} onChange={(e) => setDocumento(e.target.value)} maxLength={20} /></div>
         <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label>Email</Label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={120} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Telefone</Label>
-            <Input value={telefone} onChange={(e) => setTelefone(e.target.value)} maxLength={20} />
-          </div>
+          <div className="space-y-1.5"><Label>Email</Label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={120} /></div>
+          <div className="space-y-1.5"><Label>Telefone</Label>
+            <Input value={telefone} onChange={(e) => setTelefone(e.target.value)} maxLength={20} /></div>
         </div>
-        <div className="space-y-1.5">
-          <Label>Observações</Label>
-          <Input value={obs} onChange={(e) => setObs(e.target.value)} maxLength={200} />
+        <div className="space-y-1.5"><Label>Observações</Label>
+          <Input value={obs} onChange={(e) => setObs(e.target.value)} maxLength={200} /></div>
+        {erro && <p className="text-sm text-red-500">{erro}</p>}
+      </div>
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>Cancelar</Button>
+        <Button onClick={submit}>{editando ? "Salvar alterações" : "Salvar"}</Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+}
+
+function BancosPanel() {
+  const { bancos, removeBanco, saldoBanco } = useData();
+  const [open, setOpen] = useState(false);
+  const [editando, setEditando] = useState<Banco | null>(null);
+
+  const total = bancos.reduce((s, b) => s + saldoBanco(b.id), 0);
+
+  return (
+    <Card className="border-border/60">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Bancos</CardTitle>
+          <CardDescription>
+            Saldo total: <span className="font-semibold text-foreground">R$ {total.toLocaleString("pt-BR")}</span>
+          </CardDescription>
         </div>
+        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditando(null); }}>
+          <DialogTrigger asChild>
+            <Button onClick={() => setEditando(null)}>
+              <Plus className="h-4 w-4" /> Novo Banco
+            </Button>
+          </DialogTrigger>
+          <BancoForm key={editando?.id ?? "novo"} editando={editando} onClose={() => setOpen(false)} />
+        </Dialog>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nome</TableHead>
+              <TableHead>Agência</TableHead>
+              <TableHead>Conta</TableHead>
+              <TableHead className="text-right">Saldo Inicial</TableHead>
+              <TableHead className="text-right">Saldo Atual</TableHead>
+              <TableHead className="w-20" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {bancos.map((b) => {
+              const s = saldoBanco(b.id);
+              return (
+                <TableRow key={b.id}>
+                  <TableCell className="font-medium">{b.nome}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{b.agencia || "—"}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{b.conta || "—"}</TableCell>
+                  <TableCell className="text-right">R$ {b.saldoInicial.toLocaleString("pt-BR")}</TableCell>
+                  <TableCell className={`text-right font-semibold ${s < 0 ? "text-red-500" : "text-emerald-600"}`}>
+                    R$ {s.toLocaleString("pt-BR")}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8"
+                        onClick={() => { setEditando(b); setOpen(true); }}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500"
+                        onClick={() => removeBanco(b.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+            {bancos.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
+                  Nenhum banco cadastrado.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+function BancoForm({
+  editando, onClose,
+}: { editando: Banco | null; onClose: () => void }) {
+  const { addBanco, updateBanco } = useData();
+  const [nome, setNome] = useState(editando?.nome ?? "");
+  const [agencia, setAgencia] = useState(editando?.agencia ?? "");
+  const [conta, setConta] = useState(editando?.conta ?? "");
+  const [saldo, setSaldo] = useState(editando ? String(editando.saldoInicial) : "0");
+  const [erro, setErro] = useState("");
+
+  const submit = () => {
+    if (!nome.trim()) { setErro("Nome é obrigatório."); return; }
+    const s = Number(saldo);
+    if (Number.isNaN(s)) { setErro("Saldo inválido."); return; }
+    const payload = {
+      nome: nome.trim(),
+      agencia: agencia.trim() || undefined,
+      conta: conta.trim() || undefined,
+      saldoInicial: s,
+    };
+    if (editando) updateBanco(editando.id, payload);
+    else addBanco(payload);
+    onClose();
+  };
+
+  return (
+    <DialogContent className="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>{editando ? "Editar banco" : "Novo banco"}</DialogTitle>
+      </DialogHeader>
+      <div className="space-y-3">
+        <div className="space-y-1.5"><Label>Nome</Label>
+          <Input value={nome} onChange={(e) => setNome(e.target.value)} maxLength={80}
+            placeholder="Ex: Itaú PJ, Nubank, Caixa" /></div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5"><Label>Agência</Label>
+            <Input value={agencia} onChange={(e) => setAgencia(e.target.value)} maxLength={20} /></div>
+          <div className="space-y-1.5"><Label>Conta</Label>
+            <Input value={conta} onChange={(e) => setConta(e.target.value)} maxLength={30} /></div>
+        </div>
+        <div className="space-y-1.5"><Label>Saldo Inicial (R$)</Label>
+          <Input type="number" step="0.01" value={saldo} onChange={(e) => setSaldo(e.target.value)} /></div>
         {erro && <p className="text-sm text-red-500">{erro}</p>}
       </div>
       <DialogFooter>
@@ -255,7 +377,6 @@ function CategoriaForm({
   const [nome, setNome] = useState(editando?.nome ?? "");
   const [tipo, setTipo] = useState<"Receita" | "Despesa">(editando?.tipo ?? "Despesa");
   const [erro, setErro] = useState("");
-  useEffect(() => { setErro(""); }, []);
 
   const submit = () => {
     if (!nome.trim()) { setErro("Nome é obrigatório."); return; }
@@ -271,12 +392,9 @@ function CategoriaForm({
         <DialogTitle>{editando ? "Editar categoria" : "Nova categoria"}</DialogTitle>
       </DialogHeader>
       <div className="space-y-3">
-        <div className="space-y-1.5">
-          <Label>Nome</Label>
-          <Input value={nome} onChange={(e) => setNome(e.target.value)} maxLength={60} />
-        </div>
-        <div className="space-y-1.5">
-          <Label>Tipo</Label>
+        <div className="space-y-1.5"><Label>Nome</Label>
+          <Input value={nome} onChange={(e) => setNome(e.target.value)} maxLength={60} /></div>
+        <div className="space-y-1.5"><Label>Tipo</Label>
           <Select value={tipo} onValueChange={(v) => setTipo(v as "Receita" | "Despesa")}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
