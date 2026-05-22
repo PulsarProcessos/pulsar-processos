@@ -21,6 +21,19 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataProvider } from "@/lib/data-store";
+import { AuthGate } from "@/components/auth-gate";
+import { supabase } from "@/integrations/supabase/client";
+import { LogOut } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useEffect, useState } from "react";
+import type { Session } from "@supabase/supabase-js";
 import { Toaster } from "@/components/ui/sonner";
 
 const titles: Record<string, string> = {
@@ -171,11 +184,7 @@ function AppShell() {
                 <Bell className="h-4 w-4" />
                 <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />
               </Button>
-              <Avatar className="h-9 w-9 border border-border">
-                <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                  AC
-                </AvatarFallback>
-              </Avatar>
+              <UserMenu />
             </div>
           </div>
         </header>
@@ -187,15 +196,53 @@ function AppShell() {
   );
 }
 
+function UserMenu() {
+  const [session, setSession] = useState<Session | null>(null);
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    return () => subscription.unsubscribe();
+  }, []);
+  const email = session?.user?.email ?? "";
+  const initials = email ? email.slice(0, 2).toUpperCase() : "??";
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <Avatar className="h-9 w-9 border border-border">
+            <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel className="font-normal">
+          <div className="text-xs text-muted-foreground">Conectado como</div>
+          <div className="truncate text-sm font-medium">{email}</div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => supabase.auth.signOut()}>
+          <LogOut className="mr-2 h-4 w-4" />
+          Sair
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
     <QueryClientProvider client={queryClient}>
-      <DataProvider>
-        <AppShell />
-        <Toaster />
-      </DataProvider>
+      <AuthGate>
+        <DataProvider>
+          <AppShell />
+        </DataProvider>
+      </AuthGate>
+      <Toaster />
     </QueryClientProvider>
   );
 }
+
