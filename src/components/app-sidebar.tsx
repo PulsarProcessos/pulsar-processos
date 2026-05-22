@@ -86,7 +86,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r-0">
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center gap-2.5 px-2 py-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white p-1 shadow-sm ring-1 ring-sidebar-border">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center">
             <img src={pulsarLogo} alt="Pulsar" className="h-full w-full object-contain" />
           </div>
           {!collapsed && (
