@@ -6,8 +6,8 @@ import {
   Megaphone,
   Settings,
   ChevronRight,
-  Sparkles,
 } from "lucide-react";
+import pulsarLogo from "@/assets/pulsar-logo.png";
 
 import {
   Sidebar,
@@ -85,17 +85,17 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r-0">
       <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center gap-2 px-2 py-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Sparkles className="h-4 w-4" />
+        <div className="flex items-center gap-2.5 px-2 py-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white p-1 shadow-sm ring-1 ring-sidebar-border">
+            <img src={pulsarLogo} alt="Pulsar" className="h-full w-full object-contain" />
           </div>
           {!collapsed && (
             <div className="flex flex-col leading-tight">
-              <span className="text-sm font-semibold text-sidebar-foreground">
-                Pulsar
+              <span className="text-sm font-bold tracking-[0.15em] text-sidebar-foreground">
+                PULS<span className="text-primary">AR</span>
               </span>
-              <span className="text-xs text-sidebar-foreground/60">
-                Sistema
+              <span className="text-[10px] uppercase tracking-[0.22em] text-sidebar-foreground/55">
+                Processos
               </span>
             </div>
           )}

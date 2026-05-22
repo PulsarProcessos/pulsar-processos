@@ -36,7 +36,7 @@ const statusBadge: Record<LeadStatus, string> = {
   Perdido: "bg-red-500/15 text-red-600 border-0",
 };
 
-const PIE_COLORS = ["#6C63FF", "#FF6584", "#22C55E", "#F59E0B", "#94A3B8"];
+const PIE_COLORS = ["#F57C00", "#3A3A3A", "#FFA726", "#90A4AE", "#BDBDBD"];
 
 function Leads() {
   const { leads, advanceLeadStatus } = useData();
