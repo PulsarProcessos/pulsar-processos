@@ -21,6 +21,19 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataProvider } from "@/lib/data-store";
+import { AuthGate } from "@/components/auth-gate";
+import { supabase } from "@/integrations/supabase/client";
+import { LogOut } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useEffect, useState } from "react";
+import type { Session } from "@supabase/supabase-js";
 import { Toaster } from "@/components/ui/sonner";
 
 const titles: Record<string, string> = {
