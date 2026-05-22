@@ -230,25 +230,19 @@ function UserMenu() {
     </DropdownMenu>
   );
 }
-          </div>
-        </header>
-        <main className="flex-1 p-4 md:p-6">
-          <Outlet />
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
-  );
-}
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
     <QueryClientProvider client={queryClient}>
-      <DataProvider>
-        <AppShell />
-        <Toaster />
-      </DataProvider>
+      <AuthGate>
+        <DataProvider>
+          <AppShell />
+        </DataProvider>
+      </AuthGate>
+      <Toaster />
     </QueryClientProvider>
   );
 }
+
