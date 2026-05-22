@@ -138,8 +138,8 @@ function Dashboard() {
                 formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR")}`}
               />
               <Legend />
-              <Bar dataKey="receita" name="Receita" fill="#6C63FF" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="despesas" name="Despesas" fill="#FF6584" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="receita" name="Receita" fill="#F57C00" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="despesas" name="Despesas" fill="#3A3A3A" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>

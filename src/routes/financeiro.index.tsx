@@ -104,7 +104,7 @@ function FinanceiroOverview() {
                 contentStyle={{ background: "white", border: "1px solid oklch(0.92 0.01 270)", borderRadius: 8 }}
                 formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR")}`}
               />
-              <Line type="monotone" dataKey="receita" stroke="#6C63FF" strokeWidth={2.5} dot={{ r: 4 }} />
+              <Line type="monotone" dataKey="receita" stroke="#F57C00" strokeWidth={2.5} dot={{ r: 4 }} />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>
