@@ -14,9 +14,9 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowRightLeft, Pencil, Plus, Trash2 } from "lucide-react";
 import {
-  useData, Lancamento, LancStatus, LancTipo,
+  useData, Lancamento, LancStatus, LancTipo, Transferencia,
 } from "@/lib/data-store";
 
 export const Route = createFileRoute("/financeiro/lancamentos")({
