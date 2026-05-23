@@ -209,6 +209,8 @@ function Lancamentos() {
           </Table>
         </CardContent>
       </Card>
+
+      <TransferenciasTable />
     </div>
   );
 }
