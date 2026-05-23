@@ -14,9 +14,9 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowRightLeft, Pencil, Plus, Trash2 } from "lucide-react";
 import {
-  useData, Lancamento, LancStatus, LancTipo,
+  useData, Lancamento, LancStatus, LancTipo, Transferencia,
 } from "@/lib/data-store";
 
 export const Route = createFileRoute("/financeiro/lancamentos")({
@@ -128,18 +128,21 @@ function Lancamentos() {
               </Select>
             </div>
           </div>
-          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditando(null); }}>
-            <DialogTrigger asChild>
-              <Button onClick={() => setEditando(null)}>
-                <Plus className="h-4 w-4" /> Novo Lançamento
-              </Button>
-            </DialogTrigger>
-            <LancamentoForm
-              key={editando?.id ?? "novo"}
-              editando={editando}
-              onClose={() => setOpen(false)}
-            />
-          </Dialog>
+          <div className="flex gap-2">
+            <TransferenciaDialog />
+            <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditando(null); }}>
+              <DialogTrigger asChild>
+                <Button onClick={() => setEditando(null)}>
+                  <Plus className="h-4 w-4" /> Novo Lançamento
+                </Button>
+              </DialogTrigger>
+              <LancamentoForm
+                key={editando?.id ?? "novo"}
+                editando={editando}
+                onClose={() => setOpen(false)}
+              />
+            </Dialog>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -206,6 +209,8 @@ function Lancamentos() {
           </Table>
         </CardContent>
       </Card>
+
+      <TransferenciasTable />
     </div>
   );
 }
@@ -345,5 +350,145 @@ function LancamentoForm({
         <Button onClick={submit}>{editando ? "Salvar alterações" : "Salvar"}</Button>
       </DialogFooter>
     </DialogContent>
+  );
+}
+
+function TransferenciaDialog() {
+  const { bancos, addTransferencia } = useData();
+  const [open, setOpen] = useState(false);
+  const [origem, setOrigem] = useState("");
+  const [destino, setDestino] = useState("");
+  const [valor, setValor] = useState("");
+  const [data, setData] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [erro, setErro] = useState("");
+
+  const reset = () => {
+    setOrigem(""); setDestino(""); setValor(""); setData(""); setDescricao(""); setErro("");
+  };
+
+  const submit = async () => {
+    if (!origem || !destino) { setErro("Selecione os bancos de origem e destino."); return; }
+    if (origem === destino) { setErro("Origem e destino devem ser diferentes."); return; }
+    const v = Number(valor);
+    if (Number.isNaN(v) || v <= 0) { setErro("Valor deve ser positivo."); return; }
+    if (!data) { setErro("Informe a data."); return; }
+    await addTransferencia({
+      data, bancoOrigemId: origem, bancoDestinoId: destino,
+      valor: v, descricao: descricao.trim() || undefined,
+    });
+    reset();
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
+      <DialogTrigger asChild>
+        <Button variant="outline">
+          <ArrowRightLeft className="h-4 w-4" /> Transferência
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Nova transferência entre bancos</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          {bancos.length < 2 && (
+            <p className="rounded-md bg-muted p-3 text-xs text-muted-foreground">
+              Cadastre pelo menos 2 bancos em Cadastros para fazer transferências.
+            </p>
+          )}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Banco de origem</Label>
+              <Select value={origem} onValueChange={setOrigem}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {bancos.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Banco de destino</Label>
+              <Select value={destino} onValueChange={setDestino}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {bancos.filter((b) => b.id !== origem).map((b) => (
+                    <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Valor (R$)</Label>
+              <Input type="number" min="0" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Data</Label>
+              <Input type="date" value={data} onChange={(e) => setData(e.target.value)} />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Descrição (opcional)</Label>
+            <Input value={descricao} onChange={(e) => setDescricao(e.target.value)} maxLength={120} />
+          </div>
+          {erro && <p className="text-sm text-red-500">{erro}</p>}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button onClick={submit} disabled={bancos.length < 2}>Salvar transferência</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function TransferenciasTable() {
+  const { transferencias, bancos, removeTransferencia } = useData();
+  const bancoName = (id: string) => bancos.find((b) => b.id === id)?.nome ?? "—";
+
+  if (transferencias.length === 0) return null;
+
+  return (
+    <Card className="border-border/60">
+      <CardHeader>
+        <p className="text-sm font-semibold">Transferências entre bancos</p>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Data</TableHead>
+              <TableHead>Origem</TableHead>
+              <TableHead>Destino</TableHead>
+              <TableHead>Descrição</TableHead>
+              <TableHead className="text-right">Valor</TableHead>
+              <TableHead className="w-12" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {transferencias.map((t: Transferencia) => (
+              <TableRow key={t.id}>
+                <TableCell className="text-muted-foreground">{t.data}</TableCell>
+                <TableCell className="text-sm">{bancoName(t.bancoOrigemId)}</TableCell>
+                <TableCell className="text-sm">{bancoName(t.bancoDestinoId)}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{t.descricao ?? "—"}</TableCell>
+                <TableCell className="text-right font-medium">R$ {t.valor.toLocaleString("pt-BR")}</TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost" size="icon" className="h-8 w-8 text-red-500"
+                    onClick={() => removeTransferencia(t.id)}
+                  ><Trash2 className="h-4 w-4" /></Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   );
 }

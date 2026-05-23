@@ -85,8 +85,8 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r-0">
       <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center gap-2.5 px-2 py-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center">
+        <div className={`flex items-center gap-2.5 py-3 ${collapsed ? "justify-center px-0" : "px-2"}`}>
+          <div className={`flex shrink-0 items-center justify-center ${collapsed ? "h-7 w-7" : "h-10 w-10"}`}>
             <img src={pulsarLogo} alt="Pulsar" className="h-full w-full object-contain" />
           </div>
           {!collapsed && (
@@ -138,7 +138,7 @@ export function AppSidebar() {
                         >
                           <item.icon className="h-4 w-4" />
                           <span>{item.title}</span>
-                          <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                          <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90 group-data-[collapsible=icon]:hidden" />
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
                       <CollapsibleContent>
