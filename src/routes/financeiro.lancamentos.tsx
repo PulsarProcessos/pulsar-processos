@@ -128,18 +128,21 @@ function Lancamentos() {
               </Select>
             </div>
           </div>
-          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditando(null); }}>
-            <DialogTrigger asChild>
-              <Button onClick={() => setEditando(null)}>
-                <Plus className="h-4 w-4" /> Novo Lançamento
-              </Button>
-            </DialogTrigger>
-            <LancamentoForm
-              key={editando?.id ?? "novo"}
-              editando={editando}
-              onClose={() => setOpen(false)}
-            />
-          </Dialog>
+          <div className="flex gap-2">
+            <TransferenciaDialog />
+            <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditando(null); }}>
+              <DialogTrigger asChild>
+                <Button onClick={() => setEditando(null)}>
+                  <Plus className="h-4 w-4" /> Novo Lançamento
+                </Button>
+              </DialogTrigger>
+              <LancamentoForm
+                key={editando?.id ?? "novo"}
+                editando={editando}
+                onClose={() => setOpen(false)}
+              />
+            </Dialog>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
