@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      bancos: {
+        Row: {
+          agencia: string | null
+          conta: string | null
+          created_at: string
+          id: string
+          nome: string
+          saldo_inicial: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agencia?: string | null
+          conta?: string | null
+          created_at?: string
+          id?: string
+          nome: string
+          saldo_inicial?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agencia?: string | null
+          conta?: string | null
+          created_at?: string
+          id?: string
+          nome?: string
+          saldo_inicial?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       campanhas: {
         Row: {
           canal: string
@@ -169,7 +202,8 @@ export type Database = {
           obs: string | null
           origem_lead_id: string | null
           probabilidade: number
-          stage: Database["public"]["Enums"]["deal_stage"]
+          produto_id: string | null
+          stage: string
           titulo: string
           updated_at: string
           user_id: string
@@ -185,7 +219,8 @@ export type Database = {
           obs?: string | null
           origem_lead_id?: string | null
           probabilidade?: number
-          stage?: Database["public"]["Enums"]["deal_stage"]
+          produto_id?: string | null
+          stage?: string
           titulo: string
           updated_at?: string
           user_id: string
@@ -201,11 +236,47 @@ export type Database = {
           obs?: string | null
           origem_lead_id?: string | null
           probabilidade?: number
-          stage?: Database["public"]["Enums"]["deal_stage"]
+          produto_id?: string | null
+          stage?: string
           titulo?: string
           updated_at?: string
           user_id?: string
           valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deals_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      etapas_pipeline: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -283,6 +354,7 @@ export type Database = {
       }
       lancamentos: {
         Row: {
+          banco_id: string | null
           categoria_id: string | null
           cliente_id: string | null
           contato_id: string | null
@@ -298,6 +370,7 @@ export type Database = {
           valor: number
         }
         Insert: {
+          banco_id?: string | null
           categoria_id?: string | null
           cliente_id?: string | null
           contato_id?: string | null
@@ -313,6 +386,7 @@ export type Database = {
           valor: number
         }
         Update: {
+          banco_id?: string | null
           categoria_id?: string | null
           cliente_id?: string | null
           contato_id?: string | null
@@ -328,6 +402,13 @@ export type Database = {
           valor?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "lancamentos_banco_id_fkey"
+            columns: ["banco_id"]
+            isOneToOne: false
+            referencedRelation: "bancos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lancamentos_categoria_id_fkey"
             columns: ["categoria_id"]
@@ -399,6 +480,117 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      produtos: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          preco: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          preco?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          preco?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      transferencias: {
+        Row: {
+          banco_destino_id: string
+          banco_origem_id: string
+          created_at: string
+          data: string
+          descricao: string | null
+          id: string
+          updated_at: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          banco_destino_id: string
+          banco_origem_id: string
+          created_at?: string
+          data: string
+          descricao?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+          valor: number
+        }
+        Update: {
+          banco_destino_id?: string
+          banco_origem_id?: string
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transferencias_banco_destino_id_fkey"
+            columns: ["banco_destino_id"]
+            isOneToOne: false
+            referencedRelation: "bancos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transferencias_banco_origem_id_fkey"
+            columns: ["banco_origem_id"]
+            isOneToOne: false
+            referencedRelation: "bancos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
