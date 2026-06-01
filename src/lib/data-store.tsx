@@ -377,7 +377,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       bancos: (bancosR.data ?? []).map(mapBanco),
       produtos: (produtosR.data ?? []).map(mapProduto),
       etapas,
-      lancamentos: (lancR.data ?? []).map(mapLanc),
+      lancamentos: (lancR.data ?? []).map((r: any) => ({ ...mapLanc(r), rateios: rateiosByLanc.get(r.id) ?? [] })),
       transferencias: (transfR.data ?? []).map(mapTransf),
       deals: (dealsR.data ?? []).map(mapDeal),
       leads: (leadsR.data ?? []).map(mapLead),
