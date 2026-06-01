@@ -291,6 +291,9 @@ const lancToDb = (l: Partial<Lancamento>) => ({
   ...(l.tipo !== undefined && { tipo: l.tipo }),
   ...(l.valor !== undefined && { valor: l.valor }),
   ...(l.status !== undefined && { status: l.status }),
+  ...(l.parcelaGrupoId !== undefined && { parcela_grupo_id: l.parcelaGrupoId || null }),
+  ...(l.parcelaNumero !== undefined && { parcela_numero: l.parcelaNumero ?? null }),
+  ...(l.parcelaTotal !== undefined && { parcela_total: l.parcelaTotal ?? null }),
 });
 const dealToDb = (d: Partial<Deal>) => ({
   ...(d.cliente !== undefined && { cliente: d.cliente }),
