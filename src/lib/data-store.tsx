@@ -166,9 +166,18 @@ type Ctx = State & {
   removeEtapa: (nome: string) => Promise<void>;
   moveEtapa: (nome: string, dir: -1 | 1) => Promise<void>;
 
-  addLancamento: (l: Omit<Lancamento, "id">) => Promise<void>;
+  addLancamento: (l: Omit<Lancamento, "id">) => Promise<Lancamento | null>;
   updateLancamento: (id: string, p: Partial<Lancamento>) => Promise<void>;
   removeLancamento: (id: string) => Promise<void>;
+  addParcelamento: (
+    base: Omit<Lancamento, "id" | "valor" | "data" | "rateios">,
+    valorTotal: number,
+    parcelas: number,
+    primeiraData: string,
+    rateios?: Rateio[],
+  ) => Promise<void>;
+  removeParcelamento: (grupoId: string) => Promise<void>;
+  saveRateios: (lancamentoId: string, rateios: Rateio[]) => Promise<void>;
 
   addTransferencia: (t: Omit<Transferencia, "id">) => Promise<void>;
   removeTransferencia: (id: string) => Promise<void>;
