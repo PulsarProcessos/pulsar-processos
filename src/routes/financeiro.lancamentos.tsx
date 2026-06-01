@@ -164,7 +164,21 @@ function Lancamentos() {
               {filtered.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell className="text-muted-foreground">{r.data}</TableCell>
-                  <TableCell className="font-medium">{r.desc}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      <span>{r.desc}</span>
+                      {r.parcelaTotal ? (
+                        <Badge variant="outline" className="text-[10px]">
+                          {r.parcelaNumero}/{r.parcelaTotal}
+                        </Badge>
+                      ) : null}
+                      {r.rateios && r.rateios.length > 0 ? (
+                        <Badge variant="outline" className="text-[10px] gap-1">
+                          <Layers className="h-3 w-3" /> Rateado
+                        </Badge>
+                      ) : null}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-sm">{contName(r.contatoId)}</TableCell>
                   <TableCell><Badge variant="outline">{catName(r.categoriaId)}</Badge></TableCell>
                   <TableCell className="text-sm text-muted-foreground">{bancoName(r.bancoId)}</TableCell>
