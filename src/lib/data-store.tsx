@@ -37,6 +37,14 @@ export type Produto = {
 
 export type LancTipo = "Receita" | "Despesa";
 export type LancStatus = "Pago" | "Pendente";
+export type Rateio = {
+  id?: string;
+  lancamentoId?: string;
+  categoriaId?: string;
+  valor: number;
+  percentual?: number;
+  descricao?: string;
+};
 export type Lancamento = {
   id: string;
   data: string;
@@ -47,6 +55,10 @@ export type Lancamento = {
   tipo: LancTipo;
   valor: number;
   status: LancStatus;
+  parcelaGrupoId?: string;
+  parcelaNumero?: number;
+  parcelaTotal?: number;
+  rateios?: Rateio[];
 };
 
 export type Transferencia = {
@@ -154,9 +166,18 @@ type Ctx = State & {
   removeEtapa: (nome: string) => Promise<void>;
   moveEtapa: (nome: string, dir: -1 | 1) => Promise<void>;
 
-  addLancamento: (l: Omit<Lancamento, "id">) => Promise<void>;
+  addLancamento: (l: Omit<Lancamento, "id">) => Promise<Lancamento | null>;
   updateLancamento: (id: string, p: Partial<Lancamento>) => Promise<void>;
   removeLancamento: (id: string) => Promise<void>;
+  addParcelamento: (
+    base: Omit<Lancamento, "id" | "valor" | "data" | "rateios">,
+    valorTotal: number,
+    parcelas: number,
+    primeiraData: string,
+    rateios?: Rateio[],
+  ) => Promise<void>;
+  removeParcelamento: (grupoId: string) => Promise<void>;
+  saveRateios: (lancamentoId: string, rateios: Rateio[]) => Promise<void>;
 
   addTransferencia: (t: Omit<Transferencia, "id">) => Promise<void>;
   removeTransferencia: (id: string) => Promise<void>;
@@ -224,6 +245,16 @@ const mapLanc = (r: any): Lancamento => ({
   categoriaId: r.categoria_id ?? "", contatoId: r.contato_id ?? undefined,
   bancoId: r.banco_id ?? undefined, tipo: r.tipo, valor: Number(r.valor),
   status: r.status,
+  parcelaGrupoId: r.parcela_grupo_id ?? undefined,
+  parcelaNumero: r.parcela_numero ?? undefined,
+  parcelaTotal: r.parcela_total ?? undefined,
+});
+const mapRateio = (r: any): Rateio => ({
+  id: r.id, lancamentoId: r.lancamento_id,
+  categoriaId: r.categoria_id ?? undefined,
+  valor: Number(r.valor ?? 0),
+  percentual: r.percentual != null ? Number(r.percentual) : undefined,
+  descricao: r.descricao ?? undefined,
 });
 const mapTransf = (r: any): Transferencia => ({
   id: r.id, data: r.data, bancoOrigemId: r.banco_origem_id,
@@ -260,6 +291,9 @@ const lancToDb = (l: Partial<Lancamento>) => ({
   ...(l.tipo !== undefined && { tipo: l.tipo }),
   ...(l.valor !== undefined && { valor: l.valor }),
   ...(l.status !== undefined && { status: l.status }),
+  ...(l.parcelaGrupoId !== undefined && { parcela_grupo_id: l.parcelaGrupoId || null }),
+  ...(l.parcelaNumero !== undefined && { parcela_numero: l.parcelaNumero ?? null }),
+  ...(l.parcelaTotal !== undefined && { parcela_total: l.parcelaTotal ?? null }),
 });
 const dealToDb = (d: Partial<Deal>) => ({
   ...(d.cliente !== undefined && { cliente: d.cliente }),
@@ -304,7 +338,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     const [
       contatosR, categoriasR, bancosR, produtosR, etapasR,
-      lancR, transfR, dealsR, leadsR, campsR, eventosR,
+      lancR, rateiosR, transfR, dealsR, leadsR, campsR, eventosR,
     ] = await Promise.all([
       supabase.from("contatos").select("*").order("created_at", { ascending: false }),
       supabase.from("categorias").select("*").order("nome"),
@@ -312,12 +346,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
       supabase.from("produtos").select("*").order("nome"),
       supabase.from("etapas_pipeline").select("*").order("ordem"),
       supabase.from("lancamentos").select("*").order("data", { ascending: false }),
+      (supabase.from as any)("lancamento_rateios").select("*"),
       supabase.from("transferencias").select("*").order("data", { ascending: false }),
       supabase.from("deals").select("*").order("created_at", { ascending: false }),
       supabase.from("leads").select("*").order("data", { ascending: false }),
       supabase.from("campanhas").select("*").order("created_at", { ascending: false }),
       supabase.from("eventos").select("*").order("data", { ascending: false }),
     ]);
+
+    const rateiosByLanc = new Map<string, Rateio[]>();
+    for (const r of (rateiosR?.data ?? [])) {
+      const m = mapRateio(r);
+      const list = rateiosByLanc.get(m.lancamentoId!) ?? [];
+      list.push(m);
+      rateiosByLanc.set(m.lancamentoId!, list);
+    }
 
     const etapasFromDb = (etapasR.data ?? []).map((e: any) => e.nome as string);
     let etapas = etapasFromDb;
@@ -334,7 +377,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       bancos: (bancosR.data ?? []).map(mapBanco),
       produtos: (produtosR.data ?? []).map(mapProduto),
       etapas,
-      lancamentos: (lancR.data ?? []).map(mapLanc),
+      lancamentos: (lancR.data ?? []).map((r: any) => ({ ...mapLanc(r), rateios: rateiosByLanc.get(r.id) ?? [] })),
       transferencias: (transfR.data ?? []).map(mapTransf),
       deals: (dealsR.data ?? []).map(mapDeal),
       leads: (leadsR.data ?? []).map(mapLead),
@@ -492,12 +535,99 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [state.etapas]);
 
   // ----- Lançamentos -----
-  const addLancamento = useCallback(async (l: Omit<Lancamento, "id">) => {
-    await insertRow("lancamentos", lancToDb(l), mapLanc, "lancamentos");
+  const saveRateios = useCallback(async (lancamentoId: string, rateios: Rateio[]) => {
+    const uid = await getUserId();
+    if (!uid) return;
+    // Replace all rateios for this lançamento
+    await (supabase.from as any)("lancamento_rateios").delete().eq("lancamento_id", lancamentoId);
+    let inserted: Rateio[] = [];
+    if (rateios.length > 0) {
+      const payload = rateios.map((r) => ({
+        user_id: uid,
+        lancamento_id: lancamentoId,
+        categoria_id: r.categoriaId || null,
+        valor: r.valor,
+        percentual: r.percentual ?? null,
+        descricao: r.descricao ?? null,
+      }));
+      const { data, error } = await (supabase.from as any)("lancamento_rateios").insert(payload).select();
+      if (error) { showError("Erro ao salvar rateios", error); return; }
+      inserted = (data ?? []).map(mapRateio);
+    }
+    setState((p) => ({
+      ...p,
+      lancamentos: p.lancamentos.map((l) =>
+        l.id === lancamentoId ? { ...l, rateios: inserted } : l,
+      ),
+    }));
   }, []);
-  const updateLancamento = useCallback((id: string, pa: Partial<Lancamento>) =>
-    updateRow("lancamentos", id, lancToDb(pa), mapLanc, "lancamentos"), []);
+
+  const addLancamento = useCallback(async (l: Omit<Lancamento, "id">) => {
+    const { rateios, ...rest } = l;
+    const inserted = await insertRow("lancamentos", lancToDb(rest), mapLanc, "lancamentos");
+    if (inserted && rateios && rateios.length > 0) {
+      await saveRateios(inserted.id, rateios);
+    }
+    return inserted;
+  }, [saveRateios]);
+  const updateLancamento = useCallback(async (id: string, pa: Partial<Lancamento>) => {
+    const { rateios, ...rest } = pa;
+    if (Object.keys(rest).length > 0) {
+      await updateRow("lancamentos", id, lancToDb(rest), mapLanc, "lancamentos");
+    }
+    if (rateios !== undefined) {
+      await saveRateios(id, rateios);
+    }
+  }, [saveRateios]);
   const removeLancamento = useCallback((id: string) => deleteRow("lancamentos", id, "lancamentos"), []);
+
+  const addParcelamento = useCallback(async (
+    base: Omit<Lancamento, "id" | "valor" | "data" | "rateios">,
+    valorTotal: number,
+    parcelas: number,
+    primeiraData: string,
+    rateios?: Rateio[],
+  ) => {
+    const uid = await getUserId();
+    if (!uid) return;
+    const grupoId = (crypto as any).randomUUID();
+    const valorParcela = Math.round((valorTotal / parcelas) * 100) / 100;
+    const resto = Math.round((valorTotal - valorParcela * parcelas) * 100) / 100;
+    const [y, m, d] = primeiraData.split("-").map(Number);
+    const rows = Array.from({ length: parcelas }).map((_, i) => {
+      const dt = new Date(y, (m - 1) + i, d);
+      const dateStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+      const v = i === parcelas - 1 ? valorParcela + resto : valorParcela;
+      return {
+        user_id: uid,
+        ...lancToDb({ ...base, valor: v, data: dateStr, parcelaGrupoId: grupoId, parcelaNumero: i + 1, parcelaTotal: parcelas }),
+      };
+    });
+    const { data, error } = await (supabase.from as any)("lancamentos").insert(rows).select();
+    if (error) { showError("Erro ao criar parcelamento", error); return; }
+    const novos = (data ?? []).map(mapLanc);
+    setState((p) => ({ ...p, lancamentos: [...novos, ...p.lancamentos] }));
+    // Apply rateios proportionally to each parcel
+    if (rateios && rateios.length > 0 && novos.length > 0) {
+      for (const lanc of novos) {
+        const fator = lanc.valor / valorTotal;
+        const rs = rateios.map((r) => ({
+          ...r,
+          valor: Math.round(r.valor * fator * 100) / 100,
+        }));
+        await saveRateios(lanc.id, rs);
+      }
+    }
+  }, [saveRateios]);
+
+  const removeParcelamento = useCallback(async (grupoId: string) => {
+    const { error } = await supabase.from("lancamentos").delete().eq("parcela_grupo_id", grupoId);
+    if (error) { showError("Erro ao excluir parcelamento", error); return; }
+    setState((p) => ({
+      ...p,
+      lancamentos: p.lancamentos.filter((l) => l.parcelaGrupoId !== grupoId),
+    }));
+  }, []);
 
   // ----- Transferências -----
   const addTransferencia = useCallback(async (t: Omit<Transferencia, "id">) => {
@@ -573,6 +703,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         addProduto, updateProduto, removeProduto,
         addEtapa, renameEtapa, removeEtapa, moveEtapa,
         addLancamento, updateLancamento, removeLancamento,
+        addParcelamento, removeParcelamento, saveRateios,
         addTransferencia, removeTransferencia,
         addDeal, updateDeal, removeDeal,
         addLead, updateLead, removeLead, advanceLeadStatus,

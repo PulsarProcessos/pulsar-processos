@@ -352,6 +352,54 @@ export type Database = {
         }
         Relationships: []
       }
+      lancamento_rateios: {
+        Row: {
+          categoria_id: string | null
+          created_at: string
+          descricao: string | null
+          id: string
+          lancamento_id: string
+          percentual: number | null
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          categoria_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          lancamento_id: string
+          percentual?: number | null
+          user_id: string
+          valor?: number
+        }
+        Update: {
+          categoria_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          lancamento_id?: string
+          percentual?: number | null
+          user_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lancamento_rateios_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamento_rateios_lancamento_id_fkey"
+            columns: ["lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "lancamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lancamentos: {
         Row: {
           banco_id: string | null
@@ -363,6 +411,9 @@ export type Database = {
           descricao: string
           fornecedor_id: string | null
           id: string
+          parcela_grupo_id: string | null
+          parcela_numero: number | null
+          parcela_total: number | null
           status: Database["public"]["Enums"]["lancamento_status"]
           tipo: Database["public"]["Enums"]["movimento_tipo"]
           updated_at: string
@@ -379,6 +430,9 @@ export type Database = {
           descricao: string
           fornecedor_id?: string | null
           id?: string
+          parcela_grupo_id?: string | null
+          parcela_numero?: number | null
+          parcela_total?: number | null
           status?: Database["public"]["Enums"]["lancamento_status"]
           tipo: Database["public"]["Enums"]["movimento_tipo"]
           updated_at?: string
@@ -395,6 +449,9 @@ export type Database = {
           descricao?: string
           fornecedor_id?: string | null
           id?: string
+          parcela_grupo_id?: string | null
+          parcela_numero?: number | null
+          parcela_total?: number | null
           status?: Database["public"]["Enums"]["lancamento_status"]
           tipo?: Database["public"]["Enums"]["movimento_tipo"]
           updated_at?: string
