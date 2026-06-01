@@ -245,6 +245,16 @@ const mapLanc = (r: any): Lancamento => ({
   categoriaId: r.categoria_id ?? "", contatoId: r.contato_id ?? undefined,
   bancoId: r.banco_id ?? undefined, tipo: r.tipo, valor: Number(r.valor),
   status: r.status,
+  parcelaGrupoId: r.parcela_grupo_id ?? undefined,
+  parcelaNumero: r.parcela_numero ?? undefined,
+  parcelaTotal: r.parcela_total ?? undefined,
+});
+const mapRateio = (r: any): Rateio => ({
+  id: r.id, lancamentoId: r.lancamento_id,
+  categoriaId: r.categoria_id ?? undefined,
+  valor: Number(r.valor ?? 0),
+  percentual: r.percentual != null ? Number(r.percentual) : undefined,
+  descricao: r.descricao ?? undefined,
 });
 const mapTransf = (r: any): Transferencia => ({
   id: r.id, data: r.data, bancoOrigemId: r.banco_origem_id,
