@@ -535,12 +535,99 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [state.etapas]);
 
   // ----- Lançamentos -----
-  const addLancamento = useCallback(async (l: Omit<Lancamento, "id">) => {
-    await insertRow("lancamentos", lancToDb(l), mapLanc, "lancamentos");
+  const saveRateios = useCallback(async (lancamentoId: string, rateios: Rateio[]) => {
+    const uid = await getUserId();
+    if (!uid) return;
+    // Replace all rateios for this lançamento
+    await (supabase.from as any)("lancamento_rateios").delete().eq("lancamento_id", lancamentoId);
+    let inserted: Rateio[] = [];
+    if (rateios.length > 0) {
+      const payload = rateios.map((r) => ({
+        user_id: uid,
+        lancamento_id: lancamentoId,
+        categoria_id: r.categoriaId || null,
+        valor: r.valor,
+        percentual: r.percentual ?? null,
+        descricao: r.descricao ?? null,
+      }));
+      const { data, error } = await (supabase.from as any)("lancamento_rateios").insert(payload).select();
+      if (error) { showError("Erro ao salvar rateios", error); return; }
+      inserted = (data ?? []).map(mapRateio);
+    }
+    setState((p) => ({
+      ...p,
+      lancamentos: p.lancamentos.map((l) =>
+        l.id === lancamentoId ? { ...l, rateios: inserted } : l,
+      ),
+    }));
   }, []);
-  const updateLancamento = useCallback((id: string, pa: Partial<Lancamento>) =>
-    updateRow("lancamentos", id, lancToDb(pa), mapLanc, "lancamentos"), []);
+
+  const addLancamento = useCallback(async (l: Omit<Lancamento, "id">) => {
+    const { rateios, ...rest } = l;
+    const inserted = await insertRow("lancamentos", lancToDb(rest), mapLanc, "lancamentos");
+    if (inserted && rateios && rateios.length > 0) {
+      await saveRateios(inserted.id, rateios);
+    }
+    return inserted;
+  }, [saveRateios]);
+  const updateLancamento = useCallback(async (id: string, pa: Partial<Lancamento>) => {
+    const { rateios, ...rest } = pa;
+    if (Object.keys(rest).length > 0) {
+      await updateRow("lancamentos", id, lancToDb(rest), mapLanc, "lancamentos");
+    }
+    if (rateios !== undefined) {
+      await saveRateios(id, rateios);
+    }
+  }, [saveRateios]);
   const removeLancamento = useCallback((id: string) => deleteRow("lancamentos", id, "lancamentos"), []);
+
+  const addParcelamento = useCallback(async (
+    base: Omit<Lancamento, "id" | "valor" | "data" | "rateios">,
+    valorTotal: number,
+    parcelas: number,
+    primeiraData: string,
+    rateios?: Rateio[],
+  ) => {
+    const uid = await getUserId();
+    if (!uid) return;
+    const grupoId = (crypto as any).randomUUID();
+    const valorParcela = Math.round((valorTotal / parcelas) * 100) / 100;
+    const resto = Math.round((valorTotal - valorParcela * parcelas) * 100) / 100;
+    const [y, m, d] = primeiraData.split("-").map(Number);
+    const rows = Array.from({ length: parcelas }).map((_, i) => {
+      const dt = new Date(y, (m - 1) + i, d);
+      const dateStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+      const v = i === parcelas - 1 ? valorParcela + resto : valorParcela;
+      return {
+        user_id: uid,
+        ...lancToDb({ ...base, valor: v, data: dateStr, parcelaGrupoId: grupoId, parcelaNumero: i + 1, parcelaTotal: parcelas }),
+      };
+    });
+    const { data, error } = await supabase.from("lancamentos").insert(rows).select();
+    if (error) { showError("Erro ao criar parcelamento", error); return; }
+    const novos = (data ?? []).map(mapLanc);
+    setState((p) => ({ ...p, lancamentos: [...novos, ...p.lancamentos] }));
+    // Apply rateios proportionally to each parcel
+    if (rateios && rateios.length > 0 && novos.length > 0) {
+      for (const lanc of novos) {
+        const fator = lanc.valor / valorTotal;
+        const rs = rateios.map((r) => ({
+          ...r,
+          valor: Math.round(r.valor * fator * 100) / 100,
+        }));
+        await saveRateios(lanc.id, rs);
+      }
+    }
+  }, [saveRateios]);
+
+  const removeParcelamento = useCallback(async (grupoId: string) => {
+    const { error } = await supabase.from("lancamentos").delete().eq("parcela_grupo_id", grupoId);
+    if (error) { showError("Erro ao excluir parcelamento", error); return; }
+    setState((p) => ({
+      ...p,
+      lancamentos: p.lancamentos.filter((l) => l.parcelaGrupoId !== grupoId),
+    }));
+  }, []);
 
   // ----- Transferências -----
   const addTransferencia = useCallback(async (t: Omit<Transferencia, "id">) => {
