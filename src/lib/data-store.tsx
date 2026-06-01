@@ -338,7 +338,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     const [
       contatosR, categoriasR, bancosR, produtosR, etapasR,
-      lancR, transfR, dealsR, leadsR, campsR, eventosR,
+      lancR, rateiosR, transfR, dealsR, leadsR, campsR, eventosR,
     ] = await Promise.all([
       supabase.from("contatos").select("*").order("created_at", { ascending: false }),
       supabase.from("categorias").select("*").order("nome"),
@@ -346,12 +346,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
       supabase.from("produtos").select("*").order("nome"),
       supabase.from("etapas_pipeline").select("*").order("ordem"),
       supabase.from("lancamentos").select("*").order("data", { ascending: false }),
+      (supabase.from as any)("lancamento_rateios").select("*"),
       supabase.from("transferencias").select("*").order("data", { ascending: false }),
       supabase.from("deals").select("*").order("created_at", { ascending: false }),
       supabase.from("leads").select("*").order("data", { ascending: false }),
       supabase.from("campanhas").select("*").order("created_at", { ascending: false }),
       supabase.from("eventos").select("*").order("data", { ascending: false }),
     ]);
+
+    const rateiosByLanc = new Map<string, Rateio[]>();
+    for (const r of (rateiosR?.data ?? [])) {
+      const m = mapRateio(r);
+      const list = rateiosByLanc.get(m.lancamentoId!) ?? [];
+      list.push(m);
+      rateiosByLanc.set(m.lancamentoId!, list);
+    }
 
     const etapasFromDb = (etapasR.data ?? []).map((e: any) => e.nome as string);
     let etapas = etapasFromDb;
