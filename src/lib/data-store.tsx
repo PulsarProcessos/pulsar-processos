@@ -37,6 +37,14 @@ export type Produto = {
 
 export type LancTipo = "Receita" | "Despesa";
 export type LancStatus = "Pago" | "Pendente";
+export type Rateio = {
+  id?: string;
+  lancamentoId?: string;
+  categoriaId?: string;
+  valor: number;
+  percentual?: number;
+  descricao?: string;
+};
 export type Lancamento = {
   id: string;
   data: string;
@@ -47,6 +55,10 @@ export type Lancamento = {
   tipo: LancTipo;
   valor: number;
   status: LancStatus;
+  parcelaGrupoId?: string;
+  parcelaNumero?: number;
+  parcelaTotal?: number;
+  rateios?: Rateio[];
 };
 
 export type Transferencia = {
