@@ -603,7 +603,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         ...lancToDb({ ...base, valor: v, data: dateStr, parcelaGrupoId: grupoId, parcelaNumero: i + 1, parcelaTotal: parcelas }),
       };
     });
-    const { data, error } = await supabase.from("lancamentos").insert(rows).select();
+    const { data, error } = await (supabase.from as any)("lancamentos").insert(rows).select();
     if (error) { showError("Erro ao criar parcelamento", error); return; }
     const novos = (data ?? []).map(mapLanc);
     setState((p) => ({ ...p, lancamentos: [...novos, ...p.lancamentos] }));
