@@ -139,6 +139,7 @@ export type Evento = {
 type State = {
   contatos: Contato[];
   categorias: Categoria[];
+  grupos: GrupoCategoria[];
   bancos: Banco[];
   produtos: Produto[];
   etapas: DealStage[];
@@ -159,6 +160,10 @@ type Ctx = State & {
   addCategoria: (c: Omit<Categoria, "id">) => Promise<void>;
   updateCategoria: (id: string, p: Partial<Categoria>) => Promise<void>;
   removeCategoria: (id: string) => Promise<void>;
+
+  addGrupo: (g: Omit<GrupoCategoria, "id" | "ordem">) => Promise<void>;
+  updateGrupo: (id: string, p: Partial<GrupoCategoria>) => Promise<void>;
+  removeGrupo: (id: string) => Promise<void>;
 
   addBanco: (b: Omit<Banco, "id">) => Promise<void>;
   updateBanco: (id: string, p: Partial<Banco>) => Promise<void>;
