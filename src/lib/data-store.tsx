@@ -190,6 +190,7 @@ type Ctx = State & {
     rateios?: Rateio[],
   ) => Promise<void>;
   removeParcelamento: (grupoId: string) => Promise<void>;
+  updateParcelamentoGrupo: (grupoId: string, p: Partial<Lancamento>) => Promise<void>;
   saveRateios: (lancamentoId: string, rateios: Rateio[]) => Promise<void>;
 
   addTransferencia: (t: Omit<Transferencia, "id">) => Promise<void>;
