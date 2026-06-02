@@ -18,6 +18,14 @@ export type Categoria = {
   id: string;
   nome: string;
   tipo: "Receita" | "Despesa";
+  grupoId?: string;
+};
+
+export type GrupoCategoria = {
+  id: string;
+  nome: string;
+  tipo: "Receita" | "Despesa";
+  ordem: number;
 };
 
 export type Banco = {
@@ -131,6 +139,7 @@ export type Evento = {
 type State = {
   contatos: Contato[];
   categorias: Categoria[];
+  grupos: GrupoCategoria[];
   bancos: Banco[];
   produtos: Produto[];
   etapas: DealStage[];
@@ -151,6 +160,10 @@ type Ctx = State & {
   addCategoria: (c: Omit<Categoria, "id">) => Promise<void>;
   updateCategoria: (id: string, p: Partial<Categoria>) => Promise<void>;
   removeCategoria: (id: string) => Promise<void>;
+
+  addGrupo: (g: Omit<GrupoCategoria, "id" | "ordem">) => Promise<void>;
+  updateGrupo: (id: string, p: Partial<GrupoCategoria>) => Promise<void>;
+  removeGrupo: (id: string) => Promise<void>;
 
   addBanco: (b: Omit<Banco, "id">) => Promise<void>;
   updateBanco: (id: string, p: Partial<Banco>) => Promise<void>;
@@ -177,6 +190,7 @@ type Ctx = State & {
     rateios?: Rateio[],
   ) => Promise<void>;
   removeParcelamento: (grupoId: string) => Promise<void>;
+  updateParcelamentoGrupo: (grupoId: string, p: Partial<Lancamento>) => Promise<void>;
   saveRateios: (lancamentoId: string, rateios: Rateio[]) => Promise<void>;
 
   addTransferencia: (t: Omit<Transferencia, "id">) => Promise<void>;
@@ -214,6 +228,7 @@ const DEFAULT_ETAPAS: DealStage[] = [
 const emptyState: State = {
   contatos: [],
   categorias: [],
+  grupos: [],
   bancos: [],
   produtos: [],
   etapas: DEFAULT_ETAPAS,
@@ -232,7 +247,12 @@ const mapContato = (r: any): Contato => ({
   documento: r.documento ?? undefined, email: r.email ?? undefined,
   telefone: r.telefone ?? undefined, obs: r.obs ?? undefined,
 });
-const mapCategoria = (r: any): Categoria => ({ id: r.id, nome: r.nome, tipo: r.tipo });
+const mapCategoria = (r: any): Categoria => ({
+  id: r.id, nome: r.nome, tipo: r.tipo, grupoId: r.grupo_id ?? undefined,
+});
+const mapGrupo = (r: any): GrupoCategoria => ({
+  id: r.id, nome: r.nome, tipo: r.tipo, ordem: r.ordem ?? 0,
+});
 const mapBanco = (r: any): Banco => ({
   id: r.id, nome: r.nome, agencia: r.agencia ?? undefined,
   conta: r.conta ?? undefined, saldoInicial: Number(r.saldo_inicial ?? 0),
@@ -337,11 +357,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (!user) { setState({ ...emptyState, loading: false }); return; }
 
     const [
-      contatosR, categoriasR, bancosR, produtosR, etapasR,
+      contatosR, categoriasR, gruposR, bancosR, produtosR, etapasR,
       lancR, rateiosR, transfR, dealsR, leadsR, campsR, eventosR,
     ] = await Promise.all([
       supabase.from("contatos").select("*").order("created_at", { ascending: false }),
       supabase.from("categorias").select("*").order("nome"),
+      (supabase.from as any)("grupos_categoria").select("*").order("ordem"),
       supabase.from("bancos").select("*").order("nome"),
       supabase.from("produtos").select("*").order("nome"),
       supabase.from("etapas_pipeline").select("*").order("ordem"),
@@ -365,7 +386,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const etapasFromDb = (etapasR.data ?? []).map((e: any) => e.nome as string);
     let etapas = etapasFromDb;
     if (etapasFromDb.length === 0) {
-      // Seed default stages for new user
       const seed = DEFAULT_ETAPAS.map((nome, i) => ({ user_id: user.id, nome, ordem: i }));
       await supabase.from("etapas_pipeline").insert(seed);
       etapas = DEFAULT_ETAPAS;
@@ -374,6 +394,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setState({
       contatos: (contatosR.data ?? []).map(mapContato),
       categorias: (categoriasR.data ?? []).map(mapCategoria),
+      grupos: ((gruposR as any)?.data ?? []).map(mapGrupo),
       bancos: (bancosR.data ?? []).map(mapBanco),
       produtos: (produtosR.data ?? []).map(mapProduto),
       etapas,
@@ -439,12 +460,30 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const removeContato = useCallback((id: string) => deleteRow("contatos", id, "contatos"), []);
 
   // ----- Categorias -----
+  const catToDb = (c: Partial<Categoria>) => ({
+    ...(c.nome !== undefined && { nome: c.nome }),
+    ...(c.tipo !== undefined && { tipo: c.tipo }),
+    ...(c.grupoId !== undefined && { grupo_id: c.grupoId || null }),
+  });
   const addCategoria = useCallback(async (c: Omit<Categoria, "id">) => {
-    await insertRow("categorias", c, mapCategoria, "categorias");
+    await insertRow("categorias", catToDb(c), mapCategoria, "categorias");
   }, []);
   const updateCategoria = useCallback((id: string, pa: Partial<Categoria>) =>
-    updateRow("categorias", id, pa, mapCategoria, "categorias"), []);
+    updateRow("categorias", id, catToDb(pa), mapCategoria, "categorias"), []);
   const removeCategoria = useCallback((id: string) => deleteRow("categorias", id, "categorias"), []);
+
+  // ----- Grupos -----
+  const addGrupo = useCallback(async (g: Omit<GrupoCategoria, "id" | "ordem">) => {
+    const ordem = state.grupos.filter((x) => x.tipo === g.tipo).length;
+    await insertRow("grupos_categoria", { nome: g.nome, tipo: g.tipo, ordem }, mapGrupo, "grupos");
+  }, [state.grupos]);
+  const updateGrupo = useCallback((id: string, pa: Partial<GrupoCategoria>) =>
+    updateRow("grupos_categoria", id, {
+      ...(pa.nome !== undefined && { nome: pa.nome }),
+      ...(pa.tipo !== undefined && { tipo: pa.tipo }),
+      ...(pa.ordem !== undefined && { ordem: pa.ordem }),
+    }, mapGrupo, "grupos"), []);
+  const removeGrupo = useCallback((id: string) => deleteRow("grupos_categoria", id, "grupos"), []);
 
   // ----- Bancos -----
   const addBanco = useCallback(async (b: Omit<Banco, "id">) => {
@@ -620,6 +659,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [saveRateios]);
 
+  const updateParcelamentoGrupo = useCallback(async (grupoId: string, pa: Partial<Lancamento>) => {
+    // Propaga apenas os campos compartilhados (não muda valor nem data nem número da parcela)
+    const { valor, data, parcelaNumero, parcelaTotal, parcelaGrupoId, rateios, ...rest } = pa;
+    void valor; void data; void parcelaNumero; void parcelaTotal; void parcelaGrupoId; void rateios;
+    const payload = lancToDb(rest);
+    if (Object.keys(payload).length === 0) return;
+    const { data: rows, error } = await supabase.from("lancamentos")
+      .update(payload).eq("parcela_grupo_id", grupoId).select();
+    if (error) { showError("Erro ao atualizar parcelamento", error); return; }
+    const updatedIds = new Set((rows ?? []).map((r: any) => r.id));
+    const mapped = new Map((rows ?? []).map((r: any) => [r.id, mapLanc(r)]));
+    setState((p) => ({
+      ...p,
+      lancamentos: p.lancamentos.map((l) =>
+        updatedIds.has(l.id) ? { ...l, ...(mapped.get(l.id) as Lancamento) } : l,
+      ),
+    }));
+  }, []);
+
   const removeParcelamento = useCallback(async (grupoId: string) => {
     const { error } = await supabase.from("lancamentos").delete().eq("parcela_grupo_id", grupoId);
     if (error) { showError("Erro ao excluir parcelamento", error); return; }
@@ -699,11 +757,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
         ...state,
         addContato, updateContato, removeContato,
         addCategoria, updateCategoria, removeCategoria,
+        addGrupo, updateGrupo, removeGrupo,
         addBanco, updateBanco, removeBanco, saldoBanco,
         addProduto, updateProduto, removeProduto,
         addEtapa, renameEtapa, removeEtapa, moveEtapa,
         addLancamento, updateLancamento, removeLancamento,
-        addParcelamento, removeParcelamento, saveRateios,
+        addParcelamento, removeParcelamento, updateParcelamentoGrupo, saveRateios,
         addTransferencia, removeTransferencia,
         addDeal, updateDeal, removeDeal,
         addLead, updateLead, removeLead, advanceLeadStatus,

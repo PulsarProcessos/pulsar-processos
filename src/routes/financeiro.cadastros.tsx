@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,9 +15,9 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Folder, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import {
-  useData, Contato, ContatoTipo, Categoria, Banco,
+  useData, Contato, ContatoTipo, Categoria, Banco, GrupoCategoria,
 } from "@/lib/data-store";
 
 export const Route = createFileRoute("/financeiro/cadastros")({
@@ -43,13 +43,24 @@ function Cadastros() {
 
 function ContatosPanel({ tipo }: { tipo: ContatoTipo }) {
   const { contatos, removeContato } = useData();
-  const lista = contatos.filter((c) => c.tipo === tipo);
+  const [busca, setBusca] = useState("");
+  const lista = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    return contatos
+      .filter((c) => c.tipo === tipo)
+      .filter((c) => !q ||
+        c.nome.toLowerCase().includes(q) ||
+        (c.documento ?? "").toLowerCase().includes(q) ||
+        (c.email ?? "").toLowerCase().includes(q) ||
+        (c.telefone ?? "").toLowerCase().includes(q),
+      );
+  }, [contatos, busca, tipo]);
   const [open, setOpen] = useState(false);
   const [editando, setEditando] = useState<Contato | null>(null);
 
   return (
     <Card className="border-border/60">
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-row items-center justify-between gap-3 flex-wrap">
         <div>
           <CardTitle>{tipo === "Cliente" ? "Clientes" : "Fornecedores"}</CardTitle>
           <CardDescription>
@@ -58,19 +69,30 @@ function ContatosPanel({ tipo }: { tipo: ContatoTipo }) {
               : "Vinculados a lançamentos de despesa."}
           </CardDescription>
         </div>
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditando(null); }}>
-          <DialogTrigger asChild>
-            <Button onClick={() => setEditando(null)}>
-              <Plus className="h-4 w-4" /> Novo {tipo}
-            </Button>
-          </DialogTrigger>
-          <ContatoForm
-            key={editando?.id ?? "novo"}
-            editando={editando}
-            tipo={tipo}
-            onClose={() => setOpen(false)}
-          />
-        </Dialog>
+        <div className="flex items-center gap-2 flex-1 justify-end min-w-[260px]">
+          <div className="relative w-full max-w-xs">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder={`Buscar ${tipo === "Cliente" ? "cliente" : "fornecedor"}...`}
+              className="pl-8 h-9"
+            />
+          </div>
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditando(null); }}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setEditando(null)}>
+                <Plus className="h-4 w-4" /> Novo {tipo}
+              </Button>
+            </DialogTrigger>
+            <ContatoForm
+              key={editando?.id ?? "novo"}
+              editando={editando}
+              tipo={tipo}
+              onClose={() => setOpen(false)}
+            />
+          </Dialog>
+        </div>
       </CardHeader>
       <CardContent>
         <Table>
@@ -107,7 +129,7 @@ function ContatosPanel({ tipo }: { tipo: ContatoTipo }) {
             {lista.length === 0 && (
               <TableRow>
                 <TableCell colSpan={4} className="py-8 text-center text-sm text-muted-foreground">
-                  Nenhum cadastro.
+                  {busca ? "Nenhum resultado para a busca." : "Nenhum cadastro."}
                 </TableCell>
               </TableRow>
             )}
@@ -120,11 +142,7 @@ function ContatosPanel({ tipo }: { tipo: ContatoTipo }) {
 
 function ContatoForm({
   editando, tipo, onClose,
-}: {
-  editando: Contato | null;
-  tipo: ContatoTipo;
-  onClose: () => void;
-}) {
+}: { editando: Contato | null; tipo: ContatoTipo; onClose: () => void }) {
   const { addContato, updateContato } = useData();
   const [nome, setNome] = useState(editando?.nome ?? "");
   const [documento, setDocumento] = useState(editando?.documento ?? "");
@@ -306,83 +324,209 @@ function BancoForm({
 }
 
 function PlanoContas() {
-  const { categorias, removeCategoria } = useData();
-  const [open, setOpen] = useState(false);
-  const [editando, setEditando] = useState<Categoria | null>(null);
+  const { categorias, grupos, removeCategoria, removeGrupo } = useData();
+  const [openCat, setOpenCat] = useState(false);
+  const [editandoCat, setEditandoCat] = useState<Categoria | null>(null);
+  const [grupoIdParaNova, setGrupoIdParaNova] = useState<string | undefined>();
+  const [openGrupo, setOpenGrupo] = useState(false);
+  const [editandoGrupo, setEditandoGrupo] = useState<GrupoCategoria | null>(null);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+  const toggle = (id: string) => setCollapsed((p) => ({ ...p, [id]: !p[id] }));
 
   return (
     <Card className="border-border/60">
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-row items-center justify-between gap-3 flex-wrap">
         <div>
           <CardTitle>Plano de Contas</CardTitle>
-          <CardDescription>Categorias usadas nos lançamentos financeiros.</CardDescription>
+          <CardDescription>Organize categorias por grupos. Esses grupos alimentam o demonstrativo.</CardDescription>
         </div>
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditando(null); }}>
-          <DialogTrigger asChild>
-            <Button onClick={() => setEditando(null)}>
-              <Plus className="h-4 w-4" /> Nova Categoria
-            </Button>
-          </DialogTrigger>
-          <CategoriaForm
-            key={editando?.id ?? "novo"}
-            editando={editando}
-            onClose={() => setOpen(false)}
-          />
-        </Dialog>
+        <div className="flex gap-2">
+          <Dialog open={openGrupo} onOpenChange={(v) => { setOpenGrupo(v); if (!v) setEditandoGrupo(null); }}>
+            <DialogTrigger asChild>
+              <Button variant="outline" onClick={() => setEditandoGrupo(null)}>
+                <Folder className="h-4 w-4" /> Novo Grupo
+              </Button>
+            </DialogTrigger>
+            <GrupoForm key={editandoGrupo?.id ?? "novo"} editando={editandoGrupo} onClose={() => setOpenGrupo(false)} />
+          </Dialog>
+          <Dialog open={openCat} onOpenChange={(v) => { setOpenCat(v); if (!v) { setEditandoCat(null); setGrupoIdParaNova(undefined); } }}>
+            <DialogTrigger asChild>
+              <Button onClick={() => { setEditandoCat(null); setGrupoIdParaNova(undefined); }}>
+                <Plus className="h-4 w-4" /> Nova Categoria
+              </Button>
+            </DialogTrigger>
+            <CategoriaForm
+              key={editandoCat?.id ?? grupoIdParaNova ?? "novo"}
+              editando={editandoCat}
+              grupoIdInicial={grupoIdParaNova}
+              onClose={() => setOpenCat(false)}
+            />
+          </Dialog>
+        </div>
       </CardHeader>
-      <CardContent>
-        <div className="grid gap-4 md:grid-cols-2">
-          {(["Receita", "Despesa"] as const).map((t) => {
-            const lista = categorias.filter((c) => c.tipo === t);
-            return (
-              <div key={t} className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className={`h-2 w-2 rounded-full ${t === "Receita" ? "bg-emerald-500" : "bg-red-500"}`} />
-                  <p className="text-sm font-semibold">{t}s</p>
-                  <Badge variant="secondary">{lista.length}</Badge>
-                </div>
-                <div className="space-y-1.5">
-                  {lista.map((c) => (
-                    <div key={c.id} className="flex items-center justify-between rounded-md border border-border/60 px-3 py-2">
-                      <span className="text-sm">{c.nome}</span>
+      <CardContent className="space-y-6">
+        {(["Receita", "Despesa"] as const).map((t) => {
+          const gruposT = grupos.filter((g) => g.tipo === t).sort((a, b) => a.ordem - b.ordem);
+          const semGrupo = categorias.filter((c) => c.tipo === t && !c.grupoId);
+          return (
+            <div key={t} className="space-y-2">
+              <div className="flex items-center gap-2 pb-2 border-b border-border/40">
+                <span className={`h-2 w-2 rounded-full ${t === "Receita" ? "bg-emerald-500" : "bg-red-500"}`} />
+                <p className="text-sm font-semibold">{t}s</p>
+              </div>
+
+              {gruposT.length === 0 && semGrupo.length === 0 && (
+                <p className="text-xs text-muted-foreground py-3">
+                  Nenhum grupo ou categoria. Crie um grupo para começar.
+                </p>
+              )}
+
+              {gruposT.map((g) => {
+                const cats = categorias.filter((c) => c.grupoId === g.id);
+                const isCollapsed = collapsed[g.id];
+                return (
+                  <div key={g.id} className="rounded-md border border-border/60">
+                    <div className="flex items-center justify-between px-3 py-2 bg-muted/40">
+                      <button
+                        type="button"
+                        onClick={() => toggle(g.id)}
+                        className="flex items-center gap-2 text-sm font-medium"
+                      >
+                        {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        <Folder className="h-4 w-4 text-muted-foreground" />
+                        <span>{g.nome}</span>
+                        <Badge variant="secondary" className="text-[10px]">{cats.length}</Badge>
+                      </button>
                       <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" className="h-7"
+                          onClick={() => { setGrupoIdParaNova(g.id); setEditandoCat(null); setOpenCat(true); }}>
+                          <Plus className="h-3.5 w-3.5" /> Categoria
+                        </Button>
                         <Button variant="ghost" size="icon" className="h-7 w-7"
-                          onClick={() => { setEditando(c); setOpen(true); }}>
+                          onClick={() => { setEditandoGrupo(g); setOpenGrupo(true); }}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500"
-                          onClick={() => removeCategoria(c.id)}>
+                          onClick={() => removeGrupo(g.id)}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     </div>
-                  ))}
-                  {lista.length === 0 && (
-                    <p className="text-xs text-muted-foreground">Nenhuma categoria.</p>
-                  )}
+                    {!isCollapsed && (
+                      <div className="p-2 space-y-1">
+                        {cats.length === 0 ? (
+                          <p className="text-xs text-muted-foreground px-2 py-2">Nenhuma categoria neste grupo.</p>
+                        ) : cats.map((c) => (
+                          <div key={c.id} className="flex items-center justify-between rounded px-3 py-1.5 hover:bg-muted/40">
+                            <span className="text-sm">{c.nome}</span>
+                            <div className="flex gap-1">
+                              <Button variant="ghost" size="icon" className="h-7 w-7"
+                                onClick={() => { setEditandoCat(c); setOpenCat(true); }}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500"
+                                onClick={() => removeCategoria(c.id)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {semGrupo.length > 0 && (
+                <div className="rounded-md border border-dashed border-border/60">
+                  <div className="px-3 py-2 bg-muted/20 text-xs font-medium text-muted-foreground">
+                    Sem grupo
+                  </div>
+                  <div className="p-2 space-y-1">
+                    {semGrupo.map((c) => (
+                      <div key={c.id} className="flex items-center justify-between rounded px-3 py-1.5 hover:bg-muted/40">
+                        <span className="text-sm">{c.nome}</span>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" className="h-7 w-7"
+                            onClick={() => { setEditandoCat(c); setOpenCat(true); }}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500"
+                            onClick={() => removeCategoria(c.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              )}
+            </div>
+          );
+        })}
       </CardContent>
     </Card>
   );
 }
 
-function CategoriaForm({
-  editando, onClose,
-}: { editando: Categoria | null; onClose: () => void }) {
-  const { addCategoria, updateCategoria } = useData();
+function GrupoForm({ editando, onClose }: { editando: GrupoCategoria | null; onClose: () => void }) {
+  const { addGrupo, updateGrupo } = useData();
   const [nome, setNome] = useState(editando?.nome ?? "");
   const [tipo, setTipo] = useState<"Receita" | "Despesa">(editando?.tipo ?? "Despesa");
   const [erro, setErro] = useState("");
 
-  const submit = () => {
+  const submit = async () => {
     if (!nome.trim()) { setErro("Nome é obrigatório."); return; }
-    const payload = { nome: nome.trim(), tipo };
-    if (editando) updateCategoria(editando.id, payload);
-    else addCategoria(payload);
+    if (editando) await updateGrupo(editando.id, { nome: nome.trim(), tipo });
+    else await addGrupo({ nome: nome.trim(), tipo });
+    onClose();
+  };
+
+  return (
+    <DialogContent className="sm:max-w-sm">
+      <DialogHeader>
+        <DialogTitle>{editando ? "Editar grupo" : "Novo grupo"}</DialogTitle>
+      </DialogHeader>
+      <div className="space-y-3">
+        <div className="space-y-1.5"><Label>Nome</Label>
+          <Input value={nome} onChange={(e) => setNome(e.target.value)} maxLength={80}
+            placeholder="Ex: Custos Diretos, Despesas Administrativas" /></div>
+        <div className="space-y-1.5"><Label>Tipo</Label>
+          <Select value={tipo} onValueChange={(v) => setTipo(v as "Receita" | "Despesa")}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Receita">Receita</SelectItem>
+              <SelectItem value="Despesa">Despesa</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {erro && <p className="text-sm text-red-500">{erro}</p>}
+      </div>
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>Cancelar</Button>
+        <Button onClick={submit}>{editando ? "Salvar alterações" : "Salvar"}</Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+}
+
+function CategoriaForm({
+  editando, grupoIdInicial, onClose,
+}: { editando: Categoria | null; grupoIdInicial?: string; onClose: () => void }) {
+  const { addCategoria, updateCategoria, grupos } = useData();
+  const [nome, setNome] = useState(editando?.nome ?? "");
+  const [tipo, setTipo] = useState<"Receita" | "Despesa">(editando?.tipo ?? "Despesa");
+  const [grupoId, setGrupoId] = useState<string>(editando?.grupoId ?? grupoIdInicial ?? "");
+  const [erro, setErro] = useState("");
+
+  const gruposFiltrados = grupos.filter((g) => g.tipo === tipo);
+
+  const submit = async () => {
+    if (!nome.trim()) { setErro("Nome é obrigatório."); return; }
+    const payload = { nome: nome.trim(), tipo, grupoId: grupoId || undefined };
+    if (editando) await updateCategoria(editando.id, payload);
+    else await addCategoria(payload);
     onClose();
   };
 
@@ -395,11 +539,22 @@ function CategoriaForm({
         <div className="space-y-1.5"><Label>Nome</Label>
           <Input value={nome} onChange={(e) => setNome(e.target.value)} maxLength={60} /></div>
         <div className="space-y-1.5"><Label>Tipo</Label>
-          <Select value={tipo} onValueChange={(v) => setTipo(v as "Receita" | "Despesa")}>
+          <Select value={tipo} onValueChange={(v) => { setTipo(v as "Receita" | "Despesa"); setGrupoId(""); }}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="Receita">Receita</SelectItem>
               <SelectItem value="Despesa">Despesa</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5"><Label>Grupo</Label>
+          <Select value={grupoId || "__none__"} onValueChange={(v) => setGrupoId(v === "__none__" ? "" : v)}>
+            <SelectTrigger><SelectValue placeholder="Sem grupo" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">Sem grupo</SelectItem>
+              {gruposFiltrados.map((g) => (
+                <SelectItem key={g.id} value={g.id}>{g.nome}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
