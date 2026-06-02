@@ -459,12 +459,30 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const removeContato = useCallback((id: string) => deleteRow("contatos", id, "contatos"), []);
 
   // ----- Categorias -----
+  const catToDb = (c: Partial<Categoria>) => ({
+    ...(c.nome !== undefined && { nome: c.nome }),
+    ...(c.tipo !== undefined && { tipo: c.tipo }),
+    ...(c.grupoId !== undefined && { grupo_id: c.grupoId || null }),
+  });
   const addCategoria = useCallback(async (c: Omit<Categoria, "id">) => {
-    await insertRow("categorias", c, mapCategoria, "categorias");
+    await insertRow("categorias", catToDb(c), mapCategoria, "categorias");
   }, []);
   const updateCategoria = useCallback((id: string, pa: Partial<Categoria>) =>
-    updateRow("categorias", id, pa, mapCategoria, "categorias"), []);
+    updateRow("categorias", id, catToDb(pa), mapCategoria, "categorias"), []);
   const removeCategoria = useCallback((id: string) => deleteRow("categorias", id, "categorias"), []);
+
+  // ----- Grupos -----
+  const addGrupo = useCallback(async (g: Omit<GrupoCategoria, "id" | "ordem">) => {
+    const ordem = state.grupos.filter((x) => x.tipo === g.tipo).length;
+    await insertRow("grupos_categoria", { nome: g.nome, tipo: g.tipo, ordem }, mapGrupo, "grupos");
+  }, [state.grupos]);
+  const updateGrupo = useCallback((id: string, pa: Partial<GrupoCategoria>) =>
+    updateRow("grupos_categoria", id, {
+      ...(pa.nome !== undefined && { nome: pa.nome }),
+      ...(pa.tipo !== undefined && { tipo: pa.tipo }),
+      ...(pa.ordem !== undefined && { ordem: pa.ordem }),
+    }, mapGrupo, "grupos"), []);
+  const removeGrupo = useCallback((id: string) => deleteRow("grupos_categoria", id, "grupos"), []);
 
   // ----- Bancos -----
   const addBanco = useCallback(async (b: Omit<Banco, "id">) => {
