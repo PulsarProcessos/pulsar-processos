@@ -356,11 +356,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (!user) { setState({ ...emptyState, loading: false }); return; }
 
     const [
-      contatosR, categoriasR, bancosR, produtosR, etapasR,
+      contatosR, categoriasR, gruposR, bancosR, produtosR, etapasR,
       lancR, rateiosR, transfR, dealsR, leadsR, campsR, eventosR,
     ] = await Promise.all([
       supabase.from("contatos").select("*").order("created_at", { ascending: false }),
       supabase.from("categorias").select("*").order("nome"),
+      (supabase.from as any)("grupos_categoria").select("*").order("ordem"),
       supabase.from("bancos").select("*").order("nome"),
       supabase.from("produtos").select("*").order("nome"),
       supabase.from("etapas_pipeline").select("*").order("ordem"),
@@ -384,7 +385,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const etapasFromDb = (etapasR.data ?? []).map((e: any) => e.nome as string);
     let etapas = etapasFromDb;
     if (etapasFromDb.length === 0) {
-      // Seed default stages for new user
       const seed = DEFAULT_ETAPAS.map((nome, i) => ({ user_id: user.id, nome, ordem: i }));
       await supabase.from("etapas_pipeline").insert(seed);
       etapas = DEFAULT_ETAPAS;
@@ -393,6 +393,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setState({
       contatos: (contatosR.data ?? []).map(mapContato),
       categorias: (categoriasR.data ?? []).map(mapCategoria),
+      grupos: ((gruposR as any)?.data ?? []).map(mapGrupo),
       bancos: (bancosR.data ?? []).map(mapBanco),
       produtos: (produtosR.data ?? []).map(mapProduto),
       etapas,
