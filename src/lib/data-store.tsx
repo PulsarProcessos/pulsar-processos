@@ -659,6 +659,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [saveRateios]);
 
+  const updateParcelamentoGrupo = useCallback(async (grupoId: string, pa: Partial<Lancamento>) => {
+    // Propaga apenas os campos compartilhados (não muda valor nem data nem número da parcela)
+    const { valor, data, parcelaNumero, parcelaTotal, parcelaGrupoId, rateios, ...rest } = pa;
+    void valor; void data; void parcelaNumero; void parcelaTotal; void parcelaGrupoId; void rateios;
+    const payload = lancToDb(rest);
+    if (Object.keys(payload).length === 0) return;
+    const { data: rows, error } = await supabase.from("lancamentos")
+      .update(payload).eq("parcela_grupo_id", grupoId).select();
+    if (error) { showError("Erro ao atualizar parcelamento", error); return; }
+    const updatedIds = new Set((rows ?? []).map((r: any) => r.id));
+    const mapped = new Map((rows ?? []).map((r: any) => [r.id, mapLanc(r)]));
+    setState((p) => ({
+      ...p,
+      lancamentos: p.lancamentos.map((l) =>
+        updatedIds.has(l.id) ? { ...l, ...(mapped.get(l.id) as Lancamento) } : l,
+      ),
+    }));
+  }, []);
+
   const removeParcelamento = useCallback(async (grupoId: string) => {
     const { error } = await supabase.from("lancamentos").delete().eq("parcela_grupo_id", grupoId);
     if (error) { showError("Erro ao excluir parcelamento", error); return; }
