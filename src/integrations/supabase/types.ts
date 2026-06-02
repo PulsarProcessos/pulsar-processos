@@ -92,6 +92,7 @@ export type Database = {
       categorias: {
         Row: {
           created_at: string
+          grupo_id: string | null
           id: string
           nome: string
           tipo: Database["public"]["Enums"]["movimento_tipo"]
@@ -100,6 +101,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          grupo_id?: string | null
           id?: string
           nome: string
           tipo: Database["public"]["Enums"]["movimento_tipo"]
@@ -108,13 +110,22 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          grupo_id?: string | null
           id?: string
           nome?: string
           tipo?: Database["public"]["Enums"]["movimento_tipo"]
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "categorias_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "grupos_categoria"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       clientes: {
         Row: {
@@ -347,6 +358,36 @@ export type Database = {
           nome?: string
           obs?: string | null
           telefone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      grupos_categoria: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          tipo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          tipo: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          tipo?: string
           updated_at?: string
           user_id?: string
         }
