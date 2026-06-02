@@ -18,6 +18,14 @@ export type Categoria = {
   id: string;
   nome: string;
   tipo: "Receita" | "Despesa";
+  grupoId?: string;
+};
+
+export type GrupoCategoria = {
+  id: string;
+  nome: string;
+  tipo: "Receita" | "Despesa";
+  ordem: number;
 };
 
 export type Banco = {
