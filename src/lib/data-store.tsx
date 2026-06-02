@@ -246,7 +246,12 @@ const mapContato = (r: any): Contato => ({
   documento: r.documento ?? undefined, email: r.email ?? undefined,
   telefone: r.telefone ?? undefined, obs: r.obs ?? undefined,
 });
-const mapCategoria = (r: any): Categoria => ({ id: r.id, nome: r.nome, tipo: r.tipo });
+const mapCategoria = (r: any): Categoria => ({
+  id: r.id, nome: r.nome, tipo: r.tipo, grupoId: r.grupo_id ?? undefined,
+});
+const mapGrupo = (r: any): GrupoCategoria => ({
+  id: r.id, nome: r.nome, tipo: r.tipo, ordem: r.ordem ?? 0,
+});
 const mapBanco = (r: any): Banco => ({
   id: r.id, nome: r.nome, agencia: r.agencia ?? undefined,
   conta: r.conta ?? undefined, saldoInicial: Number(r.saldo_inicial ?? 0),
