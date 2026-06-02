@@ -737,6 +737,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         ...state,
         addContato, updateContato, removeContato,
         addCategoria, updateCategoria, removeCategoria,
+        addGrupo, updateGrupo, removeGrupo,
         addBanco, updateBanco, removeBanco, saldoBanco,
         addProduto, updateProduto, removeProduto,
         addEtapa, renameEtapa, removeEtapa, moveEtapa,
