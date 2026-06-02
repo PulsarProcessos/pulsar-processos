@@ -227,6 +227,7 @@ const DEFAULT_ETAPAS: DealStage[] = [
 const emptyState: State = {
   contatos: [],
   categorias: [],
+  grupos: [],
   bancos: [],
   produtos: [],
   etapas: DEFAULT_ETAPAS,
