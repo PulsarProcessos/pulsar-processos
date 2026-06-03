@@ -331,8 +331,26 @@ function PlanoContas() {
   const [openGrupo, setOpenGrupo] = useState(false);
   const [editandoGrupo, setEditandoGrupo] = useState<GrupoCategoria | null>(null);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [dragging, setDragging] = useState<Categoria | null>(null);
+  const [hoverTarget, setHoverTarget] = useState<string | null>(null);
 
   const toggle = (id: string) => setCollapsed((p) => ({ ...p, [id]: !p[id] }));
+
+  const onDragStart = (c: Categoria) => (e: React.DragEvent) => {
+    setDragging(c);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", c.id);
+  };
+  const onDragEnd = () => { setDragging(null); setHoverTarget(null); };
+  const allowDrop = (tipo: "Receita" | "Despesa") => dragging !== null && dragging.tipo === tipo;
+  const handleDrop = async (targetGrupoId: string | null, tipo: "Receita" | "Despesa") => {
+    if (!dragging || dragging.tipo !== tipo) return;
+    const novo = targetGrupoId ?? undefined;
+    if ((dragging.grupoId ?? undefined) !== novo) {
+      await updateCategoria(dragging.id, { grupoId: novo });
+    }
+    setDragging(null); setHoverTarget(null);
+  };
 
   return (
     <Card className="border-border/60">
