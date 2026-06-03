@@ -398,57 +398,96 @@ function Lancamentos() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {lancOrdenado.map((r) => (
-                <TableRow key={r.id} className={selecionados.has(r.id) ? "bg-muted/40" : ""}>
-                  <TableCell>
-                    <Checkbox checked={selecionados.has(r.id)} onCheckedChange={() => toggle(r.id)} />
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{fmtDate(r.data)}</TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 font-medium">
-                        {r.parcelaTotal ? <Repeat className="h-3.5 w-3.5 text-muted-foreground" /> : null}
-                        {r.parcelaTotal ? (
-                          <span className="text-xs text-muted-foreground">{r.parcelaNumero}/{r.parcelaTotal} —</span>
-                        ) : null}
-                        <span>{r.desc}</span>
-                        {r.rateios && r.rateios.length > 0 ? (
-                          <Badge variant="outline" className="text-[10px] gap-1">
-                            <Layers className="h-3 w-3" /> Rateado
-                          </Badge>
-                        ) : null}
+              {linhasOrdenadas.map((row) => {
+                if (row.kind === "transf") {
+                  const ori = bancos.find((b) => b.id === row.bancoOrigemId)?.nome ?? "—";
+                  const des = bancos.find((b) => b.id === row.bancoDestinoId)?.nome ?? "—";
+                  return (
+                    <TableRow key={row.id} className="bg-sky-500/5">
+                      <TableCell />
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{fmtDate(row.data)}</TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 font-medium">
+                            <ArrowRightLeft className="h-3.5 w-3.5 text-sky-600" />
+                            <span>Transferência</span>
+                            <Badge variant="outline" className="text-[10px]">{ori} → {des}</Badge>
+                          </div>
+                          {row.descricao && (
+                            <div className="text-xs text-muted-foreground">{row.descricao}</div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className="bg-sky-500/15 text-sky-700 hover:bg-sky-500/20 border-0">Transferência</Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-medium text-sky-700">
+                        {brl(row.valor)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500"
+                            onClick={() => removeTransferencia(row.id.slice(2))}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                }
+                const r = row.lanc;
+                return (
+                  <TableRow key={r.id} className={selecionados.has(r.id) ? "bg-muted/40" : ""}>
+                    <TableCell>
+                      <Checkbox checked={selecionados.has(r.id)} onCheckedChange={() => toggle(r.id)} />
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{fmtDate(r.data)}</TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 font-medium">
+                          {r.parcelaTotal ? <Repeat className="h-3.5 w-3.5 text-muted-foreground" /> : null}
+                          {r.parcelaTotal ? (
+                            <span className="text-xs text-muted-foreground">{r.parcelaNumero}/{r.parcelaTotal} —</span>
+                          ) : null}
+                          <span>{r.desc}</span>
+                          {r.rateios && r.rateios.length > 0 ? (
+                            <Badge variant="outline" className="text-[10px] gap-1">
+                              <Layers className="h-3 w-3" /> Rateado
+                            </Badge>
+                          ) : null}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Badge variant="outline" className="text-[10px]">{catName(r.categoriaId)}</Badge>
+                          <span>{contName(r.contatoId)}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Badge variant="outline" className="text-[10px]">{catName(r.categoriaId)}</Badge>
-                        <span>{contName(r.contatoId)}</span>
+                    </TableCell>
+                    <TableCell>
+                      {r.status === "Pago" ? (
+                        <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/20 border-0">Pago</Badge>
+                      ) : (
+                        <Badge className="bg-amber-500/15 text-amber-700 hover:bg-amber-500/20 border-0">Em aberto</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className={`text-right font-medium ${r.tipo === "Receita" ? "text-emerald-600" : "text-red-500"}`}>
+                      {r.tipo === "Receita" ? "+" : "−"} {brl(r.valor)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8"
+                          onClick={() => { setEditando(r); setOpen(true); }}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500"
+                          onClick={() => removeLancamento(r.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {r.status === "Pago" ? (
-                      <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/20 border-0">Pago</Badge>
-                    ) : (
-                      <Badge className="bg-amber-500/15 text-amber-700 hover:bg-amber-500/20 border-0">Em aberto</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className={`text-right font-medium ${r.tipo === "Receita" ? "text-emerald-600" : "text-red-500"}`}>
-                    {r.tipo === "Receita" ? "+" : "−"} {brl(r.valor)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8"
-                        onClick={() => { setEditando(r); setOpen(true); }}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500"
-                        onClick={() => removeLancamento(r.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {lancOrdenado.length === 0 && (
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {linhasOrdenadas.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
                     Nenhum lançamento neste período.
@@ -459,8 +498,6 @@ function Lancamentos() {
           </Table>
         </CardContent>
       </Card>
-
-      <TransferenciasTable />
     </div>
   );
 }
