@@ -253,13 +253,48 @@ function Lancamentos() {
             <div className="space-y-1">
               <Label className="text-xs">Período</Label>
               <div className="flex items-center gap-1 border rounded-md px-1 h-9">
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navMes(-1)}>
+                <Button variant="ghost" size="icon" className="h-7 w-7" disabled={periodoTipo === "custom"} onClick={() => navPeriodo(-1)}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-sm font-medium px-3 min-w-[140px] text-center">
-                  {MESES[mes]} de {ano}
-                </span>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navMes(1)}>
+                <Popover open={periodoOpen} onOpenChange={setPeriodoOpen}>
+                  <PopoverTrigger asChild>
+                    <button type="button" className="text-sm font-medium px-3 min-w-[180px] text-center hover:text-primary transition-colors">
+                      {range.label}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-72 p-3 space-y-3" align="start">
+                    <div className="grid grid-cols-2 gap-1">
+                      {([
+                        ["hoje","Hoje"],["semana","Esta semana"],
+                        ["mes","Este mês"],["ano","Este ano"],
+                      ] as [PeriodoTipo,string][]).map(([k,label]) => (
+                        <Button key={k} type="button" size="sm"
+                          variant={periodoTipo === k ? "default" : "outline"}
+                          onClick={() => { setPeriodoTipo(k); setAnchor(new Date()); setSelecionados(new Set()); setPeriodoOpen(false); }}>
+                          {label}
+                        </Button>
+                      ))}
+                    </div>
+                    <div className="border-t pt-3 space-y-2">
+                      <div className="text-xs font-medium text-muted-foreground">Personalizado</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">Início</Label>
+                          <Input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} className="h-8" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">Fim</Label>
+                          <Input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} className="h-8" />
+                        </div>
+                      </div>
+                      <Button size="sm" className="w-full" onClick={() => {
+                        if (!customStart || !customEnd) return;
+                        setPeriodoTipo("custom"); setSelecionados(new Set()); setPeriodoOpen(false);
+                      }}>Aplicar intervalo</Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                <Button variant="ghost" size="icon" className="h-7 w-7" disabled={periodoTipo === "custom"} onClick={() => navPeriodo(1)}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
