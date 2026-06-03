@@ -392,6 +392,9 @@ function PlanoContas() {
               <div className="flex items-center gap-2 pb-2 border-b border-border/40">
                 <span className={`h-2 w-2 rounded-full ${t === "Receita" ? "bg-emerald-500" : "bg-red-500"}`} />
                 <p className="text-sm font-semibold">{t}s</p>
+                {dragging?.tipo === t && (
+                  <span className="text-xs text-muted-foreground ml-2">Solte sobre um grupo para mover</span>
+                )}
               </div>
 
               {gruposT.length === 0 && semGrupo.length === 0 && (
