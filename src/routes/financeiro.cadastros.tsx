@@ -324,7 +324,7 @@ function BancoForm({
 }
 
 function PlanoContas() {
-  const { categorias, grupos, removeCategoria, removeGrupo } = useData();
+  const { categorias, grupos, removeCategoria, removeGrupo, updateCategoria } = useData();
   const [openCat, setOpenCat] = useState(false);
   const [editandoCat, setEditandoCat] = useState<Categoria | null>(null);
   const [grupoIdParaNova, setGrupoIdParaNova] = useState<string | undefined>();
