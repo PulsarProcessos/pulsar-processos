@@ -61,10 +61,14 @@ type SortKey = "data" | "valor";
 type SortDir = "desc" | "asc" | null;
 
 function Lancamentos() {
-  const { lancamentos, categorias, contatos, bancos, removeLancamento, updateLancamento } = useData();
+  const { lancamentos, transferencias, bancos, categorias, contatos, removeLancamento, updateLancamento, removeTransferencia } = useData();
   const hoje = new Date();
-  const [mes, setMes] = useState(hoje.getMonth());
-  const [ano, setAno] = useState(hoje.getFullYear());
+  const [periodoTipo, setPeriodoTipo] = useState<PeriodoTipo>("mes");
+  const [anchor, setAnchor] = useState<Date>(hoje);
+  const [customStart, setCustomStart] = useState<string>(toISO(hoje));
+  const [customEnd, setCustomEnd] = useState<string>(toISO(hoje));
+  const [periodoOpen, setPeriodoOpen] = useState(false);
+
   const [busca, setBusca] = useState("");
   const [filtroBanco, setFiltroBanco] = useState("todos");
   const [filtroStatus, setFiltroStatus] = useState("todos");
@@ -75,10 +79,47 @@ function Lancamentos() {
   const [open, setOpen] = useState(false);
   const [editando, setEditando] = useState<Lancamento | null>(null);
 
-  const navMes = (dir: -1 | 1) => {
-    let m = mes + dir, y = ano;
-    if (m < 0) { m = 11; y--; } if (m > 11) { m = 0; y++; }
-    setMes(m); setAno(y); setSelecionados(new Set());
+  const range = useMemo(() => {
+    const a = new Date(anchor);
+    if (periodoTipo === "hoje") {
+      const s = new Date(a); s.setHours(0,0,0,0);
+      const e = new Date(a); e.setHours(23,59,59,999);
+      const lbl = `${String(a.getDate()).padStart(2,"0")}/${String(a.getMonth()+1).padStart(2,"0")}/${a.getFullYear()}`;
+      return { inicio: s, fim: e, label: lbl };
+    }
+    if (periodoTipo === "semana") {
+      const s = startOfWeek(a); const e = endOfWeek(a);
+      const lbl = `${String(s.getDate()).padStart(2,"0")}/${String(s.getMonth()+1).padStart(2,"0")} a ${String(e.getDate()).padStart(2,"0")}/${String(e.getMonth()+1).padStart(2,"0")}/${e.getFullYear()}`;
+      return { inicio: s, fim: e, label: lbl };
+    }
+    if (periodoTipo === "ano") {
+      const s = new Date(a.getFullYear(),0,1); const e = new Date(a.getFullYear(),11,31,23,59,59,999);
+      return { inicio: s, fim: e, label: `Ano ${a.getFullYear()}` };
+    }
+    if (periodoTipo === "custom") {
+      const s = parseISO(customStart) ?? new Date(); const e = parseISO(customEnd) ?? new Date();
+      e.setHours(23,59,59,999);
+      return { inicio: s, fim: e, label: `${fmtDate(customStart)} a ${fmtDate(customEnd)}` };
+    }
+    // mes
+    const s = new Date(a.getFullYear(), a.getMonth(), 1);
+    const e = new Date(a.getFullYear(), a.getMonth()+1, 0, 23,59,59,999);
+    return { inicio: s, fim: e, label: `${MESES[a.getMonth()]} de ${a.getFullYear()}` };
+  }, [periodoTipo, anchor, customStart, customEnd]);
+
+  const navPeriodo = (dir: -1 | 1) => {
+    if (periodoTipo === "custom") return;
+    const a = new Date(anchor);
+    if (periodoTipo === "hoje") a.setDate(a.getDate() + dir);
+    else if (periodoTipo === "semana") a.setDate(a.getDate() + 7 * dir);
+    else if (periodoTipo === "ano") a.setFullYear(a.getFullYear() + dir);
+    else a.setMonth(a.getMonth() + dir);
+    setAnchor(a); setSelecionados(new Set());
+  };
+
+  const inRange = (iso: string) => {
+    const d = parseISO(iso); if (!d) return false;
+    return d >= range.inicio && d <= range.fim;
   };
 
   const cycleSort = (key: SortKey) => {
@@ -88,38 +129,67 @@ function Lancamentos() {
     else setSortDir("desc");
   };
 
+  // Lançamentos do período (para KPIs)
   const lancMes = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    return lancamentos
-      .filter((l) => {
-        const d = parseISO(l.data);
-        if (!d || d.getMonth() !== mes || d.getFullYear() !== ano) return false;
-        if (filtroBanco !== "todos" && l.bancoId !== filtroBanco) return false;
-        if (filtroStatus !== "todos" && l.status !== filtroStatus) return false;
-        if (filtroTipo !== "todos" && l.tipo !== filtroTipo) return false;
+    return lancamentos.filter((l) => {
+      if (!inRange(l.data)) return false;
+      if (filtroBanco !== "todos" && l.bancoId !== filtroBanco) return false;
+      if (filtroStatus !== "todos" && l.status !== filtroStatus) return false;
+      if (filtroTipo !== "todos" && l.tipo !== filtroTipo) return false;
+      if (q) {
+        const cat = categorias.find((c) => c.id === l.categoriaId)?.nome ?? "";
+        const cont = contatos.find((c) => c.id === l.contatoId)?.nome ?? "";
+        const hay = `${l.desc} ${cat} ${cont}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [lancamentos, range, filtroBanco, filtroStatus, filtroTipo, busca, categorias, contatos]);
+
+  // Transferências do período (linhas virtuais na tabela)
+  type LinhaTransf = {
+    kind: "transf"; id: string; data: string; valor: number; bancoOrigemId: string; bancoDestinoId: string; descricao?: string;
+  };
+  type LinhaLanc = { kind: "lanc"; id: string; data: string; valor: number; lanc: Lancamento };
+  type Linha = LinhaLanc | LinhaTransf;
+
+  const transfPeriodo = useMemo<LinhaTransf[]>(() => {
+    const q = busca.trim().toLowerCase();
+    return transferencias
+      .filter((t) => {
+        if (!inRange(t.data)) return false;
+        if (filtroBanco !== "todos" && t.bancoOrigemId !== filtroBanco && t.bancoDestinoId !== filtroBanco) return false;
+        if (filtroStatus !== "todos") return false; // transferência não tem status
+        if (filtroTipo === "Receita" || filtroTipo === "Despesa") return false;
         if (q) {
-          const cat = categorias.find((c) => c.id === l.categoriaId)?.nome ?? "";
-          const cont = contatos.find((c) => c.id === l.contatoId)?.nome ?? "";
-          const hay = `${l.desc} ${cat} ${cont}`.toLowerCase();
+          const ori = bancos.find((b) => b.id === t.bancoOrigemId)?.nome ?? "";
+          const des = bancos.find((b) => b.id === t.bancoDestinoId)?.nome ?? "";
+          const hay = `transferência ${ori} ${des} ${t.descricao ?? ""}`.toLowerCase();
           if (!hay.includes(q)) return false;
         }
         return true;
-      });
-  }, [lancamentos, mes, ano, filtroBanco, filtroStatus, filtroTipo, busca, categorias, contatos]);
+      })
+      .map((t) => ({ kind: "transf" as const, id: `t-${t.id}`, data: t.data, valor: t.valor, bancoOrigemId: t.bancoOrigemId, bancoDestinoId: t.bancoDestinoId, descricao: t.descricao }));
+  }, [transferencias, range, filtroBanco, filtroStatus, filtroTipo, busca, bancos]);
 
-  const lancOrdenado = useMemo(() => {
+  const linhas: Linha[] = useMemo(() => {
+    const ll: Linha[] = lancMes.map((l) => ({ kind: "lanc" as const, id: l.id, data: l.data, valor: l.valor, lanc: l }));
+    return [...ll, ...transfPeriodo];
+  }, [lancMes, transfPeriodo]);
+
+  const linhasOrdenadas = useMemo(() => {
     if (sortDir === null) {
-      // Padrão: último lançamento primeiro (data desc, depois id desc como desempate)
-      return [...lancMes].sort((a, b) => b.data.localeCompare(a.data) || b.id.localeCompare(a.id));
+      return [...linhas].sort((a, b) => b.data.localeCompare(a.data) || b.id.localeCompare(a.id));
     }
     const mult = sortDir === "asc" ? 1 : -1;
-    return [...lancMes].sort((a, b) => {
+    return [...linhas].sort((a, b) => {
       if (sortKey === "data") return a.data.localeCompare(b.data) * mult;
       return (a.valor - b.valor) * mult;
     });
-  }, [lancMes, sortKey, sortDir]);
+  }, [linhas, sortKey, sortDir]);
 
-  // KPIs
+  // KPIs — só lançamentos (transferências não afetam P&L)
   const kpi = useMemo(() => {
     let recAberto = 0, recReal = 0, despAberto = 0, despReal = 0;
     for (const l of lancMes) {
