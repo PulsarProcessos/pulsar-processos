@@ -324,22 +324,40 @@ function BancoForm({
 }
 
 function PlanoContas() {
-  const { categorias, grupos, removeCategoria, removeGrupo } = useData();
+  const { categorias, grupos, removeCategoria, removeGrupo, updateCategoria } = useData();
   const [openCat, setOpenCat] = useState(false);
   const [editandoCat, setEditandoCat] = useState<Categoria | null>(null);
   const [grupoIdParaNova, setGrupoIdParaNova] = useState<string | undefined>();
   const [openGrupo, setOpenGrupo] = useState(false);
   const [editandoGrupo, setEditandoGrupo] = useState<GrupoCategoria | null>(null);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [dragging, setDragging] = useState<Categoria | null>(null);
+  const [hoverTarget, setHoverTarget] = useState<string | null>(null);
 
   const toggle = (id: string) => setCollapsed((p) => ({ ...p, [id]: !p[id] }));
+
+  const onDragStart = (c: Categoria) => (e: React.DragEvent) => {
+    setDragging(c);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", c.id);
+  };
+  const onDragEnd = () => { setDragging(null); setHoverTarget(null); };
+  const allowDrop = (tipo: "Receita" | "Despesa") => dragging !== null && dragging.tipo === tipo;
+  const handleDrop = async (targetGrupoId: string | null, tipo: "Receita" | "Despesa") => {
+    if (!dragging || dragging.tipo !== tipo) return;
+    const novo = targetGrupoId ?? undefined;
+    if ((dragging.grupoId ?? undefined) !== novo) {
+      await updateCategoria(dragging.id, { grupoId: novo });
+    }
+    setDragging(null); setHoverTarget(null);
+  };
 
   return (
     <Card className="border-border/60">
       <CardHeader className="flex flex-row items-center justify-between gap-3 flex-wrap">
         <div>
           <CardTitle>Plano de Contas</CardTitle>
-          <CardDescription>Organize categorias por grupos. Esses grupos alimentam o demonstrativo.</CardDescription>
+          <CardDescription>Organize categorias por grupos. Arraste para mover entre grupos. Esses grupos alimentam o demonstrativo.</CardDescription>
         </div>
         <div className="flex gap-2">
           <Dialog open={openGrupo} onOpenChange={(v) => { setOpenGrupo(v); if (!v) setEditandoGrupo(null); }}>
@@ -374,6 +392,9 @@ function PlanoContas() {
               <div className="flex items-center gap-2 pb-2 border-b border-border/40">
                 <span className={`h-2 w-2 rounded-full ${t === "Receita" ? "bg-emerald-500" : "bg-red-500"}`} />
                 <p className="text-sm font-semibold">{t}s</p>
+                {dragging?.tipo === t && (
+                  <span className="text-xs text-muted-foreground ml-2">Solte sobre um grupo para mover</span>
+                )}
               </div>
 
               {gruposT.length === 0 && semGrupo.length === 0 && (
@@ -385,8 +406,16 @@ function PlanoContas() {
               {gruposT.map((g) => {
                 const cats = categorias.filter((c) => c.grupoId === g.id);
                 const isCollapsed = collapsed[g.id];
+                const canDrop = allowDrop(t);
+                const isHover = hoverTarget === g.id && canDrop;
                 return (
-                  <div key={g.id} className="rounded-md border border-border/60">
+                  <div
+                    key={g.id}
+                    className={`rounded-md border transition-colors ${isHover ? "border-primary bg-primary/5" : "border-border/60"}`}
+                    onDragOver={(e) => { if (canDrop) { e.preventDefault(); setHoverTarget(g.id); } }}
+                    onDragLeave={() => { if (hoverTarget === g.id) setHoverTarget(null); }}
+                    onDrop={(e) => { e.preventDefault(); handleDrop(g.id, t); }}
+                  >
                     <div className="flex items-center justify-between px-3 py-2 bg-muted/40">
                       <button
                         type="button"
@@ -414,12 +443,23 @@ function PlanoContas() {
                       </div>
                     </div>
                     {!isCollapsed && (
-                      <div className="p-2 space-y-1">
+                      <div className="p-2 space-y-1 min-h-[40px]">
                         {cats.length === 0 ? (
-                          <p className="text-xs text-muted-foreground px-2 py-2">Nenhuma categoria neste grupo.</p>
+                          <p className="text-xs text-muted-foreground px-2 py-2">
+                            {canDrop ? "Solte aqui para adicionar." : "Nenhuma categoria neste grupo."}
+                          </p>
                         ) : cats.map((c) => (
-                          <div key={c.id} className="flex items-center justify-between rounded px-3 py-1.5 hover:bg-muted/40">
-                            <span className="text-sm">{c.nome}</span>
+                          <div
+                            key={c.id}
+                            draggable
+                            onDragStart={onDragStart(c)}
+                            onDragEnd={onDragEnd}
+                            className={`flex items-center justify-between rounded px-3 py-1.5 hover:bg-muted/40 cursor-grab active:cursor-grabbing ${dragging?.id === c.id ? "opacity-50" : ""}`}
+                          >
+                            <span className="text-sm flex items-center gap-2">
+                              <span className="text-muted-foreground select-none">⋮⋮</span>
+                              {c.nome}
+                            </span>
                             <div className="flex gap-1">
                               <Button variant="ghost" size="icon" className="h-7 w-7"
                                 onClick={() => { setEditandoCat(c); setOpenCat(true); }}>
@@ -438,15 +478,31 @@ function PlanoContas() {
                 );
               })}
 
-              {semGrupo.length > 0 && (
-                <div className="rounded-md border border-dashed border-border/60">
+              {(semGrupo.length > 0 || dragging?.tipo === t) && (
+                <div
+                  className={`rounded-md border border-dashed transition-colors ${hoverTarget === `__sem__${t}` && allowDrop(t) ? "border-primary bg-primary/5" : "border-border/60"}`}
+                  onDragOver={(e) => { if (allowDrop(t)) { e.preventDefault(); setHoverTarget(`__sem__${t}`); } }}
+                  onDragLeave={() => { if (hoverTarget === `__sem__${t}`) setHoverTarget(null); }}
+                  onDrop={(e) => { e.preventDefault(); handleDrop(null, t); }}
+                >
                   <div className="px-3 py-2 bg-muted/20 text-xs font-medium text-muted-foreground">
                     Sem grupo
                   </div>
-                  <div className="p-2 space-y-1">
-                    {semGrupo.map((c) => (
-                      <div key={c.id} className="flex items-center justify-between rounded px-3 py-1.5 hover:bg-muted/40">
-                        <span className="text-sm">{c.nome}</span>
+                  <div className="p-2 space-y-1 min-h-[40px]">
+                    {semGrupo.length === 0 ? (
+                      <p className="text-xs text-muted-foreground px-2 py-2">Solte aqui para remover do grupo.</p>
+                    ) : semGrupo.map((c) => (
+                      <div
+                        key={c.id}
+                        draggable
+                        onDragStart={onDragStart(c)}
+                        onDragEnd={onDragEnd}
+                        className={`flex items-center justify-between rounded px-3 py-1.5 hover:bg-muted/40 cursor-grab active:cursor-grabbing ${dragging?.id === c.id ? "opacity-50" : ""}`}
+                      >
+                        <span className="text-sm flex items-center gap-2">
+                          <span className="text-muted-foreground select-none">⋮⋮</span>
+                          {c.nome}
+                        </span>
                         <div className="flex gap-1">
                           <Button variant="ghost" size="icon" className="h-7 w-7"
                             onClick={() => { setEditandoCat(c); setOpenCat(true); }}>

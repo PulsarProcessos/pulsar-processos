@@ -19,6 +19,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Combobox } from "@/components/ui/combobox";
 import {
   ArrowRightLeft, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, ChevronLeft, ChevronRight,
@@ -41,20 +42,33 @@ function parseISO(d: string): Date | null {
   if (!y || !m || !day) return null;
   return new Date(y, m - 1, day);
 }
+function toISO(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 function brl(n: number) { return n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function fmtDate(d: string) {
   const dt = parseISO(d); if (!dt) return d;
   return `${String(dt.getDate()).padStart(2,"0")}/${String(dt.getMonth()+1).padStart(2,"0")}/${dt.getFullYear()}`;
 }
+function startOfWeek(d: Date) {
+  const x = new Date(d); const day = x.getDay(); // 0=dom
+  x.setDate(x.getDate() - day); x.setHours(0,0,0,0); return x;
+}
+function endOfWeek(d: Date) { const x = startOfWeek(d); x.setDate(x.getDate() + 6); return x; }
 
+type PeriodoTipo = "hoje" | "semana" | "mes" | "ano" | "custom";
 type SortKey = "data" | "valor";
 type SortDir = "desc" | "asc" | null;
 
 function Lancamentos() {
-  const { lancamentos, categorias, contatos, bancos, removeLancamento, updateLancamento } = useData();
+  const { lancamentos, transferencias, bancos, categorias, contatos, removeLancamento, updateLancamento, removeTransferencia } = useData();
   const hoje = new Date();
-  const [mes, setMes] = useState(hoje.getMonth());
-  const [ano, setAno] = useState(hoje.getFullYear());
+  const [periodoTipo, setPeriodoTipo] = useState<PeriodoTipo>("mes");
+  const [anchor, setAnchor] = useState<Date>(hoje);
+  const [customStart, setCustomStart] = useState<string>(toISO(hoje));
+  const [customEnd, setCustomEnd] = useState<string>(toISO(hoje));
+  const [periodoOpen, setPeriodoOpen] = useState(false);
+
   const [busca, setBusca] = useState("");
   const [filtroBanco, setFiltroBanco] = useState("todos");
   const [filtroStatus, setFiltroStatus] = useState("todos");
@@ -65,10 +79,47 @@ function Lancamentos() {
   const [open, setOpen] = useState(false);
   const [editando, setEditando] = useState<Lancamento | null>(null);
 
-  const navMes = (dir: -1 | 1) => {
-    let m = mes + dir, y = ano;
-    if (m < 0) { m = 11; y--; } if (m > 11) { m = 0; y++; }
-    setMes(m); setAno(y); setSelecionados(new Set());
+  const range = useMemo(() => {
+    const a = new Date(anchor);
+    if (periodoTipo === "hoje") {
+      const s = new Date(a); s.setHours(0,0,0,0);
+      const e = new Date(a); e.setHours(23,59,59,999);
+      const lbl = `${String(a.getDate()).padStart(2,"0")}/${String(a.getMonth()+1).padStart(2,"0")}/${a.getFullYear()}`;
+      return { inicio: s, fim: e, label: lbl };
+    }
+    if (periodoTipo === "semana") {
+      const s = startOfWeek(a); const e = endOfWeek(a);
+      const lbl = `${String(s.getDate()).padStart(2,"0")}/${String(s.getMonth()+1).padStart(2,"0")} a ${String(e.getDate()).padStart(2,"0")}/${String(e.getMonth()+1).padStart(2,"0")}/${e.getFullYear()}`;
+      return { inicio: s, fim: e, label: lbl };
+    }
+    if (periodoTipo === "ano") {
+      const s = new Date(a.getFullYear(),0,1); const e = new Date(a.getFullYear(),11,31,23,59,59,999);
+      return { inicio: s, fim: e, label: `Ano ${a.getFullYear()}` };
+    }
+    if (periodoTipo === "custom") {
+      const s = parseISO(customStart) ?? new Date(); const e = parseISO(customEnd) ?? new Date();
+      e.setHours(23,59,59,999);
+      return { inicio: s, fim: e, label: `${fmtDate(customStart)} a ${fmtDate(customEnd)}` };
+    }
+    // mes
+    const s = new Date(a.getFullYear(), a.getMonth(), 1);
+    const e = new Date(a.getFullYear(), a.getMonth()+1, 0, 23,59,59,999);
+    return { inicio: s, fim: e, label: `${MESES[a.getMonth()]} de ${a.getFullYear()}` };
+  }, [periodoTipo, anchor, customStart, customEnd]);
+
+  const navPeriodo = (dir: -1 | 1) => {
+    if (periodoTipo === "custom") return;
+    const a = new Date(anchor);
+    if (periodoTipo === "hoje") a.setDate(a.getDate() + dir);
+    else if (periodoTipo === "semana") a.setDate(a.getDate() + 7 * dir);
+    else if (periodoTipo === "ano") a.setFullYear(a.getFullYear() + dir);
+    else a.setMonth(a.getMonth() + dir);
+    setAnchor(a); setSelecionados(new Set());
+  };
+
+  const inRange = (iso: string) => {
+    const d = parseISO(iso); if (!d) return false;
+    return d >= range.inicio && d <= range.fim;
   };
 
   const cycleSort = (key: SortKey) => {
@@ -78,38 +129,67 @@ function Lancamentos() {
     else setSortDir("desc");
   };
 
+  // Lançamentos do período (para KPIs)
   const lancMes = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    return lancamentos
-      .filter((l) => {
-        const d = parseISO(l.data);
-        if (!d || d.getMonth() !== mes || d.getFullYear() !== ano) return false;
-        if (filtroBanco !== "todos" && l.bancoId !== filtroBanco) return false;
-        if (filtroStatus !== "todos" && l.status !== filtroStatus) return false;
-        if (filtroTipo !== "todos" && l.tipo !== filtroTipo) return false;
+    return lancamentos.filter((l) => {
+      if (!inRange(l.data)) return false;
+      if (filtroBanco !== "todos" && l.bancoId !== filtroBanco) return false;
+      if (filtroStatus !== "todos" && l.status !== filtroStatus) return false;
+      if (filtroTipo !== "todos" && l.tipo !== filtroTipo) return false;
+      if (q) {
+        const cat = categorias.find((c) => c.id === l.categoriaId)?.nome ?? "";
+        const cont = contatos.find((c) => c.id === l.contatoId)?.nome ?? "";
+        const hay = `${l.desc} ${cat} ${cont}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [lancamentos, range, filtroBanco, filtroStatus, filtroTipo, busca, categorias, contatos]);
+
+  // Transferências do período (linhas virtuais na tabela)
+  type LinhaTransf = {
+    kind: "transf"; id: string; data: string; valor: number; bancoOrigemId: string; bancoDestinoId: string; descricao?: string;
+  };
+  type LinhaLanc = { kind: "lanc"; id: string; data: string; valor: number; lanc: Lancamento };
+  type Linha = LinhaLanc | LinhaTransf;
+
+  const transfPeriodo = useMemo<LinhaTransf[]>(() => {
+    const q = busca.trim().toLowerCase();
+    return transferencias
+      .filter((t) => {
+        if (!inRange(t.data)) return false;
+        if (filtroBanco !== "todos" && t.bancoOrigemId !== filtroBanco && t.bancoDestinoId !== filtroBanco) return false;
+        if (filtroStatus !== "todos") return false; // transferência não tem status
+        if (filtroTipo === "Receita" || filtroTipo === "Despesa") return false;
         if (q) {
-          const cat = categorias.find((c) => c.id === l.categoriaId)?.nome ?? "";
-          const cont = contatos.find((c) => c.id === l.contatoId)?.nome ?? "";
-          const hay = `${l.desc} ${cat} ${cont}`.toLowerCase();
+          const ori = bancos.find((b) => b.id === t.bancoOrigemId)?.nome ?? "";
+          const des = bancos.find((b) => b.id === t.bancoDestinoId)?.nome ?? "";
+          const hay = `transferência ${ori} ${des} ${t.descricao ?? ""}`.toLowerCase();
           if (!hay.includes(q)) return false;
         }
         return true;
-      });
-  }, [lancamentos, mes, ano, filtroBanco, filtroStatus, filtroTipo, busca, categorias, contatos]);
+      })
+      .map((t) => ({ kind: "transf" as const, id: `t-${t.id}`, data: t.data, valor: t.valor, bancoOrigemId: t.bancoOrigemId, bancoDestinoId: t.bancoDestinoId, descricao: t.descricao }));
+  }, [transferencias, range, filtroBanco, filtroStatus, filtroTipo, busca, bancos]);
 
-  const lancOrdenado = useMemo(() => {
+  const linhas: Linha[] = useMemo(() => {
+    const ll: Linha[] = lancMes.map((l) => ({ kind: "lanc" as const, id: l.id, data: l.data, valor: l.valor, lanc: l }));
+    return [...ll, ...transfPeriodo];
+  }, [lancMes, transfPeriodo]);
+
+  const linhasOrdenadas = useMemo(() => {
     if (sortDir === null) {
-      // Padrão: último lançamento primeiro (data desc, depois id desc como desempate)
-      return [...lancMes].sort((a, b) => b.data.localeCompare(a.data) || b.id.localeCompare(a.id));
+      return [...linhas].sort((a, b) => b.data.localeCompare(a.data) || b.id.localeCompare(a.id));
     }
     const mult = sortDir === "asc" ? 1 : -1;
-    return [...lancMes].sort((a, b) => {
+    return [...linhas].sort((a, b) => {
       if (sortKey === "data") return a.data.localeCompare(b.data) * mult;
       return (a.valor - b.valor) * mult;
     });
-  }, [lancMes, sortKey, sortDir]);
+  }, [linhas, sortKey, sortDir]);
 
-  // KPIs
+  // KPIs — só lançamentos (transferências não afetam P&L)
   const kpi = useMemo(() => {
     let recAberto = 0, recReal = 0, despAberto = 0, despReal = 0;
     for (const l of lancMes) {
@@ -125,10 +205,11 @@ function Lancamentos() {
   const catName = (id: string) => categorias.find((c) => c.id === id)?.nome ?? "—";
   const contName = (id?: string) => id ? contatos.find((c) => c.id === id)?.nome ?? "—" : "—";
 
-  const todasSelecionadas = lancOrdenado.length > 0 && lancOrdenado.every((l) => selecionados.has(l.id));
+  const selecionaveis = linhasOrdenadas.filter((l) => l.kind === "lanc");
+  const todasSelecionadas = selecionaveis.length > 0 && selecionaveis.every((l) => selecionados.has(l.lanc.id));
   const toggleTodas = () => {
     if (todasSelecionadas) setSelecionados(new Set());
-    else setSelecionados(new Set(lancOrdenado.map((l) => l.id)));
+    else setSelecionados(new Set(selecionaveis.map((l) => (l as { lanc: Lancamento }).lanc.id)));
   };
   const toggle = (id: string) => {
     setSelecionados((p) => {
@@ -172,13 +253,48 @@ function Lancamentos() {
             <div className="space-y-1">
               <Label className="text-xs">Período</Label>
               <div className="flex items-center gap-1 border rounded-md px-1 h-9">
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navMes(-1)}>
+                <Button variant="ghost" size="icon" className="h-7 w-7" disabled={periodoTipo === "custom"} onClick={() => navPeriodo(-1)}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-sm font-medium px-3 min-w-[140px] text-center">
-                  {MESES[mes]} de {ano}
-                </span>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navMes(1)}>
+                <Popover open={periodoOpen} onOpenChange={setPeriodoOpen}>
+                  <PopoverTrigger asChild>
+                    <button type="button" className="text-sm font-medium px-3 min-w-[180px] text-center hover:text-primary transition-colors">
+                      {range.label}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-72 p-3 space-y-3" align="start">
+                    <div className="grid grid-cols-2 gap-1">
+                      {([
+                        ["hoje","Hoje"],["semana","Esta semana"],
+                        ["mes","Este mês"],["ano","Este ano"],
+                      ] as [PeriodoTipo,string][]).map(([k,label]) => (
+                        <Button key={k} type="button" size="sm"
+                          variant={periodoTipo === k ? "default" : "outline"}
+                          onClick={() => { setPeriodoTipo(k); setAnchor(new Date()); setSelecionados(new Set()); setPeriodoOpen(false); }}>
+                          {label}
+                        </Button>
+                      ))}
+                    </div>
+                    <div className="border-t pt-3 space-y-2">
+                      <div className="text-xs font-medium text-muted-foreground">Personalizado</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">Início</Label>
+                          <Input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} className="h-8" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">Fim</Label>
+                          <Input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} className="h-8" />
+                        </div>
+                      </div>
+                      <Button size="sm" className="w-full" onClick={() => {
+                        if (!customStart || !customEnd) return;
+                        setPeriodoTipo("custom"); setSelecionados(new Set()); setPeriodoOpen(false);
+                      }}>Aplicar intervalo</Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                <Button variant="ghost" size="icon" className="h-7 w-7" disabled={periodoTipo === "custom"} onClick={() => navPeriodo(1)}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -282,57 +398,96 @@ function Lancamentos() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {lancOrdenado.map((r) => (
-                <TableRow key={r.id} className={selecionados.has(r.id) ? "bg-muted/40" : ""}>
-                  <TableCell>
-                    <Checkbox checked={selecionados.has(r.id)} onCheckedChange={() => toggle(r.id)} />
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{fmtDate(r.data)}</TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 font-medium">
-                        {r.parcelaTotal ? <Repeat className="h-3.5 w-3.5 text-muted-foreground" /> : null}
-                        {r.parcelaTotal ? (
-                          <span className="text-xs text-muted-foreground">{r.parcelaNumero}/{r.parcelaTotal} —</span>
-                        ) : null}
-                        <span>{r.desc}</span>
-                        {r.rateios && r.rateios.length > 0 ? (
-                          <Badge variant="outline" className="text-[10px] gap-1">
-                            <Layers className="h-3 w-3" /> Rateado
-                          </Badge>
-                        ) : null}
+              {linhasOrdenadas.map((row) => {
+                if (row.kind === "transf") {
+                  const ori = bancos.find((b) => b.id === row.bancoOrigemId)?.nome ?? "—";
+                  const des = bancos.find((b) => b.id === row.bancoDestinoId)?.nome ?? "—";
+                  return (
+                    <TableRow key={row.id} className="bg-sky-500/5">
+                      <TableCell />
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{fmtDate(row.data)}</TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 font-medium">
+                            <ArrowRightLeft className="h-3.5 w-3.5 text-sky-600" />
+                            <span>Transferência</span>
+                            <Badge variant="outline" className="text-[10px]">{ori} → {des}</Badge>
+                          </div>
+                          {row.descricao && (
+                            <div className="text-xs text-muted-foreground">{row.descricao}</div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className="bg-sky-500/15 text-sky-700 hover:bg-sky-500/20 border-0">Transferência</Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-medium text-sky-700">
+                        {brl(row.valor)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500"
+                            onClick={() => removeTransferencia(row.id.slice(2))}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                }
+                const r = row.lanc;
+                return (
+                  <TableRow key={r.id} className={selecionados.has(r.id) ? "bg-muted/40" : ""}>
+                    <TableCell>
+                      <Checkbox checked={selecionados.has(r.id)} onCheckedChange={() => toggle(r.id)} />
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{fmtDate(r.data)}</TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 font-medium">
+                          {r.parcelaTotal ? <Repeat className="h-3.5 w-3.5 text-muted-foreground" /> : null}
+                          {r.parcelaTotal ? (
+                            <span className="text-xs text-muted-foreground">{r.parcelaNumero}/{r.parcelaTotal} —</span>
+                          ) : null}
+                          <span>{r.desc}</span>
+                          {r.rateios && r.rateios.length > 0 ? (
+                            <Badge variant="outline" className="text-[10px] gap-1">
+                              <Layers className="h-3 w-3" /> Rateado
+                            </Badge>
+                          ) : null}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Badge variant="outline" className="text-[10px]">{catName(r.categoriaId)}</Badge>
+                          <span>{contName(r.contatoId)}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Badge variant="outline" className="text-[10px]">{catName(r.categoriaId)}</Badge>
-                        <span>{contName(r.contatoId)}</span>
+                    </TableCell>
+                    <TableCell>
+                      {r.status === "Pago" ? (
+                        <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/20 border-0">Pago</Badge>
+                      ) : (
+                        <Badge className="bg-amber-500/15 text-amber-700 hover:bg-amber-500/20 border-0">Em aberto</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className={`text-right font-medium ${r.tipo === "Receita" ? "text-emerald-600" : "text-red-500"}`}>
+                      {r.tipo === "Receita" ? "+" : "−"} {brl(r.valor)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8"
+                          onClick={() => { setEditando(r); setOpen(true); }}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500"
+                          onClick={() => removeLancamento(r.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {r.status === "Pago" ? (
-                      <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/20 border-0">Pago</Badge>
-                    ) : (
-                      <Badge className="bg-amber-500/15 text-amber-700 hover:bg-amber-500/20 border-0">Em aberto</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className={`text-right font-medium ${r.tipo === "Receita" ? "text-emerald-600" : "text-red-500"}`}>
-                    {r.tipo === "Receita" ? "+" : "−"} {brl(r.valor)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8"
-                        onClick={() => { setEditando(r); setOpen(true); }}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500"
-                        onClick={() => removeLancamento(r.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {lancOrdenado.length === 0 && (
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {linhasOrdenadas.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
                     Nenhum lançamento neste período.
@@ -343,8 +498,6 @@ function Lancamentos() {
           </Table>
         </CardContent>
       </Card>
-
-      <TransferenciasTable />
     </div>
   );
 }
