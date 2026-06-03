@@ -406,8 +406,16 @@ function PlanoContas() {
               {gruposT.map((g) => {
                 const cats = categorias.filter((c) => c.grupoId === g.id);
                 const isCollapsed = collapsed[g.id];
+                const canDrop = allowDrop(t);
+                const isHover = hoverTarget === g.id && canDrop;
                 return (
-                  <div key={g.id} className="rounded-md border border-border/60">
+                  <div
+                    key={g.id}
+                    className={`rounded-md border transition-colors ${isHover ? "border-primary bg-primary/5" : "border-border/60"}`}
+                    onDragOver={(e) => { if (canDrop) { e.preventDefault(); setHoverTarget(g.id); } }}
+                    onDragLeave={() => { if (hoverTarget === g.id) setHoverTarget(null); }}
+                    onDrop={(e) => { e.preventDefault(); handleDrop(g.id, t); }}
+                  >
                     <div className="flex items-center justify-between px-3 py-2 bg-muted/40">
                       <button
                         type="button"
@@ -435,12 +443,23 @@ function PlanoContas() {
                       </div>
                     </div>
                     {!isCollapsed && (
-                      <div className="p-2 space-y-1">
+                      <div className="p-2 space-y-1 min-h-[40px]">
                         {cats.length === 0 ? (
-                          <p className="text-xs text-muted-foreground px-2 py-2">Nenhuma categoria neste grupo.</p>
+                          <p className="text-xs text-muted-foreground px-2 py-2">
+                            {canDrop ? "Solte aqui para adicionar." : "Nenhuma categoria neste grupo."}
+                          </p>
                         ) : cats.map((c) => (
-                          <div key={c.id} className="flex items-center justify-between rounded px-3 py-1.5 hover:bg-muted/40">
-                            <span className="text-sm">{c.nome}</span>
+                          <div
+                            key={c.id}
+                            draggable
+                            onDragStart={onDragStart(c)}
+                            onDragEnd={onDragEnd}
+                            className={`flex items-center justify-between rounded px-3 py-1.5 hover:bg-muted/40 cursor-grab active:cursor-grabbing ${dragging?.id === c.id ? "opacity-50" : ""}`}
+                          >
+                            <span className="text-sm flex items-center gap-2">
+                              <span className="text-muted-foreground select-none">⋮⋮</span>
+                              {c.nome}
+                            </span>
                             <div className="flex gap-1">
                               <Button variant="ghost" size="icon" className="h-7 w-7"
                                 onClick={() => { setEditandoCat(c); setOpenCat(true); }}>
