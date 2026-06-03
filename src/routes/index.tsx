@@ -19,7 +19,14 @@ export const Route = createFileRoute("/")({
 const MESES_ABREV = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 function parseData(d: string): Date | null {
-  // dd/mm or dd/mm/yyyy
+  if (!d) return null;
+  // ISO yyyy-mm-dd (formato do banco)
+  if (d.includes("-")) {
+    const [y, m, day] = d.split("-").map(Number);
+    if (!y || !m || !day) return null;
+    return new Date(y, m - 1, day);
+  }
+  // Fallback dd/mm[/yyyy]
   const parts = d.split("/");
   if (parts.length < 2) return null;
   const dia = Number(parts[0]); const mes = Number(parts[1]);
