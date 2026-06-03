@@ -357,7 +357,7 @@ function PlanoContas() {
       <CardHeader className="flex flex-row items-center justify-between gap-3 flex-wrap">
         <div>
           <CardTitle>Plano de Contas</CardTitle>
-          <CardDescription>Organize categorias por grupos. Esses grupos alimentam o demonstrativo.</CardDescription>
+          <CardDescription>Organize categorias por grupos. Arraste para mover entre grupos. Esses grupos alimentam o demonstrativo.</CardDescription>
         </div>
         <div className="flex gap-2">
           <Dialog open={openGrupo} onOpenChange={(v) => { setOpenGrupo(v); if (!v) setEditandoGrupo(null); }}>
