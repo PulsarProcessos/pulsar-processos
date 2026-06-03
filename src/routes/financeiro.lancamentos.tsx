@@ -205,10 +205,11 @@ function Lancamentos() {
   const catName = (id: string) => categorias.find((c) => c.id === id)?.nome ?? "—";
   const contName = (id?: string) => id ? contatos.find((c) => c.id === id)?.nome ?? "—" : "—";
 
-  const todasSelecionadas = lancOrdenado.length > 0 && lancOrdenado.every((l) => selecionados.has(l.id));
+  const selecionaveis = linhasOrdenadas.filter((l) => l.kind === "lanc");
+  const todasSelecionadas = selecionaveis.length > 0 && selecionaveis.every((l) => selecionados.has(l.lanc.id));
   const toggleTodas = () => {
     if (todasSelecionadas) setSelecionados(new Set());
-    else setSelecionados(new Set(lancOrdenado.map((l) => l.id)));
+    else setSelecionados(new Set(selecionaveis.map((l) => (l as { lanc: Lancamento }).lanc.id)));
   };
   const toggle = (id: string) => {
     setSelecionados((p) => {
