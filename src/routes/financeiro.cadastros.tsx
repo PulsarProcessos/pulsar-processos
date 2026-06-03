@@ -478,15 +478,31 @@ function PlanoContas() {
                 );
               })}
 
-              {semGrupo.length > 0 && (
-                <div className="rounded-md border border-dashed border-border/60">
+              {(semGrupo.length > 0 || dragging?.tipo === t) && (
+                <div
+                  className={`rounded-md border border-dashed transition-colors ${hoverTarget === `__sem__${t}` && allowDrop(t) ? "border-primary bg-primary/5" : "border-border/60"}`}
+                  onDragOver={(e) => { if (allowDrop(t)) { e.preventDefault(); setHoverTarget(`__sem__${t}`); } }}
+                  onDragLeave={() => { if (hoverTarget === `__sem__${t}`) setHoverTarget(null); }}
+                  onDrop={(e) => { e.preventDefault(); handleDrop(null, t); }}
+                >
                   <div className="px-3 py-2 bg-muted/20 text-xs font-medium text-muted-foreground">
                     Sem grupo
                   </div>
-                  <div className="p-2 space-y-1">
-                    {semGrupo.map((c) => (
-                      <div key={c.id} className="flex items-center justify-between rounded px-3 py-1.5 hover:bg-muted/40">
-                        <span className="text-sm">{c.nome}</span>
+                  <div className="p-2 space-y-1 min-h-[40px]">
+                    {semGrupo.length === 0 ? (
+                      <p className="text-xs text-muted-foreground px-2 py-2">Solte aqui para remover do grupo.</p>
+                    ) : semGrupo.map((c) => (
+                      <div
+                        key={c.id}
+                        draggable
+                        onDragStart={onDragStart(c)}
+                        onDragEnd={onDragEnd}
+                        className={`flex items-center justify-between rounded px-3 py-1.5 hover:bg-muted/40 cursor-grab active:cursor-grabbing ${dragging?.id === c.id ? "opacity-50" : ""}`}
+                      >
+                        <span className="text-sm flex items-center gap-2">
+                          <span className="text-muted-foreground select-none">⋮⋮</span>
+                          {c.nome}
+                        </span>
                         <div className="flex gap-1">
                           <Button variant="ghost" size="icon" className="h-7 w-7"
                             onClick={() => { setEditandoCat(c); setOpenCat(true); }}>
