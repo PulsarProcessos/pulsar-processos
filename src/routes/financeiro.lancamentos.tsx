@@ -42,12 +42,21 @@ function parseISO(d: string): Date | null {
   if (!y || !m || !day) return null;
   return new Date(y, m - 1, day);
 }
+function toISO(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 function brl(n: number) { return n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function fmtDate(d: string) {
   const dt = parseISO(d); if (!dt) return d;
   return `${String(dt.getDate()).padStart(2,"0")}/${String(dt.getMonth()+1).padStart(2,"0")}/${dt.getFullYear()}`;
 }
+function startOfWeek(d: Date) {
+  const x = new Date(d); const day = x.getDay(); // 0=dom
+  x.setDate(x.getDate() - day); x.setHours(0,0,0,0); return x;
+}
+function endOfWeek(d: Date) { const x = startOfWeek(d); x.setDate(x.getDate() + 6); return x; }
 
+type PeriodoTipo = "hoje" | "semana" | "mes" | "ano" | "custom";
 type SortKey = "data" | "valor";
 type SortDir = "desc" | "asc" | null;
 
