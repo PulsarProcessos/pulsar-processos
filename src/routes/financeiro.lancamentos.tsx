@@ -404,7 +404,7 @@ function Lancamentos() {
                     <Plus className="h-4 w-4" /> Novo Lançamento
                   </Button>
                 </DialogTrigger>
-                <LancamentoForm key={editando?.id ?? "novo"} editando={editando} onClose={() => setOpen(false)} />
+                <LancamentoForm key={editando?.id ?? "novo"} editando={editando} escopo={escopoEdicao} onClose={() => setOpen(false)} />
               </Dialog>
             </div>
           </div>
