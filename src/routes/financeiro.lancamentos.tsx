@@ -284,16 +284,32 @@ function Lancamentos() {
     const rows: string[][] = [];
     for (const row of linhasOrdenadas) {
       if (row.kind === "transf") {
-        rows.push([
-          fmtDate(row.data),
-          "—",
-          `${bancoName(row.bancoOrigemId)} → ${bancoName(row.bancoDestinoId)}`,
-          "Transferência",
-          row.descricao ?? "Transferência entre contas",
-          "Transferência",
-          "—",
-          row.valor.toFixed(2).replace(".", ","),
-        ]);
+        const isSaida = filtroBanco !== "todos" && row.bancoOrigemId === filtroBanco;
+        const isEntrada = filtroBanco !== "todos" && row.bancoDestinoId === filtroBanco;
+        if (filtroBanco !== "todos" && !isSaida && !isEntrada) continue; // pula transferências que não envolvem o banco filtrado
+        if (filtroBanco !== "todos") {
+          rows.push([
+            fmtDate(row.data),
+            "—",
+            bancoName(filtroBanco),
+            "Transferência",
+            row.descricao ?? "Transferência entre contas",
+            isSaida ? "Saída" : "Entrada",
+            "—",
+            (isSaida ? -row.valor : row.valor).toFixed(2).replace(".", ","),
+          ]);
+        } else {
+          rows.push([
+            fmtDate(row.data),
+            "—",
+            `${bancoName(row.bancoOrigemId)} → ${bancoName(row.bancoDestinoId)}`,
+            "Transferência",
+            row.descricao ?? "Transferência entre contas",
+            "Transferência",
+            "—",
+            row.valor.toFixed(2).replace(".", ","),
+          ]);
+        }
       } else {
         const l = row.lanc;
         rows.push([
