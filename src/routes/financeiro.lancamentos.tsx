@@ -599,8 +599,8 @@ function KpiCard({ label, value, color, highlight }: { label: string; value: num
 type ParcelaPreview = { numero: number; data: string; valor: number };
 
 function LancamentoForm({
-  editando, onClose,
-}: { editando: Lancamento | null; onClose: () => void }) {
+  editando, onClose, escopo = "self",
+}: { editando: Lancamento | null; onClose: () => void; escopo?: "self" | "todos" }) {
   const {
     categorias, contatos, bancos,
     addLancamento, updateLancamento, updateParcelamentoGrupo, lancamentos,
@@ -625,7 +625,7 @@ function LancamentoForm({
       : [{ categoriaId: "", valor: 0 }, { categoriaId: "", valor: 0 }],
   );
 
-  const [propagar, setPropagar] = useState(true);
+  const propagar = escopo === "todos";
   const [erro, setErro] = useState("");
 
   const isEdit = Boolean(editando);
@@ -779,8 +779,11 @@ function LancamentoForm({
 
       {isEdit && isParcelado && (
         <div className="rounded-md bg-amber-500/10 border border-amber-500/30 px-3 py-2 text-xs text-amber-800">
-          Este é um lançamento parcelado ({editando?.parcelaNumero}/{editando?.parcelaTotal}). O valor não pode ser alterado.
-          Quando "Propagar alterações" está ativo, mudanças em categoria, contato, banco, tipo e status serão aplicadas às demais parcelas.
+          Lançamento parcelado ({editando?.parcelaNumero}/{editando?.parcelaTotal}). O valor não pode ser alterado.
+          {" "}
+          {propagar
+            ? "Alterações em categoria, contato, conta, tipo e status serão aplicadas a todas as parcelas."
+            : "Alterações serão aplicadas somente a esta parcela."}
         </div>
       )}
 
@@ -857,14 +860,6 @@ function LancamentoForm({
             </div>
           </div>
 
-          {isEdit && isParcelado && (
-            <div className="flex items-center gap-2 pt-2 border-t border-border/40">
-              <Switch checked={propagar} onCheckedChange={setPropagar} />
-              <span className="text-xs text-muted-foreground">
-                Propagar alterações para todas as parcelas do grupo
-              </span>
-            </div>
-          )}
         </section>
 
         {habilitarRateio && (
