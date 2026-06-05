@@ -65,7 +65,7 @@ type SortKey = "data" | "valor";
 type SortDir = "desc" | "asc" | null;
 
 function Lancamentos() {
-  const { lancamentos, transferencias, bancos, categorias, contatos, removeLancamento, updateLancamento, removeTransferencia } = useData();
+  const { lancamentos, transferencias, bancos, categorias, contatos, removeLancamento, updateLancamento, removeTransferencia, saldoBanco } = useData();
   const hoje = new Date();
   const [periodoTipo, setPeriodoTipo] = useState<PeriodoTipo>("mes");
   const [anchor, setAnchor] = useState<Date>(hoje);
@@ -82,6 +82,32 @@ function Lancamentos() {
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState(false);
   const [editando, setEditando] = useState<Lancamento | null>(null);
+  const [escopoEdicao, setEscopoEdicao] = useState<"self" | "todos">("self");
+  const [confirmParcela, setConfirmParcela] = useState<Lancamento | null>(null);
+
+  const iniciarEdicao = (l: Lancamento) => {
+    if (l.parcelaGrupoId && l.parcelaTotal && l.parcelaTotal > 1) {
+      setConfirmParcela(l);
+    } else {
+      setEscopoEdicao("self");
+      setEditando(l);
+      setOpen(true);
+    }
+  };
+  const confirmarEscopo = (escopo: "self" | "todos") => {
+    if (!confirmParcela) return;
+    setEscopoEdicao(escopo);
+    setEditando(confirmParcela);
+    setConfirmParcela(null);
+    setOpen(true);
+  };
+
+  const marcarPago = async (l: Lancamento) => {
+    await updateLancamento(l.id, { status: l.status === "Pago" ? "Pendente" : "Pago" });
+    toast.success(l.status === "Pago"
+      ? "Lançamento marcado como em aberto."
+      : (l.tipo === "Receita" ? "Recebimento registrado." : "Pagamento registrado."));
+  };
 
   const range = useMemo(() => {
     const a = new Date(anchor);
