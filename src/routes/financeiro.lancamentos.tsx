@@ -855,10 +855,10 @@ function LancamentoForm({
     };
     if (isEdit && editando) {
       await updateLancamento(editando.id, payload);
-      toast.success("Lançamento atualizado.");
+      toast.success("Lançamento Salvo.");
     } else {
       await addLancamento(payload);
-      toast.success("Lançamento salvo no banco.");
+      toast.success("Lançamento Salvo.");
     }
     onClose();
   };
@@ -1127,13 +1127,13 @@ function TransferenciaDialog({ open, onOpenChange, editando }: {
         data, bancoOrigemId: origem, bancoDestinoId: destino,
         valor: v, descricao: descricao.trim() || undefined,
       });
-      toast.success("Transferência atualizada.");
+      toast.success("Transferência realizada.");
     } else {
       await addTransferencia({
         data, bancoOrigemId: origem, bancoDestinoId: destino,
         valor: v, descricao: descricao.trim() || undefined,
       });
-      toast.success("Transferência registrada.");
+      toast.success("Transferência realizada.");
     }
     onOpenChange(false);
   };
