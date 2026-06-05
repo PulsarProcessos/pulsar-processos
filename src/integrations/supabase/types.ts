@@ -19,31 +19,43 @@ export type Database = {
           agencia: string | null
           conta: string | null
           created_at: string
+          fechamento_dia: number | null
           id: string
+          limite: number | null
           nome: string
           saldo_inicial: number
+          tipo: string
           updated_at: string
           user_id: string
+          vencimento_dia: number | null
         }
         Insert: {
           agencia?: string | null
           conta?: string | null
           created_at?: string
+          fechamento_dia?: number | null
           id?: string
+          limite?: number | null
           nome: string
           saldo_inicial?: number
+          tipo?: string
           updated_at?: string
           user_id: string
+          vencimento_dia?: number | null
         }
         Update: {
           agencia?: string | null
           conta?: string | null
           created_at?: string
+          fechamento_dia?: number | null
           id?: string
+          limite?: number | null
           nome?: string
           saldo_inicial?: number
+          tipo?: string
           updated_at?: string
           user_id?: string
+          vencimento_dia?: number | null
         }
         Relationships: []
       }
@@ -578,6 +590,50 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      metas: {
+        Row: {
+          ano: number
+          categoria_id: string | null
+          created_at: string
+          id: string
+          mes: number
+          tipo: string
+          updated_at: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          ano: number
+          categoria_id?: string | null
+          created_at?: string
+          id?: string
+          mes: number
+          tipo: string
+          updated_at?: string
+          user_id: string
+          valor?: number
+        }
+        Update: {
+          ano?: number
+          categoria_id?: string | null
+          created_at?: string
+          id?: string
+          mes?: number
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metas_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       produtos: {
         Row: {

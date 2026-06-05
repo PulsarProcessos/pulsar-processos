@@ -22,8 +22,12 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Combobox } from "@/components/ui/combobox";
 import {
-  ArrowRightLeft, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, ChevronLeft, ChevronRight,
-  Layers, Pencil, Plus, Repeat, Search, Trash2,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  ArrowRightLeft, ArrowUpDown, ArrowUp, ArrowDown, Check, ChevronDown, ChevronLeft, ChevronRight,
+  CreditCard, Layers, Pencil, Plus, Repeat, Search, Trash2, Wallet,
 } from "lucide-react";
 import {
   useData, Lancamento, LancStatus, LancTipo, Rateio, Transferencia,
@@ -61,7 +65,7 @@ type SortKey = "data" | "valor";
 type SortDir = "desc" | "asc" | null;
 
 function Lancamentos() {
-  const { lancamentos, transferencias, bancos, categorias, contatos, removeLancamento, updateLancamento, removeTransferencia } = useData();
+  const { lancamentos, transferencias, bancos, categorias, contatos, removeLancamento, updateLancamento, removeTransferencia, saldoBanco } = useData();
   const hoje = new Date();
   const [periodoTipo, setPeriodoTipo] = useState<PeriodoTipo>("mes");
   const [anchor, setAnchor] = useState<Date>(hoje);
@@ -78,6 +82,32 @@ function Lancamentos() {
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState(false);
   const [editando, setEditando] = useState<Lancamento | null>(null);
+  const [escopoEdicao, setEscopoEdicao] = useState<"self" | "todos">("self");
+  const [confirmParcela, setConfirmParcela] = useState<Lancamento | null>(null);
+
+  const iniciarEdicao = (l: Lancamento) => {
+    if (l.parcelaGrupoId && l.parcelaTotal && l.parcelaTotal > 1) {
+      setConfirmParcela(l);
+    } else {
+      setEscopoEdicao("self");
+      setEditando(l);
+      setOpen(true);
+    }
+  };
+  const confirmarEscopo = (escopo: "self" | "todos") => {
+    if (!confirmParcela) return;
+    setEscopoEdicao(escopo);
+    setEditando(confirmParcela);
+    setConfirmParcela(null);
+    setOpen(true);
+  };
+
+  const marcarPago = async (l: Lancamento) => {
+    await updateLancamento(l.id, { status: l.status === "Pago" ? "Pendente" : "Pago" });
+    toast.success(l.status === "Pago"
+      ? "Lançamento marcado como em aberto."
+      : (l.tipo === "Receita" ? "Recebimento registrado." : "Pagamento registrado."));
+  };
 
   const range = useMemo(() => {
     const a = new Date(anchor);
@@ -242,9 +272,36 @@ function Lancamentos() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Gerencie clientes, fornecedores, bancos e plano de contas em{" "}
+        Extrato consolidado das movimentações. Gerencie clientes, fornecedores, contas e plano de contas em{" "}
         <Link to="/financeiro/cadastros" className="text-primary underline">Cadastros</Link>.
       </p>
+
+      {/* Saldo das contas/cartões */}
+      {bancos.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {bancos.map((b) => {
+            const s = saldoBanco(b.id);
+            const isCard = b.tipo === "Cartao";
+            const fatura = isCard ? -s : s;
+            return (
+              <div key={b.id} className={`rounded-md border p-3 ${isCard ? "border-violet-200/60 bg-violet-500/5" : "border-border/60"}`}>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  {isCard ? <CreditCard className="h-3.5 w-3.5 text-violet-600" /> : <Wallet className="h-3.5 w-3.5 text-emerald-600" />}
+                  <span className="truncate">{b.nome}</span>
+                </div>
+                <p className={`text-lg font-bold ${isCard ? "text-violet-700" : s < 0 ? "text-red-600" : "text-emerald-700"}`}>
+                  R$ {fatura.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  {isCard
+                    ? `Fatura · venc. dia ${b.vencimentoDia ?? "—"}`
+                    : "Saldo atual"}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <Card className="border-border/60">
         <CardHeader className="space-y-4 pb-3">
@@ -347,7 +404,7 @@ function Lancamentos() {
                     <Plus className="h-4 w-4" /> Novo Lançamento
                   </Button>
                 </DialogTrigger>
-                <LancamentoForm key={editando?.id ?? "novo"} editando={editando} onClose={() => setOpen(false)} />
+                <LancamentoForm key={editando?.id ?? "novo"} editando={editando} escopo={escopoEdicao} onClose={() => setOpen(false)} />
               </Dialog>
             </div>
           </div>
@@ -474,8 +531,17 @@ function Lancamentos() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost" size="icon"
+                          className={`h-8 w-8 ${r.status === "Pago" ? "text-emerald-600" : (r.tipo === "Receita" ? "text-muted-foreground hover:text-emerald-600" : "text-muted-foreground hover:text-red-600")}`}
+                          title={r.status === "Pago"
+                            ? "Marcar como em aberto"
+                            : (r.tipo === "Receita" ? "Dar como recebido" : "Dar como pago")}
+                          onClick={() => marcarPago(r)}>
+                          <Check className="h-4 w-4" />
+                        </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8"
-                          onClick={() => { setEditando(r); setOpen(true); }}>
+                          onClick={() => iniciarEdicao(r)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500"
@@ -498,6 +564,23 @@ function Lancamentos() {
           </Table>
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!confirmParcela} onOpenChange={(v) => { if (!v) setConfirmParcela(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Editar lançamento parcelado</AlertDialogTitle>
+            <AlertDialogDescription>
+              Este lançamento faz parte de um parcelamento ({confirmParcela?.parcelaNumero}/{confirmParcela?.parcelaTotal}).
+              Você quer editar somente esta parcela ou aplicar a alteração a todas as parcelas?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <Button variant="outline" onClick={() => confirmarEscopo("self")}>Somente esta parcela</Button>
+            <AlertDialogAction onClick={() => confirmarEscopo("todos")}>Todas as parcelas</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -516,8 +599,8 @@ function KpiCard({ label, value, color, highlight }: { label: string; value: num
 type ParcelaPreview = { numero: number; data: string; valor: number };
 
 function LancamentoForm({
-  editando, onClose,
-}: { editando: Lancamento | null; onClose: () => void }) {
+  editando, onClose, escopo = "self",
+}: { editando: Lancamento | null; onClose: () => void; escopo?: "self" | "todos" }) {
   const {
     categorias, contatos, bancos,
     addLancamento, updateLancamento, updateParcelamentoGrupo, lancamentos,
@@ -542,7 +625,7 @@ function LancamentoForm({
       : [{ categoriaId: "", valor: 0 }, { categoriaId: "", valor: 0 }],
   );
 
-  const [propagar, setPropagar] = useState(true);
+  const propagar = escopo === "todos";
   const [erro, setErro] = useState("");
 
   const isEdit = Boolean(editando);
@@ -696,8 +779,11 @@ function LancamentoForm({
 
       {isEdit && isParcelado && (
         <div className="rounded-md bg-amber-500/10 border border-amber-500/30 px-3 py-2 text-xs text-amber-800">
-          Este é um lançamento parcelado ({editando?.parcelaNumero}/{editando?.parcelaTotal}). O valor não pode ser alterado.
-          Quando "Propagar alterações" está ativo, mudanças em categoria, contato, banco, tipo e status serão aplicadas às demais parcelas.
+          Lançamento parcelado ({editando?.parcelaNumero}/{editando?.parcelaTotal}). O valor não pode ser alterado.
+          {" "}
+          {propagar
+            ? "Alterações em categoria, contato, conta, tipo e status serão aplicadas a todas as parcelas."
+            : "Alterações serão aplicadas somente a esta parcela."}
         </div>
       )}
 
@@ -774,14 +860,6 @@ function LancamentoForm({
             </div>
           </div>
 
-          {isEdit && isParcelado && (
-            <div className="flex items-center gap-2 pt-2 border-t border-border/40">
-              <Switch checked={propagar} onCheckedChange={setPropagar} />
-              <span className="text-xs text-muted-foreground">
-                Propagar alterações para todas as parcelas do grupo
-              </span>
-            </div>
-          )}
         </section>
 
         {habilitarRateio && (

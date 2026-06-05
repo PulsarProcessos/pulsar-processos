@@ -15,7 +15,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { ChevronDown, ChevronRight, Folder, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, CreditCard, Folder, Pencil, Plus, Search, Trash2, Wallet } from "lucide-react";
 import {
   useData, Contato, ContatoTipo, Categoria, Banco, GrupoCategoria,
 } from "@/lib/data-store";
@@ -30,7 +30,7 @@ function Cadastros() {
       <TabsList>
         <TabsTrigger value="clientes">Clientes</TabsTrigger>
         <TabsTrigger value="fornecedores">Fornecedores</TabsTrigger>
-        <TabsTrigger value="bancos">Bancos</TabsTrigger>
+        <TabsTrigger value="bancos">Contas</TabsTrigger>
         <TabsTrigger value="plano">Plano de Contas</TabsTrigger>
       </TabsList>
       <TabsContent value="clientes"><ContatosPanel tipo="Cliente" /></TabsContent>
@@ -198,74 +198,138 @@ function BancosPanel() {
   const [open, setOpen] = useState(false);
   const [editando, setEditando] = useState<Banco | null>(null);
 
-  const total = bancos.reduce((s, b) => s + saldoBanco(b.id), 0);
+  const contas = bancos.filter((b) => b.tipo !== "Cartao");
+  const cartoes = bancos.filter((b) => b.tipo === "Cartao");
+  const totalContas = contas.reduce((s, b) => s + saldoBanco(b.id), 0);
 
   return (
     <Card className="border-border/60">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>Bancos</CardTitle>
+          <CardTitle>Contas</CardTitle>
           <CardDescription>
-            Saldo total: <span className="font-semibold text-foreground">R$ {total.toLocaleString("pt-BR")}</span>
+            Contas bancárias e cartões de crédito. Saldo total das contas:{" "}
+            <span className="font-semibold text-foreground">R$ {totalContas.toLocaleString("pt-BR")}</span>
           </CardDescription>
         </div>
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditando(null); }}>
           <DialogTrigger asChild>
             <Button onClick={() => setEditando(null)}>
-              <Plus className="h-4 w-4" /> Novo Banco
+              <Plus className="h-4 w-4" /> Nova Conta
             </Button>
           </DialogTrigger>
           <BancoForm key={editando?.id ?? "novo"} editando={editando} onClose={() => setOpen(false)} />
         </Dialog>
       </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Agência</TableHead>
-              <TableHead>Conta</TableHead>
-              <TableHead className="text-right">Saldo Inicial</TableHead>
-              <TableHead className="text-right">Saldo Atual</TableHead>
-              <TableHead className="w-20" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {bancos.map((b) => {
-              const s = saldoBanco(b.id);
-              return (
-                <TableRow key={b.id}>
-                  <TableCell className="font-medium">{b.nome}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{b.agencia || "—"}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{b.conta || "—"}</TableCell>
-                  <TableCell className="text-right">R$ {b.saldoInicial.toLocaleString("pt-BR")}</TableCell>
-                  <TableCell className={`text-right font-semibold ${s < 0 ? "text-red-500" : "text-emerald-600"}`}>
-                    R$ {s.toLocaleString("pt-BR")}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8"
-                        onClick={() => { setEditando(b); setOpen(true); }}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500"
-                        onClick={() => removeBanco(b.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+      <CardContent className="space-y-6">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 pb-1 border-b border-border/40">
+            <Wallet className="h-4 w-4 text-emerald-600" />
+            <p className="text-sm font-semibold">Contas bancárias</p>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Agência</TableHead>
+                <TableHead>Conta</TableHead>
+                <TableHead className="text-right">Saldo Inicial</TableHead>
+                <TableHead className="text-right">Saldo Atual</TableHead>
+                <TableHead className="w-20" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {contas.map((b) => {
+                const s = saldoBanco(b.id);
+                return (
+                  <TableRow key={b.id}>
+                    <TableCell className="font-medium">{b.nome}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{b.agencia || "—"}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{b.conta || "—"}</TableCell>
+                    <TableCell className="text-right">R$ {b.saldoInicial.toLocaleString("pt-BR")}</TableCell>
+                    <TableCell className={`text-right font-semibold ${s < 0 ? "text-red-500" : "text-emerald-600"}`}>
+                      R$ {s.toLocaleString("pt-BR")}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8"
+                          onClick={() => { setEditando(b); setOpen(true); }}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500"
+                          onClick={() => removeBanco(b.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {contas.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-6 text-center text-sm text-muted-foreground">
+                    Nenhuma conta bancária cadastrada.
                   </TableCell>
                 </TableRow>
-              );
-            })}
-            {bancos.length === 0 && (
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 pb-1 border-b border-border/40">
+            <CreditCard className="h-4 w-4 text-violet-600" />
+            <p className="text-sm font-semibold">Cartões de crédito</p>
+          </div>
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
-                  Nenhum banco cadastrado.
-                </TableCell>
+                <TableHead>Nome</TableHead>
+                <TableHead className="text-center">Fechamento</TableHead>
+                <TableHead className="text-center">Vencimento</TableHead>
+                <TableHead className="text-right">Limite</TableHead>
+                <TableHead className="text-right">Fatura atual</TableHead>
+                <TableHead className="w-20" />
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {cartoes.map((b) => {
+                const s = saldoBanco(b.id);
+                const fatura = -s; // gastos no cartão diminuem saldo; fatura é o oposto
+                return (
+                  <TableRow key={b.id}>
+                    <TableCell className="font-medium">{b.nome}</TableCell>
+                    <TableCell className="text-center text-sm">Dia {b.fechamentoDia ?? "—"}</TableCell>
+                    <TableCell className="text-center text-sm">Dia {b.vencimentoDia ?? "—"}</TableCell>
+                    <TableCell className="text-right text-sm">{b.limite != null ? `R$ ${b.limite.toLocaleString("pt-BR")}` : "—"}</TableCell>
+                    <TableCell className="text-right font-semibold text-violet-600">
+                      R$ {fatura.toLocaleString("pt-BR")}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8"
+                          onClick={() => { setEditando(b); setOpen(true); }}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500"
+                          onClick={() => removeBanco(b.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {cartoes.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-6 text-center text-sm text-muted-foreground">
+                    Nenhum cartão de crédito cadastrado.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </CardContent>
     </Card>
   );
@@ -275,21 +339,34 @@ function BancoForm({
   editando, onClose,
 }: { editando: Banco | null; onClose: () => void }) {
   const { addBanco, updateBanco } = useData();
+  const [tipo, setTipo] = useState<"Conta" | "Cartao">(editando?.tipo ?? "Conta");
   const [nome, setNome] = useState(editando?.nome ?? "");
   const [agencia, setAgencia] = useState(editando?.agencia ?? "");
   const [conta, setConta] = useState(editando?.conta ?? "");
   const [saldo, setSaldo] = useState(editando ? String(editando.saldoInicial) : "0");
+  const [fechamento, setFechamento] = useState(editando?.fechamentoDia != null ? String(editando.fechamentoDia) : "");
+  const [vencimento, setVencimento] = useState(editando?.vencimentoDia != null ? String(editando.vencimentoDia) : "");
+  const [limite, setLimite] = useState(editando?.limite != null ? String(editando.limite) : "");
   const [erro, setErro] = useState("");
 
   const submit = () => {
     if (!nome.trim()) { setErro("Nome é obrigatório."); return; }
+    if (tipo === "Cartao") {
+      const f = Number(fechamento), v = Number(vencimento);
+      if (!f || f < 1 || f > 31) { setErro("Dia de fechamento entre 1 e 31."); return; }
+      if (!v || v < 1 || v > 31) { setErro("Dia de vencimento entre 1 e 31."); return; }
+    }
     const s = Number(saldo);
     if (Number.isNaN(s)) { setErro("Saldo inválido."); return; }
-    const payload = {
+    const payload: Omit<Banco, "id"> = {
       nome: nome.trim(),
-      agencia: agencia.trim() || undefined,
-      conta: conta.trim() || undefined,
-      saldoInicial: s,
+      tipo,
+      agencia: tipo === "Conta" ? (agencia.trim() || undefined) : undefined,
+      conta: tipo === "Conta" ? (conta.trim() || undefined) : undefined,
+      saldoInicial: tipo === "Conta" ? s : 0,
+      fechamentoDia: tipo === "Cartao" ? Number(fechamento) : undefined,
+      vencimentoDia: tipo === "Cartao" ? Number(vencimento) : undefined,
+      limite: tipo === "Cartao" && limite ? Number(limite) : undefined,
     };
     if (editando) updateBanco(editando.id, payload);
     else addBanco(payload);
@@ -299,20 +376,53 @@ function BancoForm({
   return (
     <DialogContent className="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>{editando ? "Editar banco" : "Novo banco"}</DialogTitle>
+        <DialogTitle>{editando ? "Editar conta" : "Nova conta"}</DialogTitle>
       </DialogHeader>
       <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted p-1">
+          {([["Conta","Conta bancária"],["Cartao","Cartão de crédito"]] as const).map(([k, lbl]) => (
+            <button key={k} type="button"
+              onClick={() => setTipo(k)}
+              className={`rounded-md py-2 text-sm font-medium transition-colors ${
+                tipo === k ? "bg-background shadow text-foreground" : "text-muted-foreground"
+              }`}>
+              {lbl}
+            </button>
+          ))}
+        </div>
         <div className="space-y-1.5"><Label>Nome</Label>
           <Input value={nome} onChange={(e) => setNome(e.target.value)} maxLength={80}
-            placeholder="Ex: Itaú PJ, Nubank, Caixa" /></div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5"><Label>Agência</Label>
-            <Input value={agencia} onChange={(e) => setAgencia(e.target.value)} maxLength={20} /></div>
-          <div className="space-y-1.5"><Label>Conta</Label>
-            <Input value={conta} onChange={(e) => setConta(e.target.value)} maxLength={30} /></div>
-        </div>
-        <div className="space-y-1.5"><Label>Saldo Inicial (R$)</Label>
-          <Input type="number" step="0.01" value={saldo} onChange={(e) => setSaldo(e.target.value)} /></div>
+            placeholder={tipo === "Cartao" ? "Ex: Nubank Cartão, Itaú Mastercard" : "Ex: Itaú PJ, Nubank"} /></div>
+
+        {tipo === "Conta" ? (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5"><Label>Agência</Label>
+                <Input value={agencia} onChange={(e) => setAgencia(e.target.value)} maxLength={20} /></div>
+              <div className="space-y-1.5"><Label>Conta</Label>
+                <Input value={conta} onChange={(e) => setConta(e.target.value)} maxLength={30} /></div>
+            </div>
+            <div className="space-y-1.5"><Label>Saldo Inicial (R$)</Label>
+              <Input type="number" step="0.01" value={saldo} onChange={(e) => setSaldo(e.target.value)} /></div>
+          </>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5"><Label>Dia de fechamento</Label>
+                <Input type="number" min="1" max="31" value={fechamento}
+                  onChange={(e) => setFechamento(e.target.value)} placeholder="Ex: 25" /></div>
+              <div className="space-y-1.5"><Label>Dia de vencimento</Label>
+                <Input type="number" min="1" max="31" value={vencimento}
+                  onChange={(e) => setVencimento(e.target.value)} placeholder="Ex: 10" /></div>
+            </div>
+            <div className="space-y-1.5"><Label>Limite (R$)</Label>
+              <Input type="number" step="0.01" value={limite}
+                onChange={(e) => setLimite(e.target.value)} placeholder="Opcional" /></div>
+            <p className="text-xs text-muted-foreground">
+              Compras lançadas neste cartão entram na fatura cujo período vai do dia seguinte ao fechamento até o próximo fechamento, com pagamento no dia do vencimento.
+            </p>
+          </>
+        )}
         {erro && <p className="text-sm text-red-500">{erro}</p>}
       </div>
       <DialogFooter>

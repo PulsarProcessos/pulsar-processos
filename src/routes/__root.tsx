@@ -39,7 +39,7 @@ import { Toaster } from "@/components/ui/sonner";
 const titles: Record<string, string> = {
   "/": "Dashboard",
   "/financeiro": "Financeiro · Visão Geral",
-  "/financeiro/lancamentos": "Financeiro · Lançamentos",
+  "/financeiro/lancamentos": "Financeiro · Extrato",
   "/financeiro/metas": "Financeiro · Metas",
   "/comercial": "Comercial · Pipeline",
   "/comercial/clientes": "Comercial · Clientes",

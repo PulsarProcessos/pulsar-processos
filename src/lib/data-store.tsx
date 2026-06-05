@@ -28,12 +28,26 @@ export type GrupoCategoria = {
   ordem: number;
 };
 
+export type BancoTipo = "Conta" | "Cartao";
 export type Banco = {
   id: string;
   nome: string;
+  tipo: BancoTipo;
   agencia?: string;
   conta?: string;
   saldoInicial: number;
+  fechamentoDia?: number;
+  vencimentoDia?: number;
+  limite?: number;
+};
+
+export type Meta = {
+  id: string;
+  categoriaId: string;
+  tipo: "Receita" | "Despesa";
+  mes: number; // 1-12
+  ano: number;
+  valor: number;
 };
 
 export type Produto = {
@@ -149,6 +163,7 @@ type State = {
   leads: Lead[];
   campanhas: Campanha[];
   eventos: Evento[];
+  metas: Meta[];
   loading: boolean;
 };
 
@@ -212,6 +227,9 @@ type Ctx = State & {
   addEvento: (e: Omit<Evento, "id">) => Promise<void>;
   updateEvento: (id: string, p: Partial<Evento>) => Promise<void>;
   removeEvento: (id: string) => Promise<void>;
+
+  upsertMeta: (m: Omit<Meta, "id">) => Promise<void>;
+  removeMeta: (id: string) => Promise<void>;
 };
 
 const DataContext = createContext<Ctx | null>(null);
@@ -238,6 +256,7 @@ const emptyState: State = {
   leads: [],
   campanhas: [],
   eventos: [],
+  metas: [],
   loading: true,
 };
 
@@ -254,8 +273,18 @@ const mapGrupo = (r: any): GrupoCategoria => ({
   id: r.id, nome: r.nome, tipo: r.tipo, ordem: r.ordem ?? 0,
 });
 const mapBanco = (r: any): Banco => ({
-  id: r.id, nome: r.nome, agencia: r.agencia ?? undefined,
-  conta: r.conta ?? undefined, saldoInicial: Number(r.saldo_inicial ?? 0),
+  id: r.id, nome: r.nome,
+  tipo: (r.tipo ?? "Conta") as BancoTipo,
+  agencia: r.agencia ?? undefined,
+  conta: r.conta ?? undefined,
+  saldoInicial: Number(r.saldo_inicial ?? 0),
+  fechamentoDia: r.fechamento_dia ?? undefined,
+  vencimentoDia: r.vencimento_dia ?? undefined,
+  limite: r.limite != null ? Number(r.limite) : undefined,
+});
+const mapMeta = (r: any): Meta => ({
+  id: r.id, categoriaId: r.categoria_id, tipo: r.tipo,
+  mes: r.mes, ano: r.ano, valor: Number(r.valor ?? 0),
 });
 const mapProduto = (r: any): Produto => ({
   id: r.id, nome: r.nome, preco: Number(r.preco ?? 0), descricao: r.descricao ?? undefined,
@@ -339,9 +368,20 @@ const leadToDb = (l: Partial<Lead>) => ({
 });
 const bancoToDb = (b: Partial<Banco>) => ({
   ...(b.nome !== undefined && { nome: b.nome }),
+  ...(b.tipo !== undefined && { tipo: b.tipo }),
   ...(b.agencia !== undefined && { agencia: b.agencia }),
   ...(b.conta !== undefined && { conta: b.conta }),
   ...(b.saldoInicial !== undefined && { saldo_inicial: b.saldoInicial }),
+  ...(b.fechamentoDia !== undefined && { fechamento_dia: b.fechamentoDia ?? null }),
+  ...(b.vencimentoDia !== undefined && { vencimento_dia: b.vencimentoDia ?? null }),
+  ...(b.limite !== undefined && { limite: b.limite ?? null }),
+});
+const metaToDb = (m: Partial<Meta>) => ({
+  ...(m.categoriaId !== undefined && { categoria_id: m.categoriaId }),
+  ...(m.tipo !== undefined && { tipo: m.tipo }),
+  ...(m.mes !== undefined && { mes: m.mes }),
+  ...(m.ano !== undefined && { ano: m.ano }),
+  ...(m.valor !== undefined && { valor: m.valor }),
 });
 
 function showError(prefix: string, err: any) {
@@ -358,7 +398,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     const [
       contatosR, categoriasR, gruposR, bancosR, produtosR, etapasR,
-      lancR, rateiosR, transfR, dealsR, leadsR, campsR, eventosR,
+      lancR, rateiosR, transfR, dealsR, leadsR, campsR, eventosR, metasR,
     ] = await Promise.all([
       supabase.from("contatos").select("*").order("created_at", { ascending: false }),
       supabase.from("categorias").select("*").order("nome"),
@@ -373,6 +413,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       supabase.from("leads").select("*").order("data", { ascending: false }),
       supabase.from("campanhas").select("*").order("created_at", { ascending: false }),
       supabase.from("eventos").select("*").order("data", { ascending: false }),
+      (supabase.from as any)("metas").select("*"),
     ]);
 
     const rateiosByLanc = new Map<string, Rateio[]>();
@@ -404,6 +445,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       leads: (leadsR.data ?? []).map(mapLead),
       campanhas: (campsR.data ?? []).map(mapCamp),
       eventos: (eventosR.data ?? []).map(mapEvento),
+      metas: (((metasR as any)?.data) ?? []).map(mapMeta),
       loading: false,
     });
   }, []);
@@ -751,6 +793,29 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateRow("eventos", id, pa, mapEvento, "eventos"), []);
   const removeEvento = useCallback((id: string) => deleteRow("eventos", id, "eventos"), []);
 
+  // ----- Metas -----
+  const upsertMeta = useCallback(async (m: Omit<Meta, "id">) => {
+    const uid = await getUserId();
+    if (!uid) return;
+    const payload = { ...metaToDb(m), user_id: uid };
+    const { data, error } = await (supabase.from as any)("metas")
+      .upsert(payload, { onConflict: "user_id,categoria_id,mes,ano" })
+      .select().single();
+    if (error) { showError("Erro ao salvar meta", error); return; }
+    const mapped = mapMeta(data);
+    setState((p) => {
+      const exists = p.metas.find((x) => x.id === mapped.id) ||
+        p.metas.find((x) => x.categoriaId === mapped.categoriaId && x.mes === mapped.mes && x.ano === mapped.ano);
+      const filtered = exists ? p.metas.filter((x) => x.id !== exists.id) : p.metas;
+      return { ...p, metas: [mapped, ...filtered] };
+    });
+  }, []);
+  const removeMeta = useCallback(async (id: string) => {
+    const { error } = await (supabase.from as any)("metas").delete().eq("id", id);
+    if (error) { showError("Erro ao excluir meta", error); return; }
+    setState((p) => ({ ...p, metas: p.metas.filter((x) => x.id !== id) }));
+  }, []);
+
   return (
     <DataContext.Provider
       value={{
@@ -768,6 +833,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         addLead, updateLead, removeLead, advanceLeadStatus,
         addCampanha, updateCampanha, removeCampanha,
         addEvento, updateEvento, removeEvento,
+        upsertMeta, removeMeta,
       }}
     >
       {children}
