@@ -447,7 +447,12 @@ function Lancamentos() {
               </Select>
             </div>
             <div className="flex gap-2 ml-auto">
-              <TransferenciaDialog />
+              <Button variant="outline" onClick={exportarCSV} title="Exportar extrato em CSV">
+                <Download className="h-4 w-4" /> Exportar
+              </Button>
+              <Button variant="outline" onClick={() => abrirTransf(null)}>
+                <ArrowRightLeft className="h-4 w-4" /> Transferência
+              </Button>
               <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditando(null); }}>
                 <DialogTrigger asChild>
                   <Button onClick={() => setEditando(null)}>
