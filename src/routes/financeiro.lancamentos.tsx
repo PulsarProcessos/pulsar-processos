@@ -1069,17 +1069,29 @@ function LancamentoForm({
   );
 }
 
-function TransferenciaDialog() {
-  const { bancos, addTransferencia } = useData();
-  const [open, setOpen] = useState(false);
-  const [origem, setOrigem] = useState("");
-  const [destino, setDestino] = useState("");
-  const [valor, setValor] = useState("");
-  const [data, setData] = useState("");
-  const [descricao, setDescricao] = useState("");
+function TransferenciaDialog({ open, onOpenChange, editando }: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  editando: Transferencia | null;
+}) {
+  const { bancos, addTransferencia, updateTransferencia } = useData();
+  const isEdit = Boolean(editando);
+  const [origem, setOrigem] = useState(editando?.bancoOrigemId ?? "");
+  const [destino, setDestino] = useState(editando?.bancoDestinoId ?? "");
+  const [valor, setValor] = useState(editando ? String(editando.valor) : "");
+  const [data, setData] = useState(editando?.data ?? "");
+  const [descricao, setDescricao] = useState(editando?.descricao ?? "");
   const [erro, setErro] = useState("");
 
-  const reset = () => { setOrigem(""); setDestino(""); setValor(""); setData(""); setDescricao(""); setErro(""); };
+  // Resincroniza quando trocar de transferência editada
+  React.useEffect(() => {
+    setOrigem(editando?.bancoOrigemId ?? "");
+    setDestino(editando?.bancoDestinoId ?? "");
+    setValor(editando ? String(editando.valor) : "");
+    setData(editando?.data ?? "");
+    setDescricao(editando?.descricao ?? "");
+    setErro("");
+  }, [editando, open]);
 
   const submit = async () => {
     if (!origem || !destino) return setErro("Selecione os bancos de origem e destino.");
@@ -1087,17 +1099,28 @@ function TransferenciaDialog() {
     const v = Number(valor);
     if (Number.isNaN(v) || v <= 0) return setErro("Valor deve ser positivo.");
     if (!data) return setErro("Informe a data.");
-    await addTransferencia({ data, bancoOrigemId: origem, bancoDestinoId: destino, valor: v, descricao: descricao.trim() || undefined });
-    reset(); setOpen(false);
+    if (isEdit && editando) {
+      await updateTransferencia(editando.id, {
+        data, bancoOrigemId: origem, bancoDestinoId: destino,
+        valor: v, descricao: descricao.trim() || undefined,
+      });
+      toast.success("Transferência atualizada.");
+    } else {
+      await addTransferencia({
+        data, bancoOrigemId: origem, bancoDestinoId: destino,
+        valor: v, descricao: descricao.trim() || undefined,
+      });
+      toast.success("Transferência registrada.");
+    }
+    onOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
-      <DialogTrigger asChild>
-        <Button variant="outline"><ArrowRightLeft className="h-4 w-4" /> Transferência</Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader><DialogTitle>Nova transferência entre bancos</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>{isEdit ? "Editar transferência" : "Nova transferência entre bancos"}</DialogTitle>
+        </DialogHeader>
         <div className="space-y-4">
           {bancos.length < 2 && (
             <p className="rounded-md bg-muted p-3 text-xs text-muted-foreground">
@@ -1141,8 +1164,10 @@ function TransferenciaDialog() {
           {erro && <p className="text-sm text-red-500">{erro}</p>}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button onClick={submit} disabled={bancos.length < 2}>Salvar transferência</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={submit} disabled={bancos.length < 2}>
+            {isEdit ? "Salvar alterações" : "Salvar transferência"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
