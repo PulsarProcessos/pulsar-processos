@@ -15,7 +15,6 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { ChevronDown, ChevronRight, CreditCard, Folder, Pencil, Plus, Search, Trash2, Wallet } from "lucide-react";
 import {
   useData, Contato, ContatoTipo, Categoria, Banco, GrupoCategoria,
