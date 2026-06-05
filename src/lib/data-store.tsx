@@ -268,8 +268,18 @@ const mapGrupo = (r: any): GrupoCategoria => ({
   id: r.id, nome: r.nome, tipo: r.tipo, ordem: r.ordem ?? 0,
 });
 const mapBanco = (r: any): Banco => ({
-  id: r.id, nome: r.nome, agencia: r.agencia ?? undefined,
-  conta: r.conta ?? undefined, saldoInicial: Number(r.saldo_inicial ?? 0),
+  id: r.id, nome: r.nome,
+  tipo: (r.tipo ?? "Conta") as BancoTipo,
+  agencia: r.agencia ?? undefined,
+  conta: r.conta ?? undefined,
+  saldoInicial: Number(r.saldo_inicial ?? 0),
+  fechamentoDia: r.fechamento_dia ?? undefined,
+  vencimentoDia: r.vencimento_dia ?? undefined,
+  limite: r.limite != null ? Number(r.limite) : undefined,
+});
+const mapMeta = (r: any): Meta => ({
+  id: r.id, categoriaId: r.categoria_id, tipo: r.tipo,
+  mes: r.mes, ano: r.ano, valor: Number(r.valor ?? 0),
 });
 const mapProduto = (r: any): Produto => ({
   id: r.id, nome: r.nome, preco: Number(r.preco ?? 0), descricao: r.descricao ?? undefined,
