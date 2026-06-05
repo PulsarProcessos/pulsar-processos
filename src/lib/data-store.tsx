@@ -163,6 +163,7 @@ type State = {
   leads: Lead[];
   campanhas: Campanha[];
   eventos: Evento[];
+  metas: Meta[];
   loading: boolean;
 };
 
@@ -226,6 +227,9 @@ type Ctx = State & {
   addEvento: (e: Omit<Evento, "id">) => Promise<void>;
   updateEvento: (id: string, p: Partial<Evento>) => Promise<void>;
   removeEvento: (id: string) => Promise<void>;
+
+  upsertMeta: (m: Omit<Meta, "id">) => Promise<void>;
+  removeMeta: (id: string) => Promise<void>;
 };
 
 const DataContext = createContext<Ctx | null>(null);
@@ -252,6 +256,7 @@ const emptyState: State = {
   leads: [],
   campanhas: [],
   eventos: [],
+  metas: [],
   loading: true,
 };
 
