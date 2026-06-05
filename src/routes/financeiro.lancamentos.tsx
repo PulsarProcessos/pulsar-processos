@@ -823,6 +823,7 @@ function LancamentoForm({
           }
         }
       }
+      toast.success("Alterações salvas no lançamento parcelado.");
       onClose();
       return;
     }
