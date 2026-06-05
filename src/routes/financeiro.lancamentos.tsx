@@ -837,8 +837,13 @@ function LancamentoForm({
       tipo, valor: valorNum, status,
       rateios: baseRateios,
     };
-    if (isEdit && editando) await updateLancamento(editando.id, payload);
-    else await addLancamento(payload);
+    if (isEdit && editando) {
+      await updateLancamento(editando.id, payload);
+      toast.success("Lançamento atualizado.");
+    } else {
+      await addLancamento(payload);
+      toast.success("Lançamento salvo no banco.");
+    }
     onClose();
   };
 
