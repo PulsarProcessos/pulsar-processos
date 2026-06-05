@@ -793,6 +793,29 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateRow("eventos", id, pa, mapEvento, "eventos"), []);
   const removeEvento = useCallback((id: string) => deleteRow("eventos", id, "eventos"), []);
 
+  // ----- Metas -----
+  const upsertMeta = useCallback(async (m: Omit<Meta, "id">) => {
+    const uid = await getUserId();
+    if (!uid) return;
+    const payload = { ...metaToDb(m), user_id: uid };
+    const { data, error } = await (supabase.from as any)("metas")
+      .upsert(payload, { onConflict: "user_id,categoria_id,mes,ano" })
+      .select().single();
+    if (error) { showError("Erro ao salvar meta", error); return; }
+    const mapped = mapMeta(data);
+    setState((p) => {
+      const exists = p.metas.find((x) => x.id === mapped.id) ||
+        p.metas.find((x) => x.categoriaId === mapped.categoriaId && x.mes === mapped.mes && x.ano === mapped.ano);
+      const filtered = exists ? p.metas.filter((x) => x.id !== exists.id) : p.metas;
+      return { ...p, metas: [mapped, ...filtered] };
+    });
+  }, []);
+  const removeMeta = useCallback(async (id: string) => {
+    const { error } = await (supabase.from as any)("metas").delete().eq("id", id);
+    if (error) { showError("Erro ao excluir meta", error); return; }
+    setState((p) => ({ ...p, metas: p.metas.filter((x) => x.id !== id) }));
+  }, []);
+
   return (
     <DataContext.Provider
       value={{
