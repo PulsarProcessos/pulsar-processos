@@ -833,6 +833,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         addLead, updateLead, removeLead, advanceLeadStatus,
         addCampanha, updateCampanha, removeCampanha,
         addEvento, updateEvento, removeEvento,
+        upsertMeta, removeMeta,
       }}
     >
       {children}
