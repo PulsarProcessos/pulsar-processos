@@ -273,6 +273,52 @@ function Lancamentos() {
     return sortDir === "desc" ? <ArrowDown className="inline h-3.5 w-3.5" /> : <ArrowUp className="inline h-3.5 w-3.5" />;
   };
 
+  const exportarCSV = () => {
+    const bancoName = (id?: string) => id ? bancos.find((b) => b.id === id)?.nome ?? "" : "";
+    const sep = ";";
+    const header = ["Data", "Fornecedor/Cliente", "Conta", "Categoria", "Descrição", "Tipo", "Status", "Valor (R$)"];
+    const esc = (v: any) => {
+      const s = String(v ?? "");
+      return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const rows: string[][] = [];
+    for (const row of linhasOrdenadas) {
+      if (row.kind === "transf") {
+        rows.push([
+          fmtDate(row.data),
+          "—",
+          `${bancoName(row.bancoOrigemId)} → ${bancoName(row.bancoDestinoId)}`,
+          "Transferência",
+          row.descricao ?? "Transferência entre contas",
+          "Transferência",
+          "—",
+          row.valor.toFixed(2).replace(".", ","),
+        ]);
+      } else {
+        const l = row.lanc;
+        rows.push([
+          fmtDate(l.data),
+          contName(l.contatoId),
+          bancoName(l.bancoId),
+          catName(l.categoriaId),
+          l.desc,
+          l.tipo,
+          l.status === "Pago" ? "Pago" : "Em aberto",
+          (l.tipo === "Receita" ? l.valor : -l.valor).toFixed(2).replace(".", ","),
+        ]);
+      }
+    }
+    const csv = "\uFEFF" + [header, ...rows].map((r) => r.map(esc).join(sep)).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `extrato_${range.label.replace(/[^\w]+/g, "_")}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    toast.success(`Relatório com ${rows.length} registro(s) exportado.`);
+  };
+
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
