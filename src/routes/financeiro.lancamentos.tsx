@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   ArrowRightLeft, ArrowUpDown, ArrowUp, ArrowDown, Check, ChevronDown, ChevronLeft, ChevronRight,
-  CreditCard, Layers, Pencil, Plus, Repeat, Search, Trash2, Wallet,
+  CreditCard, Download, Layers, Pencil, Plus, Repeat, Search, Trash2, Wallet,
 } from "lucide-react";
 import {
   useData, Lancamento, LancStatus, LancTipo, Rateio, Transferencia,
@@ -84,6 +84,10 @@ function Lancamentos() {
   const [editando, setEditando] = useState<Lancamento | null>(null);
   const [escopoEdicao, setEscopoEdicao] = useState<"self" | "todos">("self");
   const [confirmParcela, setConfirmParcela] = useState<Lancamento | null>(null);
+  const [transfOpen, setTransfOpen] = useState(false);
+  const [editandoTransf, setEditandoTransf] = useState<Transferencia | null>(null);
+
+  const abrirTransf = (t: Transferencia | null) => { setEditandoTransf(t); setTransfOpen(true); };
 
   const iniciarEdicao = (l: Lancamento) => {
     if (l.parcelaGrupoId && l.parcelaTotal && l.parcelaTotal > 1) {
@@ -269,6 +273,52 @@ function Lancamentos() {
     return sortDir === "desc" ? <ArrowDown className="inline h-3.5 w-3.5" /> : <ArrowUp className="inline h-3.5 w-3.5" />;
   };
 
+  const exportarCSV = () => {
+    const bancoName = (id?: string) => id ? bancos.find((b) => b.id === id)?.nome ?? "" : "";
+    const sep = ";";
+    const header = ["Data", "Fornecedor/Cliente", "Conta", "Categoria", "Descrição", "Tipo", "Status", "Valor (R$)"];
+    const esc = (v: any) => {
+      const s = String(v ?? "");
+      return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const rows: string[][] = [];
+    for (const row of linhasOrdenadas) {
+      if (row.kind === "transf") {
+        rows.push([
+          fmtDate(row.data),
+          "—",
+          `${bancoName(row.bancoOrigemId)} → ${bancoName(row.bancoDestinoId)}`,
+          "Transferência",
+          row.descricao ?? "Transferência entre contas",
+          "Transferência",
+          "—",
+          row.valor.toFixed(2).replace(".", ","),
+        ]);
+      } else {
+        const l = row.lanc;
+        rows.push([
+          fmtDate(l.data),
+          contName(l.contatoId),
+          bancoName(l.bancoId),
+          catName(l.categoriaId),
+          l.desc,
+          l.tipo,
+          l.status === "Pago" ? "Pago" : "Em aberto",
+          (l.tipo === "Receita" ? l.valor : -l.valor).toFixed(2).replace(".", ","),
+        ]);
+      }
+    }
+    const csv = "\uFEFF" + [header, ...rows].map((r) => r.map(esc).join(sep)).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `extrato_${range.label.replace(/[^\w]+/g, "_")}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    toast.success(`Relatório com ${rows.length} registro(s) exportado.`);
+  };
+
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
@@ -397,7 +447,12 @@ function Lancamentos() {
               </Select>
             </div>
             <div className="flex gap-2 ml-auto">
-              <TransferenciaDialog />
+              <Button variant="outline" onClick={exportarCSV} title="Exportar extrato em CSV">
+                <Download className="h-4 w-4" /> Exportar
+              </Button>
+              <Button variant="outline" onClick={() => abrirTransf(null)}>
+                <ArrowRightLeft className="h-4 w-4" /> Transferência
+              </Button>
               <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditando(null); }}>
                 <DialogTrigger asChild>
                   <Button onClick={() => setEditando(null)}>
@@ -483,6 +538,14 @@ function Lancamentos() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8"
+                            title="Editar transferência"
+                            onClick={() => {
+                              const t = transferencias.find((x) => x.id === row.id.slice(2));
+                              if (t) abrirTransf(t);
+                            }}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500"
                             onClick={() => removeTransferencia(row.id.slice(2))}>
                             <Trash2 className="h-4 w-4" />
@@ -581,6 +644,12 @@ function Lancamentos() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <TransferenciaDialog
+        open={transfOpen}
+        editando={editandoTransf}
+        onOpenChange={(v) => { setTransfOpen(v); if (!v) setEditandoTransf(null); }}
+      />
     </div>
   );
 }
@@ -717,6 +786,7 @@ function LancamentoForm({
             : undefined,
         });
       }
+      toast.success(`Parcelamento criado: ${parcelasCustom.length} parcela(s) salva(s).`);
       onClose();
       return;
     }
@@ -753,6 +823,7 @@ function LancamentoForm({
           }
         }
       }
+      toast.success("Alterações salvas no lançamento parcelado.");
       onClose();
       return;
     }
@@ -766,8 +837,13 @@ function LancamentoForm({
       tipo, valor: valorNum, status,
       rateios: baseRateios,
     };
-    if (isEdit && editando) await updateLancamento(editando.id, payload);
-    else await addLancamento(payload);
+    if (isEdit && editando) {
+      await updateLancamento(editando.id, payload);
+      toast.success("Lançamento atualizado.");
+    } else {
+      await addLancamento(payload);
+      toast.success("Lançamento salvo no banco.");
+    }
     onClose();
   };
 
@@ -1000,17 +1076,29 @@ function LancamentoForm({
   );
 }
 
-function TransferenciaDialog() {
-  const { bancos, addTransferencia } = useData();
-  const [open, setOpen] = useState(false);
-  const [origem, setOrigem] = useState("");
-  const [destino, setDestino] = useState("");
-  const [valor, setValor] = useState("");
-  const [data, setData] = useState("");
-  const [descricao, setDescricao] = useState("");
+function TransferenciaDialog({ open, onOpenChange, editando }: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  editando: Transferencia | null;
+}) {
+  const { bancos, addTransferencia, updateTransferencia } = useData();
+  const isEdit = Boolean(editando);
+  const [origem, setOrigem] = useState(editando?.bancoOrigemId ?? "");
+  const [destino, setDestino] = useState(editando?.bancoDestinoId ?? "");
+  const [valor, setValor] = useState(editando ? String(editando.valor) : "");
+  const [data, setData] = useState(editando?.data ?? "");
+  const [descricao, setDescricao] = useState(editando?.descricao ?? "");
   const [erro, setErro] = useState("");
 
-  const reset = () => { setOrigem(""); setDestino(""); setValor(""); setData(""); setDescricao(""); setErro(""); };
+  // Resincroniza quando trocar de transferência editada
+  useEffect(() => {
+    setOrigem(editando?.bancoOrigemId ?? "");
+    setDestino(editando?.bancoDestinoId ?? "");
+    setValor(editando ? String(editando.valor) : "");
+    setData(editando?.data ?? "");
+    setDescricao(editando?.descricao ?? "");
+    setErro("");
+  }, [editando, open]);
 
   const submit = async () => {
     if (!origem || !destino) return setErro("Selecione os bancos de origem e destino.");
@@ -1018,17 +1106,28 @@ function TransferenciaDialog() {
     const v = Number(valor);
     if (Number.isNaN(v) || v <= 0) return setErro("Valor deve ser positivo.");
     if (!data) return setErro("Informe a data.");
-    await addTransferencia({ data, bancoOrigemId: origem, bancoDestinoId: destino, valor: v, descricao: descricao.trim() || undefined });
-    reset(); setOpen(false);
+    if (isEdit && editando) {
+      await updateTransferencia(editando.id, {
+        data, bancoOrigemId: origem, bancoDestinoId: destino,
+        valor: v, descricao: descricao.trim() || undefined,
+      });
+      toast.success("Transferência atualizada.");
+    } else {
+      await addTransferencia({
+        data, bancoOrigemId: origem, bancoDestinoId: destino,
+        valor: v, descricao: descricao.trim() || undefined,
+      });
+      toast.success("Transferência registrada.");
+    }
+    onOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
-      <DialogTrigger asChild>
-        <Button variant="outline"><ArrowRightLeft className="h-4 w-4" /> Transferência</Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader><DialogTitle>Nova transferência entre bancos</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>{isEdit ? "Editar transferência" : "Nova transferência entre bancos"}</DialogTitle>
+        </DialogHeader>
         <div className="space-y-4">
           {bancos.length < 2 && (
             <p className="rounded-md bg-muted p-3 text-xs text-muted-foreground">
@@ -1072,8 +1171,10 @@ function TransferenciaDialog() {
           {erro && <p className="text-sm text-red-500">{erro}</p>}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button onClick={submit} disabled={bancos.length < 2}>Salvar transferência</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={submit} disabled={bancos.length < 2}>
+            {isEdit ? "Salvar alterações" : "Salvar transferência"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
