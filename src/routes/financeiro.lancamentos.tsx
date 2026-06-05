@@ -531,8 +531,17 @@ function Lancamentos() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost" size="icon"
+                          className={`h-8 w-8 ${r.status === "Pago" ? "text-emerald-600" : (r.tipo === "Receita" ? "text-muted-foreground hover:text-emerald-600" : "text-muted-foreground hover:text-red-600")}`}
+                          title={r.status === "Pago"
+                            ? "Marcar como em aberto"
+                            : (r.tipo === "Receita" ? "Dar como recebido" : "Dar como pago")}
+                          onClick={() => marcarPago(r)}>
+                          <Check className="h-4 w-4" />
+                        </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8"
-                          onClick={() => { setEditando(r); setOpen(true); }}>
+                          onClick={() => iniciarEdicao(r)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500"
@@ -555,6 +564,23 @@ function Lancamentos() {
           </Table>
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!confirmParcela} onOpenChange={(v) => { if (!v) setConfirmParcela(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Editar lançamento parcelado</AlertDialogTitle>
+            <AlertDialogDescription>
+              Este lançamento faz parte de um parcelamento ({confirmParcela?.parcelaNumero}/{confirmParcela?.parcelaTotal}).
+              Você quer editar somente esta parcela ou aplicar a alteração a todas as parcelas?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <Button variant="outline" onClick={() => confirmarEscopo("self")}>Somente esta parcela</Button>
+            <AlertDialogAction onClick={() => confirmarEscopo("todos")}>Todas as parcelas</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
