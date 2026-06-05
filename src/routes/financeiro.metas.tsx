@@ -201,14 +201,14 @@ function MetasTabela({ tipo, mes, ano }: { tipo: "Receita" | "Despesa"; mes: num
           const dentro = cats.filter((c) => c.grupoId === g.id);
           if (dentro.length === 0) return null;
           return (
-            <>
-              <TableRow key={`g-${g.id}`} className="bg-muted/30">
+            <Fragment key={`g-${g.id}`}>
+              <TableRow className="bg-muted/30">
                 <TableCell colSpan={5} className="py-1.5 text-xs font-semibold uppercase text-muted-foreground">
                   {g.nome}
                 </TableCell>
               </TableRow>
               {linhasCat(dentro)}
-            </>
+            </Fragment>
           );
         })}
         {(() => {
