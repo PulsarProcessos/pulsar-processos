@@ -28,12 +28,26 @@ export type GrupoCategoria = {
   ordem: number;
 };
 
+export type BancoTipo = "Conta" | "Cartao";
 export type Banco = {
   id: string;
   nome: string;
+  tipo: BancoTipo;
   agencia?: string;
   conta?: string;
   saldoInicial: number;
+  fechamentoDia?: number;
+  vencimentoDia?: number;
+  limite?: number;
+};
+
+export type Meta = {
+  id: string;
+  categoriaId: string;
+  tipo: "Receita" | "Despesa";
+  mes: number; // 1-12
+  ano: number;
+  valor: number;
 };
 
 export type Produto = {
