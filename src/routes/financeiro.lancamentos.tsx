@@ -84,6 +84,10 @@ function Lancamentos() {
   const [editando, setEditando] = useState<Lancamento | null>(null);
   const [escopoEdicao, setEscopoEdicao] = useState<"self" | "todos">("self");
   const [confirmParcela, setConfirmParcela] = useState<Lancamento | null>(null);
+  const [transfOpen, setTransfOpen] = useState(false);
+  const [editandoTransf, setEditandoTransf] = useState<Transferencia | null>(null);
+
+  const abrirTransf = (t: Transferencia | null) => { setEditandoTransf(t); setTransfOpen(true); };
 
   const iniciarEdicao = (l: Lancamento) => {
     if (l.parcelaGrupoId && l.parcelaTotal && l.parcelaTotal > 1) {
