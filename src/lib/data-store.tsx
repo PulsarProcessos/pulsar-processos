@@ -363,9 +363,20 @@ const leadToDb = (l: Partial<Lead>) => ({
 });
 const bancoToDb = (b: Partial<Banco>) => ({
   ...(b.nome !== undefined && { nome: b.nome }),
+  ...(b.tipo !== undefined && { tipo: b.tipo }),
   ...(b.agencia !== undefined && { agencia: b.agencia }),
   ...(b.conta !== undefined && { conta: b.conta }),
   ...(b.saldoInicial !== undefined && { saldo_inicial: b.saldoInicial }),
+  ...(b.fechamentoDia !== undefined && { fechamento_dia: b.fechamentoDia ?? null }),
+  ...(b.vencimentoDia !== undefined && { vencimento_dia: b.vencimentoDia ?? null }),
+  ...(b.limite !== undefined && { limite: b.limite ?? null }),
+});
+const metaToDb = (m: Partial<Meta>) => ({
+  ...(m.categoriaId !== undefined && { categoria_id: m.categoriaId }),
+  ...(m.tipo !== undefined && { tipo: m.tipo }),
+  ...(m.mes !== undefined && { mes: m.mes }),
+  ...(m.ano !== undefined && { ano: m.ano }),
+  ...(m.valor !== undefined && { valor: m.valor }),
 });
 
 function showError(prefix: string, err: any) {
