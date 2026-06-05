@@ -786,6 +786,7 @@ function LancamentoForm({
             : undefined,
         });
       }
+      toast.success(`Parcelamento criado: ${parcelasCustom.length} parcela(s) salva(s).`);
       onClose();
       return;
     }
