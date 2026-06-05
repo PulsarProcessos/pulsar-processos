@@ -1084,7 +1084,7 @@ function TransferenciaDialog({ open, onOpenChange, editando }: {
   const [erro, setErro] = useState("");
 
   // Resincroniza quando trocar de transferência editada
-  React.useEffect(() => {
+  useEffect(() => {
     setOrigem(editando?.bancoOrigemId ?? "");
     setDestino(editando?.bancoDestinoId ?? "");
     setValor(editando ? String(editando.valor) : "");
