@@ -398,7 +398,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     const [
       contatosR, categoriasR, gruposR, bancosR, produtosR, etapasR,
-      lancR, rateiosR, transfR, dealsR, leadsR, campsR, eventosR,
+      lancR, rateiosR, transfR, dealsR, leadsR, campsR, eventosR, metasR,
     ] = await Promise.all([
       supabase.from("contatos").select("*").order("created_at", { ascending: false }),
       supabase.from("categorias").select("*").order("nome"),
@@ -413,6 +413,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       supabase.from("leads").select("*").order("data", { ascending: false }),
       supabase.from("campanhas").select("*").order("created_at", { ascending: false }),
       supabase.from("eventos").select("*").order("data", { ascending: false }),
+      (supabase.from as any)("metas").select("*"),
     ]);
 
     const rateiosByLanc = new Map<string, Rateio[]>();
