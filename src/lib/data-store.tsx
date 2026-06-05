@@ -740,6 +740,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
       descricao: t.descricao,
     }, mapTransf, "transferencias");
   }, []);
+  const updateTransferencia = useCallback(async (id: string, p: Partial<Transferencia>) => {
+    const payload: any = {
+      ...(p.data !== undefined && { data: p.data }),
+      ...(p.bancoOrigemId !== undefined && { banco_origem_id: p.bancoOrigemId }),
+      ...(p.bancoDestinoId !== undefined && { banco_destino_id: p.bancoDestinoId }),
+      ...(p.valor !== undefined && { valor: p.valor }),
+      ...(p.descricao !== undefined && { descricao: p.descricao ?? null }),
+    };
+    if (Object.keys(payload).length === 0) return;
+    await updateRow("transferencias", id, payload, mapTransf, "transferencias");
+  }, []);
   const removeTransferencia = useCallback((id: string) =>
     deleteRow("transferencias", id, "transferencias"), []);
 
