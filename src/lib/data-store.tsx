@@ -445,6 +445,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       leads: (leadsR.data ?? []).map(mapLead),
       campanhas: (campsR.data ?? []).map(mapCamp),
       eventos: (eventosR.data ?? []).map(mapEvento),
+      metas: (((metasR as any)?.data) ?? []).map(mapMeta),
       loading: false,
     });
   }, []);
