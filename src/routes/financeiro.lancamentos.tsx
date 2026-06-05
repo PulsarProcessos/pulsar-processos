@@ -538,6 +538,14 @@ function Lancamentos() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8"
+                            title="Editar transferência"
+                            onClick={() => {
+                              const t = transferencias.find((x) => x.id === row.id.slice(2));
+                              if (t) abrirTransf(t);
+                            }}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500"
                             onClick={() => removeTransferencia(row.id.slice(2))}>
                             <Trash2 className="h-4 w-4" />
