@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   ArrowRightLeft, ArrowUpDown, ArrowUp, ArrowDown, Check, ChevronDown, ChevronLeft, ChevronRight,
-  CreditCard, Layers, Pencil, Plus, Repeat, Search, Trash2, Wallet,
+  CreditCard, Download, Layers, Pencil, Plus, Repeat, Search, Trash2, Wallet,
 } from "lucide-react";
 import {
   useData, Lancamento, LancStatus, LancTipo, Rateio, Transferencia,
