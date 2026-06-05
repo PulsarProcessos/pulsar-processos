@@ -272,9 +272,36 @@ function Lancamentos() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Gerencie clientes, fornecedores, bancos e plano de contas em{" "}
+        Extrato consolidado das movimentações. Gerencie clientes, fornecedores, contas e plano de contas em{" "}
         <Link to="/financeiro/cadastros" className="text-primary underline">Cadastros</Link>.
       </p>
+
+      {/* Saldo das contas/cartões */}
+      {bancos.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {bancos.map((b) => {
+            const s = saldoBanco(b.id);
+            const isCard = b.tipo === "Cartao";
+            const fatura = isCard ? -s : s;
+            return (
+              <div key={b.id} className={`rounded-md border p-3 ${isCard ? "border-violet-200/60 bg-violet-500/5" : "border-border/60"}`}>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  {isCard ? <CreditCard className="h-3.5 w-3.5 text-violet-600" /> : <Wallet className="h-3.5 w-3.5 text-emerald-600" />}
+                  <span className="truncate">{b.nome}</span>
+                </div>
+                <p className={`text-lg font-bold ${isCard ? "text-violet-700" : s < 0 ? "text-red-600" : "text-emerald-700"}`}>
+                  R$ {fatura.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  {isCard
+                    ? `Fatura · venc. dia ${b.vencimentoDia ?? "—"}`
+                    : "Saldo atual"}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <Card className="border-border/60">
         <CardHeader className="space-y-4 pb-3">
