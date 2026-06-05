@@ -22,8 +22,12 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Combobox } from "@/components/ui/combobox";
 import {
-  ArrowRightLeft, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, ChevronLeft, ChevronRight,
-  Layers, Pencil, Plus, Repeat, Search, Trash2,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  ArrowRightLeft, ArrowUpDown, ArrowUp, ArrowDown, Check, ChevronDown, ChevronLeft, ChevronRight,
+  CreditCard, Layers, Pencil, Plus, Repeat, Search, Trash2, Wallet,
 } from "lucide-react";
 import {
   useData, Lancamento, LancStatus, LancTipo, Rateio, Transferencia,
