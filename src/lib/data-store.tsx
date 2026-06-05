@@ -840,7 +840,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         addEtapa, renameEtapa, removeEtapa, moveEtapa,
         addLancamento, updateLancamento, removeLancamento,
         addParcelamento, removeParcelamento, updateParcelamentoGrupo, saveRateios,
-        addTransferencia, removeTransferencia,
+        addTransferencia, updateTransferencia, removeTransferencia,
         addDeal, updateDeal, removeDeal,
         addLead, updateLead, removeLead, advanceLeadStatus,
         addCampanha, updateCampanha, removeCampanha,
