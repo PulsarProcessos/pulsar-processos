@@ -644,6 +644,12 @@ function Lancamentos() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <TransferenciaDialog
+        open={transfOpen}
+        editando={editandoTransf}
+        onOpenChange={(v) => { setTransfOpen(v); if (!v) setEditandoTransf(null); }}
+      />
     </div>
   );
 }
