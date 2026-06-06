@@ -65,7 +65,45 @@ type SortKey = "data" | "valor";
 type SortDir = "desc" | "asc" | null;
 
 function Lancamentos() {
-  const { lancamentos, transferencias, bancos, categorias, contatos, removeLancamento, updateLancamento, removeTransferencia, saldoBanco } = useData();
+  const { lancamentos, transferencias, bancos, categorias, contatos, removeLancamento, updateLancamento, removeTransferencia, addTransferencia, saldoBanco } = useData();
+
+  // Pagamento de fatura do cartão
+  const [pagarFaturaCard, setPagarFaturaCard] = useState<{ id: string; nome: string; valor: number } | null>(null);
+  const [pagarFaturaOrigem, setPagarFaturaOrigem] = useState<string>("");
+  const [pagarFaturaValor, setPagarFaturaValor] = useState<string>("");
+  const [pagarFaturaData, setPagarFaturaData] = useState<string>(toISO(new Date()));
+  const [pagarFaturaDesc, setPagarFaturaDesc] = useState<string>("");
+  const [pagarFaturaSaving, setPagarFaturaSaving] = useState(false);
+
+  function abrirPagarFatura(banco: { id: string; nome: string }, valorFatura: number) {
+    const contas = bancos.filter((b) => b.tipo === "Conta");
+    setPagarFaturaCard({ id: banco.id, nome: banco.nome, valor: valorFatura });
+    setPagarFaturaOrigem(contas[0]?.id ?? "");
+    setPagarFaturaValor(valorFatura.toFixed(2));
+    setPagarFaturaData(toISO(new Date()));
+    setPagarFaturaDesc(`Pagamento fatura ${banco.nome}`);
+  }
+  async function confirmarPagarFatura() {
+    if (!pagarFaturaCard) return;
+    const valor = Number(pagarFaturaValor.replace(",", "."));
+    if (!pagarFaturaOrigem) { toast.error("Selecione a conta de origem"); return; }
+    if (!valor || valor <= 0) { toast.error("Informe um valor válido"); return; }
+    if (pagarFaturaOrigem === pagarFaturaCard.id) { toast.error("A conta de origem deve ser diferente do cartão"); return; }
+    setPagarFaturaSaving(true);
+    try {
+      await addTransferencia({
+        data: pagarFaturaData,
+        bancoOrigemId: pagarFaturaOrigem,
+        bancoDestinoId: pagarFaturaCard.id,
+        valor,
+        descricao: pagarFaturaDesc || `Pagamento fatura ${pagarFaturaCard.nome}`,
+      });
+      toast.success("Fatura paga · Lançamento Salvo");
+      setPagarFaturaCard(null);
+    } finally {
+      setPagarFaturaSaving(false);
+    }
+  }
   const hoje = new Date();
   const [periodoTipo, setPeriodoTipo] = useState<PeriodoTipo>("mes");
   const [anchor, setAnchor] = useState<Date>(hoje);
@@ -349,6 +387,7 @@ function Lancamentos() {
             const s = saldoBanco(b.id);
             const isCard = b.tipo === "Cartao";
             const fatura = isCard ? -s : s;
+            const faturaAberta = isCard && fatura > 0.005;
             return (
               <div key={b.id} className={`rounded-md border p-3 ${isCard ? "border-violet-200/60 bg-violet-500/5" : "border-border/60"}`}>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -360,9 +399,19 @@ function Lancamentos() {
                 </p>
                 <p className="text-[10px] text-muted-foreground">
                   {isCard
-                    ? `Fatura · venc. dia ${b.vencimentoDia ?? "—"}`
+                    ? `${faturaAberta ? "Fatura aberta" : "Fatura quitada"} · venc. dia ${b.vencimentoDia ?? "—"}`
                     : "Saldo atual"}
                 </p>
+                {faturaAberta && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-2 h-7 w-full text-xs"
+                    onClick={() => abrirPagarFatura(b, fatura)}
+                  >
+                    Pagar fatura
+                  </Button>
+                )}
               </div>
             );
           })}
@@ -666,6 +715,50 @@ function Lancamentos() {
         editando={editandoTransf}
         onOpenChange={(v) => { setTransfOpen(v); if (!v) setEditandoTransf(null); }}
       />
+
+      <Dialog open={!!pagarFaturaCard} onOpenChange={(v) => { if (!v) setPagarFaturaCard(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Pagar fatura · {pagarFaturaCard?.nome}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-md border border-violet-200/60 bg-violet-500/5 p-2 text-xs text-violet-700">
+              Fatura aberta: <strong>R$ {brl(pagarFaturaCard?.valor ?? 0)}</strong>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Conta de origem</Label>
+              <Select value={pagarFaturaOrigem} onValueChange={setPagarFaturaOrigem}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {bancos.filter((b) => b.tipo === "Conta").map((b) => (
+                    <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Valor</Label>
+                <Input type="number" step="0.01" min="0" value={pagarFaturaValor} onChange={(e) => setPagarFaturaValor(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Data</Label>
+                <Input type="date" value={pagarFaturaData} onChange={(e) => setPagarFaturaData(e.target.value)} />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Descrição</Label>
+              <Input value={pagarFaturaDesc} onChange={(e) => setPagarFaturaDesc(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPagarFaturaCard(null)} disabled={pagarFaturaSaving}>Cancelar</Button>
+            <Button onClick={confirmarPagarFatura} disabled={pagarFaturaSaving}>
+              {pagarFaturaSaving ? "Salvando..." : "Confirmar pagamento"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
