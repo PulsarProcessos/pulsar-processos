@@ -567,12 +567,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
       .filter((l) => l.bancoId === id && l.status === "Pago")
       .reduce((s, l) => s + (l.tipo === "Receita" ? l.valor : -l.valor), 0);
     const movTransf = state.transferencias.reduce((s, t) => {
-      if (t.bancoDestinoId === id) return s + t.valor;
+      const destino = state.bancos.find((x) => x.id === t.bancoDestinoId);
+      // Transferências para cartão só afetam o saldo do cartão quando afetaFatura=true (histórico).
+      if (t.bancoDestinoId === id) {
+        if (destino?.tipo === "Cartao" && !t.afetaFatura) return s;
+        return s + t.valor;
+      }
       if (t.bancoOrigemId === id) return s - t.valor;
       return s;
     }, 0);
-    return b.saldoInicial + movLanc + movTransf;
-  }, [state.bancos, state.lancamentos, state.transferencias]);
+    const movPag = state.pagamentosFatura.reduce((s, p) => {
+      if (p.cartaoId === id) return s + p.valor; // abate fatura
+      if (p.contaOrigemId === id) return s - p.valor; // sai da conta
+      return s;
+    }, 0);
+    return b.saldoInicial + movLanc + movTransf + movPag;
+  }, [state.bancos, state.lancamentos, state.transferencias, state.pagamentosFatura]);
 
   // ----- Produtos -----
   const addProduto = useCallback(async (pr: Omit<Produto, "id">) => {
