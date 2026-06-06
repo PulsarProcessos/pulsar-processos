@@ -170,6 +170,7 @@ type State = {
   etapas: DealStage[];
   lancamentos: Lancamento[];
   transferencias: Transferencia[];
+  pagamentosFatura: PagamentoFatura[];
   deals: Deal[];
   leads: Lead[];
   campanhas: Campanha[];
