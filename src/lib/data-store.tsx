@@ -90,6 +90,17 @@ export type Transferencia = {
   bancoDestinoId: string;
   valor: number;
   descricao?: string;
+  afetaFatura?: boolean;
+};
+
+export type PagamentoFatura = {
+  id: string;
+  cartaoId: string;
+  contaOrigemId: string;
+  data: string;
+  valor: number;
+  descricao?: string;
+  competenciaRef: string;
 };
 
 export type DealStage = string;
