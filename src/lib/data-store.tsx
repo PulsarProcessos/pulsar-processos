@@ -773,6 +773,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       banco_destino_id: t.bancoDestinoId,
       valor: t.valor,
       descricao: t.descricao,
+      afeta_fatura: t.afetaFatura ?? false,
     }, mapTransf, "transferencias");
   }, []);
   const updateTransferencia = useCallback(async (id: string, p: Partial<Transferencia>) => {
@@ -782,12 +783,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
       ...(p.bancoDestinoId !== undefined && { banco_destino_id: p.bancoDestinoId }),
       ...(p.valor !== undefined && { valor: p.valor }),
       ...(p.descricao !== undefined && { descricao: p.descricao ?? null }),
+      ...(p.afetaFatura !== undefined && { afeta_fatura: p.afetaFatura }),
     };
     if (Object.keys(payload).length === 0) return;
     await updateRow("transferencias", id, payload, mapTransf, "transferencias");
   }, []);
   const removeTransferencia = useCallback((id: string) =>
     deleteRow("transferencias", id, "transferencias"), []);
+
+  // ----- Pagamentos de Fatura -----
+  const addPagamentoFatura = useCallback(async (p: Omit<PagamentoFatura, "id">) => {
+    await insertRow("pagamentos_fatura", {
+      cartao_id: p.cartaoId,
+      conta_origem_id: p.contaOrigemId,
+      data: p.data,
+      valor: p.valor,
+      descricao: p.descricao ?? null,
+      competencia_ref: p.competenciaRef,
+    }, mapPagFatura, "pagamentosFatura");
+  }, []);
+  const removePagamentoFatura = useCallback((id: string) =>
+    deleteRow("pagamentos_fatura", id, "pagamentosFatura"), []);
 
   // ----- Deals -----
   const addDeal = useCallback(async (d: Omit<Deal, "id">) => {
