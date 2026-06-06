@@ -471,6 +471,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       campanhas: (campsR.data ?? []).map(mapCamp),
       eventos: (eventosR.data ?? []).map(mapEvento),
       metas: (((metasR as any)?.data) ?? []).map(mapMeta),
+      pagamentosFatura: (((pagFatR as any)?.data) ?? []).map(mapPagFatura),
       loading: false,
     });
   }, []);
