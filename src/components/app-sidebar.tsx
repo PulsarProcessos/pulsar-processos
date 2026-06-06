@@ -46,6 +46,7 @@ const items: NavItem[] = [
     children: [
       { title: "Visão Geral", url: "/financeiro" },
       { title: "Extrato", url: "/financeiro/lancamentos" },
+      { title: "Cartões", url: "/financeiro/cartoes" },
       { title: "Demonstrativo", url: "/financeiro/demonstrativo" },
       { title: "Cadastros", url: "/financeiro/cadastros" },
       { title: "Metas", url: "/financeiro/metas" },
