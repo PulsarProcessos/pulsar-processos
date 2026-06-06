@@ -326,6 +326,13 @@ const mapTransf = (r: any): Transferencia => ({
   id: r.id, data: r.data, bancoOrigemId: r.banco_origem_id,
   bancoDestinoId: r.banco_destino_id, valor: Number(r.valor),
   descricao: r.descricao ?? undefined,
+  afetaFatura: r.afeta_fatura ?? false,
+});
+const mapPagFatura = (r: any): PagamentoFatura => ({
+  id: r.id, cartaoId: r.cartao_id, contaOrigemId: r.conta_origem_id,
+  data: r.data, valor: Number(r.valor),
+  descricao: r.descricao ?? undefined,
+  competenciaRef: r.competencia_ref,
 });
 const mapDeal = (r: any): Deal => ({
   id: r.id, cliente: r.cliente, titulo: r.titulo,
