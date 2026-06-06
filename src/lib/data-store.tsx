@@ -273,6 +273,7 @@ const emptyState: State = {
   campanhas: [],
   eventos: [],
   metas: [],
+  pagamentosFatura: [],
   loading: true,
 };
 
