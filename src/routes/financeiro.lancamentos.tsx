@@ -399,17 +399,12 @@ function Lancamentos() {
                 </p>
                 <p className="text-[10px] text-muted-foreground">
                   {isCard
-                    ? `${faturaAberta ? "Fatura aberta" : "Fatura quitada"} · venc. dia ${b.vencimentoDia ?? "—"}`
+                    ? `Fatura · venc. dia ${b.vencimentoDia ?? "—"}`
                     : "Saldo atual"}
                 </p>
-                {faturaAberta && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="mt-2 h-7 w-full text-xs"
-                    onClick={() => abrirPagarFatura(b, fatura)}
-                  >
-                    Pagar fatura
+                {isCard && (
+                  <Button asChild size="sm" variant="outline" className="mt-2 h-7 w-full text-xs">
+                    <Link to="/financeiro/cartoes">Ver cartão</Link>
                   </Button>
                 )}
               </div>
