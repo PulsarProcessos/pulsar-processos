@@ -65,7 +65,45 @@ type SortKey = "data" | "valor";
 type SortDir = "desc" | "asc" | null;
 
 function Lancamentos() {
-  const { lancamentos, transferencias, bancos, categorias, contatos, removeLancamento, updateLancamento, removeTransferencia, saldoBanco } = useData();
+  const { lancamentos, transferencias, bancos, categorias, contatos, removeLancamento, updateLancamento, removeTransferencia, addTransferencia, saldoBanco } = useData();
+
+  // Pagamento de fatura do cartão
+  const [pagarFaturaCard, setPagarFaturaCard] = useState<{ id: string; nome: string; valor: number } | null>(null);
+  const [pagarFaturaOrigem, setPagarFaturaOrigem] = useState<string>("");
+  const [pagarFaturaValor, setPagarFaturaValor] = useState<string>("");
+  const [pagarFaturaData, setPagarFaturaData] = useState<string>(toISO(new Date()));
+  const [pagarFaturaDesc, setPagarFaturaDesc] = useState<string>("");
+  const [pagarFaturaSaving, setPagarFaturaSaving] = useState(false);
+
+  function abrirPagarFatura(banco: { id: string; nome: string }, valorFatura: number) {
+    const contas = bancos.filter((b) => b.tipo === "Conta");
+    setPagarFaturaCard({ id: banco.id, nome: banco.nome, valor: valorFatura });
+    setPagarFaturaOrigem(contas[0]?.id ?? "");
+    setPagarFaturaValor(valorFatura.toFixed(2));
+    setPagarFaturaData(toISO(new Date()));
+    setPagarFaturaDesc(`Pagamento fatura ${banco.nome}`);
+  }
+  async function confirmarPagarFatura() {
+    if (!pagarFaturaCard) return;
+    const valor = Number(pagarFaturaValor.replace(",", "."));
+    if (!pagarFaturaOrigem) { toast.error("Selecione a conta de origem"); return; }
+    if (!valor || valor <= 0) { toast.error("Informe um valor válido"); return; }
+    if (pagarFaturaOrigem === pagarFaturaCard.id) { toast.error("A conta de origem deve ser diferente do cartão"); return; }
+    setPagarFaturaSaving(true);
+    try {
+      await addTransferencia({
+        data: pagarFaturaData,
+        bancoOrigemId: pagarFaturaOrigem,
+        bancoDestinoId: pagarFaturaCard.id,
+        valor,
+        descricao: pagarFaturaDesc || `Pagamento fatura ${pagarFaturaCard.nome}`,
+      });
+      toast.success("Fatura paga · Lançamento Salvo");
+      setPagarFaturaCard(null);
+    } finally {
+      setPagarFaturaSaving(false);
+    }
+  }
   const hoje = new Date();
   const [periodoTipo, setPeriodoTipo] = useState<PeriodoTipo>("mes");
   const [anchor, setAnchor] = useState<Date>(hoje);
