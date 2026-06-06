@@ -387,6 +387,7 @@ function Lancamentos() {
             const s = saldoBanco(b.id);
             const isCard = b.tipo === "Cartao";
             const fatura = isCard ? -s : s;
+            const faturaAberta = isCard && fatura > 0.005;
             return (
               <div key={b.id} className={`rounded-md border p-3 ${isCard ? "border-violet-200/60 bg-violet-500/5" : "border-border/60"}`}>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -398,9 +399,19 @@ function Lancamentos() {
                 </p>
                 <p className="text-[10px] text-muted-foreground">
                   {isCard
-                    ? `Fatura · venc. dia ${b.vencimentoDia ?? "—"}`
+                    ? `${faturaAberta ? "Fatura aberta" : "Fatura quitada"} · venc. dia ${b.vencimentoDia ?? "—"}`
                     : "Saldo atual"}
                 </p>
+                {faturaAberta && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-2 h-7 w-full text-xs"
+                    onClick={() => abrirPagarFatura(b, fatura)}
+                  >
+                    Pagar fatura
+                  </Button>
+                )}
               </div>
             );
           })}
