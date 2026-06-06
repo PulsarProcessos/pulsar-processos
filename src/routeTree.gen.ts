@@ -19,6 +19,7 @@ import { Route as MarketingCalendarioRouteImport } from './routes/marketing.cale
 import { Route as FinanceiroMetasRouteImport } from './routes/financeiro.metas'
 import { Route as FinanceiroLancamentosRouteImport } from './routes/financeiro.lancamentos'
 import { Route as FinanceiroDemonstrativoRouteImport } from './routes/financeiro.demonstrativo'
+import { Route as FinanceiroCartoesRouteImport } from './routes/financeiro.cartoes'
 import { Route as FinanceiroCadastrosRouteImport } from './routes/financeiro.cadastros'
 import { Route as ComercialCadastrosRouteImport } from './routes/comercial.cadastros'
 
@@ -72,6 +73,11 @@ const FinanceiroDemonstrativoRoute = FinanceiroDemonstrativoRouteImport.update({
   path: '/financeiro/demonstrativo',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FinanceiroCartoesRoute = FinanceiroCartoesRouteImport.update({
+  id: '/financeiro/cartoes',
+  path: '/financeiro/cartoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FinanceiroCadastrosRoute = FinanceiroCadastrosRouteImport.update({
   id: '/financeiro/cadastros',
   path: '/financeiro/cadastros',
@@ -88,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/configuracoes': typeof ConfiguracoesRoute
   '/comercial/cadastros': typeof ComercialCadastrosRoute
   '/financeiro/cadastros': typeof FinanceiroCadastrosRoute
+  '/financeiro/cartoes': typeof FinanceiroCartoesRoute
   '/financeiro/demonstrativo': typeof FinanceiroDemonstrativoRoute
   '/financeiro/lancamentos': typeof FinanceiroLancamentosRoute
   '/financeiro/metas': typeof FinanceiroMetasRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/configuracoes': typeof ConfiguracoesRoute
   '/comercial/cadastros': typeof ComercialCadastrosRoute
   '/financeiro/cadastros': typeof FinanceiroCadastrosRoute
+  '/financeiro/cartoes': typeof FinanceiroCartoesRoute
   '/financeiro/demonstrativo': typeof FinanceiroDemonstrativoRoute
   '/financeiro/lancamentos': typeof FinanceiroLancamentosRoute
   '/financeiro/metas': typeof FinanceiroMetasRoute
@@ -117,6 +125,7 @@ export interface FileRoutesById {
   '/configuracoes': typeof ConfiguracoesRoute
   '/comercial/cadastros': typeof ComercialCadastrosRoute
   '/financeiro/cadastros': typeof FinanceiroCadastrosRoute
+  '/financeiro/cartoes': typeof FinanceiroCartoesRoute
   '/financeiro/demonstrativo': typeof FinanceiroDemonstrativoRoute
   '/financeiro/lancamentos': typeof FinanceiroLancamentosRoute
   '/financeiro/metas': typeof FinanceiroMetasRoute
@@ -133,6 +142,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/comercial/cadastros'
     | '/financeiro/cadastros'
+    | '/financeiro/cartoes'
     | '/financeiro/demonstrativo'
     | '/financeiro/lancamentos'
     | '/financeiro/metas'
@@ -147,6 +157,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/comercial/cadastros'
     | '/financeiro/cadastros'
+    | '/financeiro/cartoes'
     | '/financeiro/demonstrativo'
     | '/financeiro/lancamentos'
     | '/financeiro/metas'
@@ -161,6 +172,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/comercial/cadastros'
     | '/financeiro/cadastros'
+    | '/financeiro/cartoes'
     | '/financeiro/demonstrativo'
     | '/financeiro/lancamentos'
     | '/financeiro/metas'
@@ -176,6 +188,7 @@ export interface RootRouteChildren {
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   ComercialCadastrosRoute: typeof ComercialCadastrosRoute
   FinanceiroCadastrosRoute: typeof FinanceiroCadastrosRoute
+  FinanceiroCartoesRoute: typeof FinanceiroCartoesRoute
   FinanceiroDemonstrativoRoute: typeof FinanceiroDemonstrativoRoute
   FinanceiroLancamentosRoute: typeof FinanceiroLancamentosRoute
   FinanceiroMetasRoute: typeof FinanceiroMetasRoute
@@ -258,6 +271,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FinanceiroDemonstrativoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/financeiro/cartoes': {
+      id: '/financeiro/cartoes'
+      path: '/financeiro/cartoes'
+      fullPath: '/financeiro/cartoes'
+      preLoaderRoute: typeof FinanceiroCartoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/financeiro/cadastros': {
       id: '/financeiro/cadastros'
       path: '/financeiro/cadastros'
@@ -280,6 +300,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConfiguracoesRoute: ConfiguracoesRoute,
   ComercialCadastrosRoute: ComercialCadastrosRoute,
   FinanceiroCadastrosRoute: FinanceiroCadastrosRoute,
+  FinanceiroCartoesRoute: FinanceiroCartoesRoute,
   FinanceiroDemonstrativoRoute: FinanceiroDemonstrativoRoute,
   FinanceiroLancamentosRoute: FinanceiroLancamentosRoute,
   FinanceiroMetasRoute: FinanceiroMetasRoute,

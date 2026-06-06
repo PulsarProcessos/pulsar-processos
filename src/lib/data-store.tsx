@@ -90,6 +90,17 @@ export type Transferencia = {
   bancoDestinoId: string;
   valor: number;
   descricao?: string;
+  afetaFatura?: boolean;
+};
+
+export type PagamentoFatura = {
+  id: string;
+  cartaoId: string;
+  contaOrigemId: string;
+  data: string;
+  valor: number;
+  descricao?: string;
+  competenciaRef: string;
 };
 
 export type DealStage = string;
@@ -159,6 +170,7 @@ type State = {
   etapas: DealStage[];
   lancamentos: Lancamento[];
   transferencias: Transferencia[];
+  pagamentosFatura: PagamentoFatura[];
   deals: Deal[];
   leads: Lead[];
   campanhas: Campanha[];
@@ -212,6 +224,9 @@ type Ctx = State & {
   updateTransferencia: (id: string, p: Partial<Transferencia>) => Promise<void>;
   removeTransferencia: (id: string) => Promise<void>;
 
+  addPagamentoFatura: (p: Omit<PagamentoFatura, "id">) => Promise<void>;
+  removePagamentoFatura: (id: string) => Promise<void>;
+
   addDeal: (d: Omit<Deal, "id">) => Promise<void>;
   updateDeal: (id: string, p: Partial<Deal>) => Promise<void>;
   removeDeal: (id: string) => Promise<void>;
@@ -258,6 +273,7 @@ const emptyState: State = {
   campanhas: [],
   eventos: [],
   metas: [],
+  pagamentosFatura: [],
   loading: true,
 };
 
@@ -310,6 +326,13 @@ const mapTransf = (r: any): Transferencia => ({
   id: r.id, data: r.data, bancoOrigemId: r.banco_origem_id,
   bancoDestinoId: r.banco_destino_id, valor: Number(r.valor),
   descricao: r.descricao ?? undefined,
+  afetaFatura: r.afeta_fatura ?? false,
+});
+const mapPagFatura = (r: any): PagamentoFatura => ({
+  id: r.id, cartaoId: r.cartao_id, contaOrigemId: r.conta_origem_id,
+  data: r.data, valor: Number(r.valor),
+  descricao: r.descricao ?? undefined,
+  competenciaRef: r.competencia_ref,
 });
 const mapDeal = (r: any): Deal => ({
   id: r.id, cliente: r.cliente, titulo: r.titulo,
@@ -399,7 +422,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     const [
       contatosR, categoriasR, gruposR, bancosR, produtosR, etapasR,
-      lancR, rateiosR, transfR, dealsR, leadsR, campsR, eventosR, metasR,
+      lancR, rateiosR, transfR, dealsR, leadsR, campsR, eventosR, metasR, pagFatR,
     ] = await Promise.all([
       supabase.from("contatos").select("*").order("created_at", { ascending: false }),
       supabase.from("categorias").select("*").order("nome"),
@@ -415,6 +438,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       supabase.from("campanhas").select("*").order("created_at", { ascending: false }),
       supabase.from("eventos").select("*").order("data", { ascending: false }),
       (supabase.from as any)("metas").select("*"),
+      (supabase.from as any)("pagamentos_fatura").select("*").order("data", { ascending: false }),
     ]);
 
     const rateiosByLanc = new Map<string, Rateio[]>();
@@ -447,6 +471,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       campanhas: (campsR.data ?? []).map(mapCamp),
       eventos: (eventosR.data ?? []).map(mapEvento),
       metas: (((metasR as any)?.data) ?? []).map(mapMeta),
+      pagamentosFatura: (((pagFatR as any)?.data) ?? []).map(mapPagFatura),
       loading: false,
     });
   }, []);
@@ -542,12 +567,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
       .filter((l) => l.bancoId === id && l.status === "Pago")
       .reduce((s, l) => s + (l.tipo === "Receita" ? l.valor : -l.valor), 0);
     const movTransf = state.transferencias.reduce((s, t) => {
-      if (t.bancoDestinoId === id) return s + t.valor;
+      const destino = state.bancos.find((x) => x.id === t.bancoDestinoId);
+      // Transferências para cartão só afetam o saldo do cartão quando afetaFatura=true (histórico).
+      if (t.bancoDestinoId === id) {
+        if (destino?.tipo === "Cartao" && !t.afetaFatura) return s;
+        return s + t.valor;
+      }
       if (t.bancoOrigemId === id) return s - t.valor;
       return s;
     }, 0);
-    return b.saldoInicial + movLanc + movTransf;
-  }, [state.bancos, state.lancamentos, state.transferencias]);
+    const movPag = state.pagamentosFatura.reduce((s, p) => {
+      if (p.cartaoId === id) return s + p.valor; // abate fatura
+      if (p.contaOrigemId === id) return s - p.valor; // sai da conta
+      return s;
+    }, 0);
+    return b.saldoInicial + movLanc + movTransf + movPag;
+  }, [state.bancos, state.lancamentos, state.transferencias, state.pagamentosFatura]);
 
   // ----- Produtos -----
   const addProduto = useCallback(async (pr: Omit<Produto, "id">) => {
@@ -738,6 +773,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       banco_destino_id: t.bancoDestinoId,
       valor: t.valor,
       descricao: t.descricao,
+      afeta_fatura: t.afetaFatura ?? false,
     }, mapTransf, "transferencias");
   }, []);
   const updateTransferencia = useCallback(async (id: string, p: Partial<Transferencia>) => {
@@ -747,12 +783,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
       ...(p.bancoDestinoId !== undefined && { banco_destino_id: p.bancoDestinoId }),
       ...(p.valor !== undefined && { valor: p.valor }),
       ...(p.descricao !== undefined && { descricao: p.descricao ?? null }),
+      ...(p.afetaFatura !== undefined && { afeta_fatura: p.afetaFatura }),
     };
     if (Object.keys(payload).length === 0) return;
     await updateRow("transferencias", id, payload, mapTransf, "transferencias");
   }, []);
   const removeTransferencia = useCallback((id: string) =>
     deleteRow("transferencias", id, "transferencias"), []);
+
+  // ----- Pagamentos de Fatura -----
+  const addPagamentoFatura = useCallback(async (p: Omit<PagamentoFatura, "id">) => {
+    await insertRow("pagamentos_fatura", {
+      cartao_id: p.cartaoId,
+      conta_origem_id: p.contaOrigemId,
+      data: p.data,
+      valor: p.valor,
+      descricao: p.descricao ?? null,
+      competencia_ref: p.competenciaRef,
+    }, mapPagFatura, "pagamentosFatura");
+  }, []);
+  const removePagamentoFatura = useCallback((id: string) =>
+    deleteRow("pagamentos_fatura", id, "pagamentosFatura"), []);
 
   // ----- Deals -----
   const addDeal = useCallback(async (d: Omit<Deal, "id">) => {
@@ -841,6 +892,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         addLancamento, updateLancamento, removeLancamento,
         addParcelamento, removeParcelamento, updateParcelamentoGrupo, saveRateios,
         addTransferencia, updateTransferencia, removeTransferencia,
+        addPagamentoFatura, removePagamentoFatura,
         addDeal, updateDeal, removeDeal,
         addLead, updateLead, removeLead, advanceLeadStatus,
         addCampanha, updateCampanha, removeCampanha,

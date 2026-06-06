@@ -635,6 +635,60 @@ export type Database = {
           },
         ]
       }
+      pagamentos_fatura: {
+        Row: {
+          cartao_id: string
+          competencia_ref: string
+          conta_origem_id: string
+          created_at: string
+          data: string
+          descricao: string | null
+          id: string
+          updated_at: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          cartao_id: string
+          competencia_ref: string
+          conta_origem_id: string
+          created_at?: string
+          data: string
+          descricao?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+          valor: number
+        }
+        Update: {
+          cartao_id?: string
+          competencia_ref?: string
+          conta_origem_id?: string
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_fatura_cartao_id_fkey"
+            columns: ["cartao_id"]
+            isOneToOne: false
+            referencedRelation: "bancos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_fatura_conta_origem_id_fkey"
+            columns: ["conta_origem_id"]
+            isOneToOne: false
+            referencedRelation: "bancos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produtos: {
         Row: {
           created_at: string
@@ -697,6 +751,7 @@ export type Database = {
       }
       transferencias: {
         Row: {
+          afeta_fatura: boolean
           banco_destino_id: string
           banco_origem_id: string
           created_at: string
@@ -708,6 +763,7 @@ export type Database = {
           valor: number
         }
         Insert: {
+          afeta_fatura?: boolean
           banco_destino_id: string
           banco_origem_id: string
           created_at?: string
@@ -719,6 +775,7 @@ export type Database = {
           valor: number
         }
         Update: {
+          afeta_fatura?: boolean
           banco_destino_id?: string
           banco_origem_id?: string
           created_at?: string
