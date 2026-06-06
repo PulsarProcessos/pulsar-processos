@@ -224,6 +224,9 @@ type Ctx = State & {
   updateTransferencia: (id: string, p: Partial<Transferencia>) => Promise<void>;
   removeTransferencia: (id: string) => Promise<void>;
 
+  addPagamentoFatura: (p: Omit<PagamentoFatura, "id">) => Promise<void>;
+  removePagamentoFatura: (id: string) => Promise<void>;
+
   addDeal: (d: Omit<Deal, "id">) => Promise<void>;
   updateDeal: (id: string, p: Partial<Deal>) => Promise<void>;
   removeDeal: (id: string) => Promise<void>;
