@@ -715,6 +715,50 @@ function Lancamentos() {
         editando={editandoTransf}
         onOpenChange={(v) => { setTransfOpen(v); if (!v) setEditandoTransf(null); }}
       />
+
+      <Dialog open={!!pagarFaturaCard} onOpenChange={(v) => { if (!v) setPagarFaturaCard(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Pagar fatura · {pagarFaturaCard?.nome}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-md border border-violet-200/60 bg-violet-500/5 p-2 text-xs text-violet-700">
+              Fatura aberta: <strong>R$ {brl(pagarFaturaCard?.valor ?? 0)}</strong>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Conta de origem</Label>
+              <Select value={pagarFaturaOrigem} onValueChange={setPagarFaturaOrigem}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {bancos.filter((b) => b.tipo === "Conta").map((b) => (
+                    <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Valor</Label>
+                <Input type="number" step="0.01" min="0" value={pagarFaturaValor} onChange={(e) => setPagarFaturaValor(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Data</Label>
+                <Input type="date" value={pagarFaturaData} onChange={(e) => setPagarFaturaData(e.target.value)} />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Descrição</Label>
+              <Input value={pagarFaturaDesc} onChange={(e) => setPagarFaturaDesc(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPagarFaturaCard(null)} disabled={pagarFaturaSaving}>Cancelar</Button>
+            <Button onClick={confirmarPagarFatura} disabled={pagarFaturaSaving}>
+              {pagarFaturaSaving ? "Salvando..." : "Confirmar pagamento"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
