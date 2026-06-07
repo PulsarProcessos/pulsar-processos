@@ -65,7 +65,7 @@ type SortKey = "data" | "valor";
 type SortDir = "desc" | "asc" | null;
 
 function Lancamentos() {
-  const { lancamentos, transferencias, bancos, categorias, contatos, removeLancamento, updateLancamento, removeTransferencia, addTransferencia, saldoBanco } = useData();
+  const { lancamentos, transferencias, pagamentosFatura, bancos, categorias, contatos, removeLancamento, updateLancamento, removeTransferencia, removePagamentoFatura, addTransferencia, saldoBanco } = useData();
 
   // Pagamento de fatura do cartão
   const [pagarFaturaCard, setPagarFaturaCard] = useState<{ id: string; nome: string; valor: number } | null>(null);
