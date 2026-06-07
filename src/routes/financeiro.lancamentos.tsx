@@ -386,26 +386,37 @@ function Lancamentos() {
           {bancos.map((b) => {
             const s = saldoBanco(b.id);
             const isCard = b.tipo === "Cartao";
-            const fatura = isCard ? -s : s;
-            const faturaAberta = isCard && fatura > 0.005;
+            const faturaDevendo = isCard ? Math.max(-s, 0) : 0;
+            const limite = b.limite ?? 0;
+            const disponivel = isCard ? Math.max(limite - faturaDevendo, 0) : 0;
             return (
               <div key={b.id} className={`rounded-md border p-3 ${isCard ? "border-violet-200/60 bg-violet-500/5" : "border-border/60"}`}>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   {isCard ? <CreditCard className="h-3.5 w-3.5 text-violet-600" /> : <Wallet className="h-3.5 w-3.5 text-emerald-600" />}
                   <span className="truncate">{b.nome}</span>
                 </div>
-                <p className={`text-lg font-bold ${isCard ? "text-violet-700" : s < 0 ? "text-red-600" : "text-emerald-700"}`}>
-                  R$ {fatura.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
-                <p className="text-[10px] text-muted-foreground">
-                  {isCard
-                    ? `Fatura · venc. dia ${b.vencimentoDia ?? "—"}`
-                    : "Saldo atual"}
-                </p>
-                {isCard && (
-                  <Button asChild size="sm" variant="outline" className="mt-2 h-7 w-full text-xs">
-                    <Link to="/financeiro/cartoes">Ver cartão</Link>
-                  </Button>
+                {isCard ? (
+                  <>
+                    <p className="text-lg font-bold text-emerald-700">
+                      R$ {brl(disponivel)}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Limite disponível{limite > 0 ? ` · de R$ ${brl(limite)}` : ""}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Fatura: <span className={faturaDevendo > 0 ? "text-red-600 font-medium" : ""}>R$ {brl(faturaDevendo)}</span> · venc. dia {b.vencimentoDia ?? "—"}
+                    </p>
+                    <Button asChild size="sm" variant="outline" className="mt-2 h-7 w-full text-xs">
+                      <Link to="/financeiro/cartoes">Ver cartão</Link>
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <p className={`text-lg font-bold ${s < 0 ? "text-red-600" : "text-emerald-700"}`}>
+                      R$ {brl(s)}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">Saldo atual</p>
+                  </>
                 )}
               </div>
             );
