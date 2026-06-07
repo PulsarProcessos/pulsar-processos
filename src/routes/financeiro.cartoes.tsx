@@ -363,6 +363,7 @@ function Cartoes() {
                       <TableHead>Categoria</TableHead>
                       <TableHead className="w-[100px]">Parcela</TableHead>
                       <TableHead className="text-right w-[140px]">Valor</TableHead>
+                      <TableHead className="w-[90px]"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -381,6 +382,16 @@ function Cartoes() {
                           <TableCell className={`text-right ${sinal < 0 ? "text-red-600" : "text-emerald-700"}`}>
                             {sinal < 0 ? "−" : ""}{brl(Math.abs(sinal))}
                           </TableCell>
+                          <TableCell>
+                            <div className="flex justify-end gap-1">
+                              <Button size="icon" variant="ghost" className="h-7 w-7" title="Editar" onClick={() => abrirEdicao(l)}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" title="Excluir" onClick={() => excluirLanc(l)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </TableCell>
                         </TableRow>
                       );
                     })}
@@ -390,6 +401,7 @@ function Cartoes() {
                       <TableCell className={`text-right font-bold ${saldoFinalDia > 0 ? "text-red-600" : "text-emerald-700"}`}>
                         {saldoFinalDia > 0 ? "−" : ""}{brl(Math.abs(saldoFinalDia))}
                       </TableCell>
+                      <TableCell></TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
