@@ -73,6 +73,7 @@ function Cartoes() {
   const {
     bancos, lancamentos, categorias, pagamentosFatura, transferencias,
     addPagamentoFatura, removePagamentoFatura,
+    updateLancamento, removeLancamento,
   } = useData();
 
   const cartoes = useMemo(() => bancos.filter((b) => b.tipo === "Cartao"), [bancos]);
