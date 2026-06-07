@@ -14,8 +14,8 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, ChevronLeft, ChevronRight, CreditCard } from "lucide-react";
-import { useData } from "@/lib/data-store";
+import { Trash2, ChevronLeft, ChevronRight, CreditCard, Pencil } from "lucide-react";
+import { useData, Lancamento } from "@/lib/data-store";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/financeiro/cartoes")({
@@ -73,6 +73,7 @@ function Cartoes() {
   const {
     bancos, lancamentos, categorias, pagamentosFatura, transferencias,
     addPagamentoFatura, removePagamentoFatura,
+    updateLancamento, removeLancamento,
   } = useData();
 
   const cartoes = useMemo(() => bancos.filter((b) => b.tipo === "Cartao"), [bancos]);
@@ -205,6 +206,55 @@ function Cartoes() {
     }
   }
 
+  // -------- Dialog Editar lançamento --------
+  const [editOpen, setEditOpen] = useState(false);
+  const [editLanc, setEditLanc] = useState<Lancamento | null>(null);
+  const [editData, setEditData] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editValor, setEditValor] = useState("");
+  const [editCategoriaId, setEditCategoriaId] = useState<string>("");
+  const [editStatus, setEditStatus] = useState<"Pago" | "Pendente">("Pendente");
+  const [editSaving, setEditSaving] = useState(false);
+
+  function abrirEdicao(l: Lancamento) {
+    setEditLanc(l);
+    setEditData(l.data);
+    setEditDesc(l.desc);
+    setEditValor(l.valor.toFixed(2));
+    setEditCategoriaId(l.categoriaId);
+    setEditStatus(l.status);
+    setEditOpen(true);
+  }
+
+  async function confirmarEdicao() {
+    if (!editLanc) return;
+    const valor = Number(editValor.replace(",", "."));
+    if (!editDesc.trim()) { toast.error("Informe a descrição"); return; }
+    if (!valor || valor <= 0) { toast.error("Informe um valor válido"); return; }
+    setEditSaving(true);
+    try {
+      await updateLancamento(editLanc.id, {
+        data: editData,
+        desc: editDesc,
+        valor,
+        categoriaId: editCategoriaId || editLanc.categoriaId,
+        status: editStatus,
+      });
+      toast.success("Lançamento atualizado");
+      setEditOpen(false);
+      setEditLanc(null);
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
+  async function excluirLanc(l: Lancamento) {
+    if (!confirm(`Excluir o lançamento "${l.desc}"?`)) return;
+    await removeLancamento(l.id);
+    toast.success("Lançamento excluído");
+  }
+
+
   if (cartoes.length === 0) {
     return (
       <div className="space-y-3">
@@ -313,6 +363,7 @@ function Cartoes() {
                       <TableHead>Categoria</TableHead>
                       <TableHead className="w-[100px]">Parcela</TableHead>
                       <TableHead className="text-right w-[140px]">Valor</TableHead>
+                      <TableHead className="w-[90px]"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -331,6 +382,16 @@ function Cartoes() {
                           <TableCell className={`text-right ${sinal < 0 ? "text-red-600" : "text-emerald-700"}`}>
                             {sinal < 0 ? "−" : ""}{brl(Math.abs(sinal))}
                           </TableCell>
+                          <TableCell>
+                            <div className="flex justify-end gap-1">
+                              <Button size="icon" variant="ghost" className="h-7 w-7" title="Editar" onClick={() => abrirEdicao(l)}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" title="Excluir" onClick={() => excluirLanc(l)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </TableCell>
                         </TableRow>
                       );
                     })}
@@ -340,6 +401,7 @@ function Cartoes() {
                       <TableCell className={`text-right font-bold ${saldoFinalDia > 0 ? "text-red-600" : "text-emerald-700"}`}>
                         {saldoFinalDia > 0 ? "−" : ""}{brl(Math.abs(saldoFinalDia))}
                       </TableCell>
+                      <TableCell></TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
@@ -474,6 +536,62 @@ function Cartoes() {
             <Button variant="outline" onClick={() => setPayOpen(false)}>Cancelar</Button>
             <Button onClick={confirmarPagamento} disabled={paySaving} className="bg-emerald-600 hover:bg-emerald-700 text-white">
               {paySaving ? "Salvando…" : "Confirmar pagamento"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Editar lançamento */}
+      <Dialog open={editOpen} onOpenChange={(v) => { setEditOpen(v); if (!v) setEditLanc(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar lançamento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>Descrição</Label>
+              <Input value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Data</Label>
+                <Input type="date" value={editData} onChange={(e) => setEditData(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>Valor (R$)</Label>
+                <Input value={editValor} onChange={(e) => setEditValor(e.target.value)} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Categoria</Label>
+                <Select value={editCategoriaId} onValueChange={setEditCategoriaId}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {categorias
+                      .filter((c) => !editLanc || c.tipo === editLanc.tipo)
+                      .map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Status</Label>
+                <Select value={editStatus} onValueChange={(v) => setEditStatus(v as "Pago" | "Pendente")}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Pago">Pago</SelectItem>
+                    <SelectItem value="Pendente">Em aberto</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancelar</Button>
+            <Button onClick={confirmarEdicao} disabled={editSaving}>
+              {editSaving ? "Salvando…" : "Salvar"}
             </Button>
           </DialogFooter>
         </DialogContent>

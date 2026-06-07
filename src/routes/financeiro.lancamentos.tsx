@@ -65,7 +65,7 @@ type SortKey = "data" | "valor";
 type SortDir = "desc" | "asc" | null;
 
 function Lancamentos() {
-  const { lancamentos, transferencias, bancos, categorias, contatos, removeLancamento, updateLancamento, removeTransferencia, addTransferencia, saldoBanco } = useData();
+  const { lancamentos, transferencias, pagamentosFatura, bancos, categorias, contatos, removeLancamento, updateLancamento, removeTransferencia, removePagamentoFatura, addTransferencia, saldoBanco } = useData();
 
   // Pagamento de fatura do cartão
   const [pagarFaturaCard, setPagarFaturaCard] = useState<{ id: string; nome: string; valor: number } | null>(null);
@@ -223,8 +223,11 @@ function Lancamentos() {
   type LinhaTransf = {
     kind: "transf"; id: string; data: string; valor: number; bancoOrigemId: string; bancoDestinoId: string; descricao?: string;
   };
+  type LinhaPagFat = {
+    kind: "pagfat"; id: string; data: string; valor: number; bancoOrigemId: string; bancoDestinoId: string; descricao?: string;
+  };
   type LinhaLanc = { kind: "lanc"; id: string; data: string; valor: number; lanc: Lancamento };
-  type Linha = LinhaLanc | LinhaTransf;
+  type Linha = LinhaLanc | LinhaTransf | LinhaPagFat;
 
   const transfPeriodo = useMemo<LinhaTransf[]>(() => {
     const q = busca.trim().toLowerCase();
@@ -245,10 +248,29 @@ function Lancamentos() {
       .map((t) => ({ kind: "transf" as const, id: `t-${t.id}`, data: t.data, valor: t.valor, bancoOrigemId: t.bancoOrigemId, bancoDestinoId: t.bancoDestinoId, descricao: t.descricao }));
   }, [transferencias, range, filtroBanco, filtroStatus, filtroTipo, busca, bancos]);
 
+  const pagFatPeriodo = useMemo<LinhaPagFat[]>(() => {
+    const q = busca.trim().toLowerCase();
+    return pagamentosFatura
+      .filter((p) => {
+        if (!inRange(p.data)) return false;
+        if (filtroBanco !== "todos" && p.contaOrigemId !== filtroBanco && p.cartaoId !== filtroBanco) return false;
+        if (filtroStatus !== "todos") return false;
+        if (filtroTipo === "Receita" || filtroTipo === "Despesa") return false;
+        if (q) {
+          const ori = bancos.find((b) => b.id === p.contaOrigemId)?.nome ?? "";
+          const des = bancos.find((b) => b.id === p.cartaoId)?.nome ?? "";
+          const hay = `pagamento fatura ${ori} ${des} ${p.descricao ?? ""}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      })
+      .map((p) => ({ kind: "pagfat" as const, id: `p-${p.id}`, data: p.data, valor: p.valor, bancoOrigemId: p.contaOrigemId, bancoDestinoId: p.cartaoId, descricao: p.descricao }));
+  }, [pagamentosFatura, range, filtroBanco, filtroStatus, filtroTipo, busca, bancos]);
+
   const linhas: Linha[] = useMemo(() => {
     const ll: Linha[] = lancMes.map((l) => ({ kind: "lanc" as const, id: l.id, data: l.data, valor: l.valor, lanc: l }));
-    return [...ll, ...transfPeriodo];
-  }, [lancMes, transfPeriodo]);
+    return [...ll, ...transfPeriodo, ...pagFatPeriodo];
+  }, [lancMes, transfPeriodo, pagFatPeriodo]);
 
   const linhasOrdenadas = useMemo(() => {
     if (sortDir === null) {
@@ -321,17 +343,18 @@ function Lancamentos() {
     };
     const rows: string[][] = [];
     for (const row of linhasOrdenadas) {
-      if (row.kind === "transf") {
+      if (row.kind === "transf" || row.kind === "pagfat") {
+        const label = row.kind === "pagfat" ? "Pagamento de fatura" : "Transferência";
         const isSaida = filtroBanco !== "todos" && row.bancoOrigemId === filtroBanco;
         const isEntrada = filtroBanco !== "todos" && row.bancoDestinoId === filtroBanco;
-        if (filtroBanco !== "todos" && !isSaida && !isEntrada) continue; // pula transferências que não envolvem o banco filtrado
+        if (filtroBanco !== "todos" && !isSaida && !isEntrada) continue;
         if (filtroBanco !== "todos") {
           rows.push([
             fmtDate(row.data),
             "—",
             bancoName(filtroBanco),
-            "Transferência",
-            row.descricao ?? "Transferência entre contas",
+            label,
+            row.descricao ?? label,
             isSaida ? "Saída" : "Entrada",
             "—",
             (isSaida ? -row.valor : row.valor).toFixed(2).replace(".", ","),
@@ -341,9 +364,9 @@ function Lancamentos() {
             fmtDate(row.data),
             "—",
             `${bancoName(row.bancoOrigemId)} → ${bancoName(row.bancoDestinoId)}`,
-            "Transferência",
-            row.descricao ?? "Transferência entre contas",
-            "Transferência",
+            label,
+            row.descricao ?? label,
+            label,
             "—",
             row.valor.toFixed(2).replace(".", ","),
           ]);
@@ -386,26 +409,37 @@ function Lancamentos() {
           {bancos.map((b) => {
             const s = saldoBanco(b.id);
             const isCard = b.tipo === "Cartao";
-            const fatura = isCard ? -s : s;
-            const faturaAberta = isCard && fatura > 0.005;
+            const faturaDevendo = isCard ? Math.max(-s, 0) : 0;
+            const limite = b.limite ?? 0;
+            const disponivel = isCard ? Math.max(limite - faturaDevendo, 0) : 0;
             return (
               <div key={b.id} className={`rounded-md border p-3 ${isCard ? "border-violet-200/60 bg-violet-500/5" : "border-border/60"}`}>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   {isCard ? <CreditCard className="h-3.5 w-3.5 text-violet-600" /> : <Wallet className="h-3.5 w-3.5 text-emerald-600" />}
                   <span className="truncate">{b.nome}</span>
                 </div>
-                <p className={`text-lg font-bold ${isCard ? "text-violet-700" : s < 0 ? "text-red-600" : "text-emerald-700"}`}>
-                  R$ {fatura.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
-                <p className="text-[10px] text-muted-foreground">
-                  {isCard
-                    ? `Fatura · venc. dia ${b.vencimentoDia ?? "—"}`
-                    : "Saldo atual"}
-                </p>
-                {isCard && (
-                  <Button asChild size="sm" variant="outline" className="mt-2 h-7 w-full text-xs">
-                    <Link to="/financeiro/cartoes">Ver cartão</Link>
-                  </Button>
+                {isCard ? (
+                  <>
+                    <p className="text-lg font-bold text-emerald-700">
+                      R$ {brl(disponivel)}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Limite disponível{limite > 0 ? ` · de R$ ${brl(limite)}` : ""}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Fatura: <span className={faturaDevendo > 0 ? "text-red-600 font-medium" : ""}>R$ {brl(faturaDevendo)}</span> · venc. dia {b.vencimentoDia ?? "—"}
+                    </p>
+                    <Button asChild size="sm" variant="outline" className="mt-2 h-7 w-full text-xs">
+                      <Link to="/financeiro/cartoes">Ver cartão</Link>
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <p className={`text-lg font-bold ${s < 0 ? "text-red-600" : "text-emerald-700"}`}>
+                      R$ {brl(s)}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">Saldo atual</p>
+                  </>
                 )}
               </div>
             );
@@ -571,18 +605,28 @@ function Lancamentos() {
             </TableHeader>
             <TableBody>
               {linhasOrdenadas.map((row) => {
-                if (row.kind === "transf") {
+                if (row.kind === "transf" || row.kind === "pagfat") {
+                  const isPag = row.kind === "pagfat";
                   const ori = bancos.find((b) => b.id === row.bancoOrigemId)?.nome ?? "—";
                   const des = bancos.find((b) => b.id === row.bancoDestinoId)?.nome ?? "—";
+                  const isSaida = filtroBanco !== "todos" && row.bancoOrigemId === filtroBanco;
+                  const isEntrada = filtroBanco !== "todos" && row.bancoDestinoId === filtroBanco;
+                  const sinal = isSaida ? -1 : (isEntrada ? 1 : 0);
+                  const valorClass = sinal < 0 ? "text-red-600" : sinal > 0 ? "text-emerald-600" : (isPag ? "text-emerald-700" : "text-sky-700");
+                  const prefix = sinal < 0 ? "− " : sinal > 0 ? "+ " : "";
+                  const bg = isPag ? "bg-emerald-500/5" : "bg-sky-500/5";
+                  const iconCol = isPag ? "text-emerald-600" : "text-sky-600";
+                  const tagBg = isPag ? "bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/20" : "bg-sky-500/15 text-sky-700 hover:bg-sky-500/20";
+                  const title = isPag ? "Pagamento de fatura" : "Transferência";
                   return (
-                    <TableRow key={row.id} className="bg-sky-500/5">
+                    <TableRow key={row.id} className={bg}>
                       <TableCell />
                       <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{fmtDate(row.data)}</TableCell>
                       <TableCell>
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 font-medium">
-                            <ArrowRightLeft className="h-3.5 w-3.5 text-sky-600" />
-                            <span>Transferência</span>
+                            <ArrowRightLeft className={`h-3.5 w-3.5 ${iconCol}`} />
+                            <span>{title}</span>
                             <Badge variant="outline" className="text-[10px]">{ori} → {des}</Badge>
                           </div>
                           {row.descricao && (
@@ -591,23 +635,29 @@ function Lancamentos() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge className="bg-sky-500/15 text-sky-700 hover:bg-sky-500/20 border-0">Transferência</Badge>
+                        <Badge className={`${tagBg} border-0`}>{title}</Badge>
                       </TableCell>
-                      <TableCell className="text-right font-medium text-sky-700">
-                        {brl(row.valor)}
+                      <TableCell className={`text-right font-medium ${valorClass}`}>
+                        {prefix}{brl(row.valor)}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8"
-                            title="Editar transferência"
-                            onClick={() => {
-                              const t = transferencias.find((x) => x.id === row.id.slice(2));
-                              if (t) abrirTransf(t);
-                            }}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
+                          {!isPag && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8"
+                              title="Editar transferência"
+                              onClick={() => {
+                                const t = transferencias.find((x) => x.id === row.id.slice(2));
+                                if (t) abrirTransf(t);
+                              }}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500"
-                            onClick={() => removeTransferencia(row.id.slice(2))}>
+                            onClick={() => {
+                              if (!confirm(isPag ? "Excluir este pagamento de fatura?" : "Excluir esta transferência?")) return;
+                              if (isPag) removePagamentoFatura(row.id.slice(2));
+                              else removeTransferencia(row.id.slice(2));
+                            }}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
