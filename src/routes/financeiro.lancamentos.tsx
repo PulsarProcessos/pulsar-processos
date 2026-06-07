@@ -223,8 +223,11 @@ function Lancamentos() {
   type LinhaTransf = {
     kind: "transf"; id: string; data: string; valor: number; bancoOrigemId: string; bancoDestinoId: string; descricao?: string;
   };
+  type LinhaPagFat = {
+    kind: "pagfat"; id: string; data: string; valor: number; bancoOrigemId: string; bancoDestinoId: string; descricao?: string;
+  };
   type LinhaLanc = { kind: "lanc"; id: string; data: string; valor: number; lanc: Lancamento };
-  type Linha = LinhaLanc | LinhaTransf;
+  type Linha = LinhaLanc | LinhaTransf | LinhaPagFat;
 
   const transfPeriodo = useMemo<LinhaTransf[]>(() => {
     const q = busca.trim().toLowerCase();
@@ -245,10 +248,29 @@ function Lancamentos() {
       .map((t) => ({ kind: "transf" as const, id: `t-${t.id}`, data: t.data, valor: t.valor, bancoOrigemId: t.bancoOrigemId, bancoDestinoId: t.bancoDestinoId, descricao: t.descricao }));
   }, [transferencias, range, filtroBanco, filtroStatus, filtroTipo, busca, bancos]);
 
+  const pagFatPeriodo = useMemo<LinhaPagFat[]>(() => {
+    const q = busca.trim().toLowerCase();
+    return pagamentosFatura
+      .filter((p) => {
+        if (!inRange(p.data)) return false;
+        if (filtroBanco !== "todos" && p.contaOrigemId !== filtroBanco && p.cartaoId !== filtroBanco) return false;
+        if (filtroStatus !== "todos") return false;
+        if (filtroTipo === "Receita" || filtroTipo === "Despesa") return false;
+        if (q) {
+          const ori = bancos.find((b) => b.id === p.contaOrigemId)?.nome ?? "";
+          const des = bancos.find((b) => b.id === p.cartaoId)?.nome ?? "";
+          const hay = `pagamento fatura ${ori} ${des} ${p.descricao ?? ""}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      })
+      .map((p) => ({ kind: "pagfat" as const, id: `p-${p.id}`, data: p.data, valor: p.valor, bancoOrigemId: p.contaOrigemId, bancoDestinoId: p.cartaoId, descricao: p.descricao }));
+  }, [pagamentosFatura, range, filtroBanco, filtroStatus, filtroTipo, busca, bancos]);
+
   const linhas: Linha[] = useMemo(() => {
     const ll: Linha[] = lancMes.map((l) => ({ kind: "lanc" as const, id: l.id, data: l.data, valor: l.valor, lanc: l }));
-    return [...ll, ...transfPeriodo];
-  }, [lancMes, transfPeriodo]);
+    return [...ll, ...transfPeriodo, ...pagFatPeriodo];
+  }, [lancMes, transfPeriodo, pagFatPeriodo]);
 
   const linhasOrdenadas = useMemo(() => {
     if (sortDir === null) {
