@@ -206,6 +206,55 @@ function Cartoes() {
     }
   }
 
+  // -------- Dialog Editar lançamento --------
+  const [editOpen, setEditOpen] = useState(false);
+  const [editLanc, setEditLanc] = useState<Lancamento | null>(null);
+  const [editData, setEditData] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editValor, setEditValor] = useState("");
+  const [editCategoriaId, setEditCategoriaId] = useState<string>("");
+  const [editStatus, setEditStatus] = useState<"Pago" | "Pendente">("Pendente");
+  const [editSaving, setEditSaving] = useState(false);
+
+  function abrirEdicao(l: Lancamento) {
+    setEditLanc(l);
+    setEditData(l.data);
+    setEditDesc(l.desc);
+    setEditValor(l.valor.toFixed(2));
+    setEditCategoriaId(l.categoriaId);
+    setEditStatus(l.status);
+    setEditOpen(true);
+  }
+
+  async function confirmarEdicao() {
+    if (!editLanc) return;
+    const valor = Number(editValor.replace(",", "."));
+    if (!editDesc.trim()) { toast.error("Informe a descrição"); return; }
+    if (!valor || valor <= 0) { toast.error("Informe um valor válido"); return; }
+    setEditSaving(true);
+    try {
+      await updateLancamento(editLanc.id, {
+        data: editData,
+        desc: editDesc,
+        valor,
+        categoriaId: editCategoriaId || editLanc.categoriaId,
+        status: editStatus,
+      });
+      toast.success("Lançamento atualizado");
+      setEditOpen(false);
+      setEditLanc(null);
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
+  async function excluirLanc(l: Lancamento) {
+    if (!confirm(`Excluir o lançamento "${l.desc}"?`)) return;
+    await removeLancamento(l.id);
+    toast.success("Lançamento excluído");
+  }
+
+
   if (cartoes.length === 0) {
     return (
       <div className="space-y-3">
