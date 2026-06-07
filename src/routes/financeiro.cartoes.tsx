@@ -14,8 +14,8 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, ChevronLeft, ChevronRight, CreditCard } from "lucide-react";
-import { useData } from "@/lib/data-store";
+import { Trash2, ChevronLeft, ChevronRight, CreditCard, Pencil } from "lucide-react";
+import { useData, Lancamento } from "@/lib/data-store";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/financeiro/cartoes")({
