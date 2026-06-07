@@ -605,18 +605,28 @@ function Lancamentos() {
             </TableHeader>
             <TableBody>
               {linhasOrdenadas.map((row) => {
-                if (row.kind === "transf") {
+                if (row.kind === "transf" || row.kind === "pagfat") {
+                  const isPag = row.kind === "pagfat";
                   const ori = bancos.find((b) => b.id === row.bancoOrigemId)?.nome ?? "—";
                   const des = bancos.find((b) => b.id === row.bancoDestinoId)?.nome ?? "—";
+                  const isSaida = filtroBanco !== "todos" && row.bancoOrigemId === filtroBanco;
+                  const isEntrada = filtroBanco !== "todos" && row.bancoDestinoId === filtroBanco;
+                  const sinal = isSaida ? -1 : (isEntrada ? 1 : 0);
+                  const valorClass = sinal < 0 ? "text-red-600" : sinal > 0 ? "text-emerald-600" : (isPag ? "text-emerald-700" : "text-sky-700");
+                  const prefix = sinal < 0 ? "− " : sinal > 0 ? "+ " : "";
+                  const bg = isPag ? "bg-emerald-500/5" : "bg-sky-500/5";
+                  const iconCol = isPag ? "text-emerald-600" : "text-sky-600";
+                  const tagBg = isPag ? "bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/20" : "bg-sky-500/15 text-sky-700 hover:bg-sky-500/20";
+                  const title = isPag ? "Pagamento de fatura" : "Transferência";
                   return (
-                    <TableRow key={row.id} className="bg-sky-500/5">
+                    <TableRow key={row.id} className={bg}>
                       <TableCell />
                       <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{fmtDate(row.data)}</TableCell>
                       <TableCell>
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 font-medium">
-                            <ArrowRightLeft className="h-3.5 w-3.5 text-sky-600" />
-                            <span>Transferência</span>
+                            <ArrowRightLeft className={`h-3.5 w-3.5 ${iconCol}`} />
+                            <span>{title}</span>
                             <Badge variant="outline" className="text-[10px]">{ori} → {des}</Badge>
                           </div>
                           {row.descricao && (
@@ -625,23 +635,29 @@ function Lancamentos() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge className="bg-sky-500/15 text-sky-700 hover:bg-sky-500/20 border-0">Transferência</Badge>
+                        <Badge className={`${tagBg} border-0`}>{title}</Badge>
                       </TableCell>
-                      <TableCell className="text-right font-medium text-sky-700">
-                        {brl(row.valor)}
+                      <TableCell className={`text-right font-medium ${valorClass}`}>
+                        {prefix}{brl(row.valor)}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8"
-                            title="Editar transferência"
-                            onClick={() => {
-                              const t = transferencias.find((x) => x.id === row.id.slice(2));
-                              if (t) abrirTransf(t);
-                            }}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
+                          {!isPag && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8"
+                              title="Editar transferência"
+                              onClick={() => {
+                                const t = transferencias.find((x) => x.id === row.id.slice(2));
+                                if (t) abrirTransf(t);
+                              }}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500"
-                            onClick={() => removeTransferencia(row.id.slice(2))}>
+                            onClick={() => {
+                              if (!confirm(isPag ? "Excluir este pagamento de fatura?" : "Excluir esta transferência?")) return;
+                              if (isPag) removePagamentoFatura(row.id.slice(2));
+                              else removeTransferencia(row.id.slice(2));
+                            }}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
