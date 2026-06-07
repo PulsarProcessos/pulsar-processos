@@ -343,17 +343,18 @@ function Lancamentos() {
     };
     const rows: string[][] = [];
     for (const row of linhasOrdenadas) {
-      if (row.kind === "transf") {
+      if (row.kind === "transf" || row.kind === "pagfat") {
+        const label = row.kind === "pagfat" ? "Pagamento de fatura" : "Transferência";
         const isSaida = filtroBanco !== "todos" && row.bancoOrigemId === filtroBanco;
         const isEntrada = filtroBanco !== "todos" && row.bancoDestinoId === filtroBanco;
-        if (filtroBanco !== "todos" && !isSaida && !isEntrada) continue; // pula transferências que não envolvem o banco filtrado
+        if (filtroBanco !== "todos" && !isSaida && !isEntrada) continue;
         if (filtroBanco !== "todos") {
           rows.push([
             fmtDate(row.data),
             "—",
             bancoName(filtroBanco),
-            "Transferência",
-            row.descricao ?? "Transferência entre contas",
+            label,
+            row.descricao ?? label,
             isSaida ? "Saída" : "Entrada",
             "—",
             (isSaida ? -row.valor : row.valor).toFixed(2).replace(".", ","),
@@ -363,9 +364,9 @@ function Lancamentos() {
             fmtDate(row.data),
             "—",
             `${bancoName(row.bancoOrigemId)} → ${bancoName(row.bancoDestinoId)}`,
-            "Transferência",
-            row.descricao ?? "Transferência entre contas",
-            "Transferência",
+            label,
+            row.descricao ?? label,
+            label,
             "—",
             row.valor.toFixed(2).replace(".", ","),
           ]);
