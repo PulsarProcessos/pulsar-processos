@@ -127,11 +127,9 @@ function Cartoes() {
     const sP = pagamentosFatura
       .filter((p) => p.cartaoId === cartao.id && p.data < janela.ini)
       .reduce((s, p) => s - p.valor, 0);
-    const sT = transferencias
-      .filter((t) => t.bancoDestinoId === cartao.id && t.afetaFatura && t.data < janela.ini)
-      .reduce((s, t) => s - t.valor, 0);
-    return sL + sP + sT;
-  }, [cartao, lancamentos, pagamentosFatura, transferencias, janela.ini]);
+    // Transferências não afetam mais a fatura — somente Pagamento de fatura.
+    return sL + sP;
+  }, [cartao, lancamentos, pagamentosFatura, janela.ini]);
 
   // Total da fatura do ciclo (apenas lançamentos do ciclo)
   const totalCiclo = useMemo(() =>
@@ -185,11 +183,9 @@ function Cartoes() {
     const totalPagamentos = pagamentosFatura
       .filter((p) => p.cartaoId === cartao.id)
       .reduce((s, p) => s + p.valor, 0);
-    const totalTransfFatura = transferencias
-      .filter((t) => t.bancoDestinoId === cartao.id && t.afetaFatura)
-      .reduce((s, t) => s + t.valor, 0);
-    return Math.max(0, totalDespesas - totalReceitas - totalPagamentos - totalTransfFatura);
-  }, [cartao, lancamentos, pagamentosFatura, transferencias]);
+    // Transferências não compõem mais a fatura.
+    return Math.max(0, totalDespesas - totalReceitas - totalPagamentos);
+  }, [cartao, lancamentos, pagamentosFatura]);
 
   const limiteTotal = cartao?.limite ?? 0;
   const limiteDisponivel = Math.max(0, limiteTotal - faturaEmAberto);
@@ -565,9 +561,7 @@ function Cartoes() {
                       <TableCell>{orig?.nome ?? "—"}</TableCell>
                       <TableCell>{t.descricao ?? "—"}</TableCell>
                       <TableCell>
-                        {t.afetaFatura
-                          ? <Badge variant="outline" className="border-amber-500 text-amber-700">Sim (histórico)</Badge>
-                          : <Badge variant="outline">Não</Badge>}
+                        <Badge variant="outline">Não</Badge>
                       </TableCell>
                       <TableCell className="text-right">R$ {brl(t.valor)}</TableCell>
                     </TableRow>

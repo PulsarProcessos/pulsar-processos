@@ -409,9 +409,54 @@ function Lancamentos() {
           {bancos.map((b) => {
             const s = saldoBanco(b.id);
             const isCard = b.tipo === "Cartao";
-            const faturaDevendo = isCard ? Math.max(-s, 0) : 0;
+
+            // Para cartão: calcula a fatura do ciclo "atual relevante" — se a fatura
+            // do ciclo corrente já tiver pagamento informado, avança para o próximo.
+            let faturaCiclo = 0;
+            let vencRef: Date | null = null;
+            let dividaTotal = 0;
+            if (isCard) {
+              const fechDia = b.fechamentoDia ?? 1;
+              const vencDia = b.vencimentoDia ?? fechDia;
+              const today = new Date();
+              // ciclo cujo fechamento é o próximo (>= hoje)
+              let fMes = today.getMonth();
+              let fAno = today.getFullYear();
+              if (new Date(fAno, fMes, fechDia) < new Date(today.getFullYear(), today.getMonth(), today.getDate())) {
+                fMes += 1; if (fMes > 11) { fMes = 0; fAno += 1; }
+              }
+              // dívida total acumulada do cartão (todas competências)
+              const tDesp = lancamentos.filter((l) => l.bancoId === b.id && l.tipo === "Despesa").reduce((a, l) => a + l.valor, 0);
+              const tRec = lancamentos.filter((l) => l.bancoId === b.id && l.tipo === "Receita").reduce((a, l) => a + l.valor, 0);
+              const tPag = pagamentosFatura.filter((p) => p.cartaoId === b.id).reduce((a, p) => a + p.valor, 0);
+              dividaTotal = Math.max(0, tDesp - tRec - tPag);
+
+              for (let i = 0; i < 24; i++) {
+                const fech = new Date(fAno, fMes, fechDia);
+                const fechAnt = new Date(fAno, fMes - 1, fechDia);
+                const ini = new Date(fechAnt); ini.setDate(ini.getDate() + 1);
+                const iniISO = toISO(ini); const fimISO = toISO(fech);
+                const desp = lancamentos
+                  .filter((l) => l.bancoId === b.id && l.data >= iniISO && l.data <= fimISO)
+                  .reduce((a, l) => a + (l.tipo === "Receita" ? -l.valor : l.valor), 0);
+                const pagos = pagamentosFatura
+                  .filter((p) => p.cartaoId === b.id && p.competenciaRef === iniISO)
+                  .reduce((a, p) => a + p.valor, 0);
+                // Se já houve pagamento neste ciclo, avança
+                if (pagos > 0.005) {
+                  fMes += 1; if (fMes > 11) { fMes = 0; fAno += 1; }
+                  continue;
+                }
+                faturaCiclo = Math.max(0, desp - pagos);
+                let vMes = fMes; let vAno = fAno;
+                if (vencDia < fechDia) { vMes += 1; if (vMes > 11) { vMes = 0; vAno += 1; } }
+                vencRef = new Date(vAno, vMes, vencDia);
+                break;
+              }
+            }
+
             const limite = b.limite ?? 0;
-            const disponivel = isCard ? Math.max(limite - faturaDevendo, 0) : 0;
+            const disponivel = isCard ? Math.max(limite - dividaTotal, 0) : 0;
             return (
               <div key={b.id} className={`rounded-md border p-3 ${isCard ? "border-violet-200/60 bg-violet-500/5" : "border-border/60"}`}>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -427,7 +472,8 @@ function Lancamentos() {
                       Limite disponível{limite > 0 ? ` · de R$ ${brl(limite)}` : ""}
                     </p>
                     <p className="text-[10px] text-muted-foreground">
-                      Fatura: <span className={faturaDevendo > 0 ? "text-red-600 font-medium" : ""}>R$ {brl(faturaDevendo)}</span> · venc. dia {b.vencimentoDia ?? "—"}
+                      Fatura: <span className={faturaCiclo > 0 ? "text-red-600 font-medium" : ""}>R$ {brl(faturaCiclo)}</span>
+                      {vencRef ? ` · vence ${String(vencRef.getDate()).padStart(2,"0")}/${String(vencRef.getMonth()+1).padStart(2,"0")}` : ` · venc. dia ${b.vencimentoDia ?? "—"}`}
                     </p>
                     <Button asChild size="sm" variant="outline" className="mt-2 h-7 w-full text-xs">
                       <Link to="/financeiro/cartoes">Ver cartão</Link>
