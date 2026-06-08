@@ -14,6 +14,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Trash2, ChevronLeft, ChevronRight, CreditCard, Pencil } from "lucide-react";
 import { useData, Lancamento } from "@/lib/data-store";
 import { toast } from "sonner";
@@ -40,32 +41,38 @@ function fmtDate(s: string) {
 }
 
 /**
- * Janela de fatura cujo vencimento cai em (vencMonth, vencYear).
- * Janela = (fechamento mês anterior, fechamento do mês de venc].
+ * Janela de fatura cujo FECHAMENTO ocorre em (fechMes, fechAno).
+ * "Fatura de Junho" = compras feitas até 20/Jun, com vencimento no próximo ciclo.
+ *
+ * Regra de vencimento:
+ *   - Se vencimentoDia >= fechamentoDia → vence no mesmo mês do fechamento.
+ *   - Se vencimentoDia <  fechamentoDia → vence no mês seguinte ao fechamento.
+ *     Exemplo: fecha dia 20, vence dia 10 → fatura de junho fecha 20/Jun e vence 10/Jul.
+ *
+ * Início do ciclo = dia seguinte ao fechamento do mês anterior.
+ *
  * Retorna { fechamento, vencimento, ini, fim } — strings ISO.
  */
-function janelaFatura(fechamentoDia: number, vencimentoDia: number, vencMonth: number, vencYear: number) {
-  // fechamento da fatura: dia `fechamentoDia` do mês de vencimento (ou mês anterior, se fechamento>venc)
-  // Para simplificar: fechamento ocorre no mês imediatamente anterior ao vencimento se vencimentoDia < fechamentoDia,
-  // caso contrário, no mesmo mês de vencimento.
-  let fechMonth = vencMonth;
-  let fechYear = vencYear;
+function janelaFatura(fechamentoDia: number, vencimentoDia: number, fechMes: number, fechAno: number) {
+  const fechamento = new Date(fechAno, fechMes, fechamentoDia);
+
+  let vencMonth = fechMes;
+  let vencYear = fechAno;
   if (vencimentoDia < fechamentoDia) {
-    fechMonth -= 1;
-    if (fechMonth < 0) { fechMonth = 11; fechYear -= 1; }
+    vencMonth += 1;
+    if (vencMonth > 11) { vencMonth = 0; vencYear += 1; }
   }
-  const fechamento = new Date(fechYear, fechMonth, fechamentoDia);
   const vencimento = new Date(vencYear, vencMonth, vencimentoDia);
-  // ini = dia seguinte ao fechamento anterior
-  const fechAnt = new Date(fechamento);
-  fechAnt.setMonth(fechAnt.getMonth() - 1);
+
+  const fechAnt = new Date(fechAno, fechMes - 1, fechamentoDia);
   const ini = new Date(fechAnt);
   ini.setDate(ini.getDate() + 1);
+
   return {
     fechamento: toISO(fechamento),
     vencimento: toISO(vencimento),
     ini: toISO(ini),
-    fim: toISO(fechamento), // inclusivo
+    fim: toISO(fechamento),
   };
 }
 
@@ -166,6 +173,27 @@ function Cartoes() {
       return { data, itens, saldoFinalDia: acc };
     });
   }, [lancsCiclo, saldoAnterior]);
+
+  const faturaEmAberto = useMemo(() => {
+    if (!cartao) return 0;
+    const totalDespesas = lancamentos
+      .filter((l) => l.bancoId === cartao.id && l.tipo === "Despesa")
+      .reduce((s, l) => s + l.valor, 0);
+    const totalReceitas = lancamentos
+      .filter((l) => l.bancoId === cartao.id && l.tipo === "Receita")
+      .reduce((s, l) => s + l.valor, 0);
+    const totalPagamentos = pagamentosFatura
+      .filter((p) => p.cartaoId === cartao.id)
+      .reduce((s, p) => s + p.valor, 0);
+    const totalTransfFatura = transferencias
+      .filter((t) => t.bancoDestinoId === cartao.id && t.afetaFatura)
+      .reduce((s, t) => s + t.valor, 0);
+    return Math.max(0, totalDespesas - totalReceitas - totalPagamentos - totalTransfFatura);
+  }, [cartao, lancamentos, pagamentosFatura, transferencias]);
+
+  const limiteTotal = cartao?.limite ?? 0;
+  const limiteDisponivel = Math.max(0, limiteTotal - faturaEmAberto);
+  const pctUsado = limiteTotal > 0 ? Math.min(100, (faturaEmAberto / limiteTotal) * 100) : 0;
 
   // -------- Dialog Informar pagamento --------
   const [payOpen, setPayOpen] = useState(false);
@@ -301,49 +329,101 @@ function Cartoes() {
             <Link to="/financeiro/lancamentos">Adicionar lançamento</Link>
           </Button>
         </div>
-        <div className="flex items-center border rounded-md">
-          <Button variant="ghost" size="icon" onClick={() => navMes(-1)}><ChevronLeft className="h-4 w-4" /></Button>
-          <div className="px-4 text-sm font-medium min-w-[160px] text-center">
-            {MESES[refMes]} de {refAno}
+        <div className="flex flex-col items-end gap-1">
+          <div className="flex items-center border rounded-md">
+            <Button variant="ghost" size="icon" onClick={() => navMes(-1)}><ChevronLeft className="h-4 w-4" /></Button>
+            <div className="px-4 text-sm font-medium min-w-[160px] text-center">
+              {MESES[refMes]} de {refAno}
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => navMes(1)}><ChevronRight className="h-4 w-4" /></Button>
           </div>
-          <Button variant="ghost" size="icon" onClick={() => navMes(1)}><ChevronRight className="h-4 w-4" /></Button>
+          <div className="text-xs text-muted-foreground">
+            Ciclo: {fmtDate(janela.ini)} → {fmtDate(janela.fim)} · Vence {fmtDate(janela.vencimento)}
+          </div>
         </div>
       </div>
 
-      {/* Cards resumo */}
+      {/* Cards resumo — linha 1: ciclo atual */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Card>
           <CardContent className="p-4 space-y-1">
+            <div className="text-sm font-semibold mb-1">Ciclo atual</div>
             <div className="flex justify-between text-sm">
-              <span className="font-medium">Saldo anterior:</span>
-              <span className={saldoAnterior > 0 ? "text-red-600" : "text-emerald-700"}>
-                R$ {brl(-saldoAnterior)}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="font-medium">Fechamento:</span>
+              <span className="text-muted-foreground">Fechamento</span>
               <span>{fmtDate(janela.fim)}</span>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-sm font-medium">Vencimento</div>
-            <div className="text-2xl font-bold">{fmtDate(janela.vencimento)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-sm font-medium">Valor da fatura</div>
-            <div className={`text-2xl font-bold ${faturaQuitada ? "text-emerald-700" : "text-red-600"}`}>
-              R$ {brl(-valorFatura)}
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Vencimento</span>
+              <span>{fmtDate(janela.vencimento)}</span>
             </div>
-            {faturaQuitada && totalPago > 0.005 && (
-              <Badge variant="outline" className="mt-1 border-emerald-600 text-emerald-700">Quitada</Badge>
+            {saldoAnterior > 0.005 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Saldo anterior</span>
+                <span className="text-red-600">R$ {brl(saldoAnterior)}</span>
+              </div>
             )}
           </CardContent>
         </Card>
+        <Card>
+          <CardContent className="p-4 text-center space-y-1">
+            <div className="text-sm font-medium">Fatura do ciclo</div>
+            <div className={`text-2xl font-bold ${faturaQuitada ? "text-emerald-700" : "text-red-600"}`}>
+              R$ {brl(Math.max(0, saldoAnterior + totalCiclo - totalPago))}
+            </div>
+            {faturaQuitada && totalPago > 0.005
+              ? <Badge variant="outline" className="border-emerald-600 text-emerald-700">Quitada</Badge>
+              : totalPago > 0.005
+                ? <div className="text-xs text-muted-foreground">Pago: R$ {brl(totalPago)}</div>
+                : null}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center space-y-1">
+            <div className="text-sm font-medium">Lançamentos no ciclo</div>
+            <div className="text-2xl font-bold">{lancsCiclo.length}</div>
+            <div className="text-xs text-muted-foreground">
+              Total: R$ {brl(lancsCiclo.filter(l => l.tipo === "Despesa").reduce((s, l) => s + l.valor, 0))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Cards resumo — linha 2: limite */}
+      {limiteTotal > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Card>
+            <CardContent className="p-4 space-y-2">
+              <div className="text-sm font-medium">Fatura em aberto (saldo total)</div>
+              <div className="flex items-baseline justify-between">
+                <span className={`text-2xl font-bold ${faturaEmAberto > limiteTotal * 0.9 ? "text-red-600" : faturaEmAberto > limiteTotal * 0.7 ? "text-amber-600" : "text-foreground"}`}>
+                  R$ {brl(faturaEmAberto)}
+                </span>
+                <span className="text-xs text-muted-foreground">de R$ {brl(limiteTotal)}</span>
+              </div>
+              <Progress
+                value={pctUsado}
+                className={`h-2 ${pctUsado >= 90 ? "[&>div]:bg-red-500" : pctUsado >= 70 ? "[&>div]:bg-amber-500" : "[&>div]:bg-emerald-500"}`}
+              />
+              <div className="text-xs text-muted-foreground">{pctUsado.toFixed(0)}% do limite utilizado</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 space-y-1">
+              <div className="text-sm font-medium">Limite disponível</div>
+              <div className="text-2xl font-bold text-emerald-700">R$ {brl(limiteDisponivel)}</div>
+              <div className="text-xs text-muted-foreground">Limite total: R$ {brl(limiteTotal)}</div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {limiteTotal === 0 && (
+        <div className="text-xs text-muted-foreground">
+          Defina o limite do cartão em{" "}
+          <Link to="/financeiro/cadastros" className="text-primary underline">Cadastros</Link>{" "}
+          para visualizar o limite disponível e o uso atual.
+        </div>
+      )}
 
       {/* Tabela de lançamentos por dia */}
       <Card>
