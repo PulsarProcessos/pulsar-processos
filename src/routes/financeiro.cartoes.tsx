@@ -561,9 +561,7 @@ function Cartoes() {
                       <TableCell>{orig?.nome ?? "—"}</TableCell>
                       <TableCell>{t.descricao ?? "—"}</TableCell>
                       <TableCell>
-                        {t.afetaFatura
-                          ? <Badge variant="outline" className="border-amber-500 text-amber-700">Sim (histórico)</Badge>
-                          : <Badge variant="outline">Não</Badge>}
+                        <Badge variant="outline">Não</Badge>
                       </TableCell>
                       <TableCell className="text-right">R$ {brl(t.valor)}</TableCell>
                     </TableRow>
