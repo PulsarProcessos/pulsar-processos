@@ -568,9 +568,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       .reduce((s, l) => s + (l.tipo === "Receita" ? l.valor : -l.valor), 0);
     const movTransf = state.transferencias.reduce((s, t) => {
       const destino = state.bancos.find((x) => x.id === t.bancoDestinoId);
-      // Transferências para cartão só afetam o saldo do cartão quando afetaFatura=true (histórico).
+      // Transferências NUNCA afetam o saldo da fatura do cartão.
+      // Para abater a fatura, use Pagamento de fatura.
       if (t.bancoDestinoId === id) {
-        if (destino?.tipo === "Cartao" && !t.afetaFatura) return s;
+        if (destino?.tipo === "Cartao") return s;
         return s + t.valor;
       }
       if (t.bancoOrigemId === id) return s - t.valor;
