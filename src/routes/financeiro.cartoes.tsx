@@ -124,8 +124,10 @@ function Cartoes() {
     const sL = lancamentos
       .filter((l) => l.bancoId === cartao.id && l.data < janela.ini)
       .reduce((s, l) => s + (l.tipo === "Receita" ? -l.valor : l.valor), 0); // perspectiva da fatura (despesa aumenta)
+    // Pagamentos de faturas anteriores: usar competenciaRef (ciclo) e não a data,
+    // pois o pagamento pode ocorrer no mesmo dia do início do próximo ciclo.
     const sP = pagamentosFatura
-      .filter((p) => p.cartaoId === cartao.id && p.data < janela.ini)
+      .filter((p) => p.cartaoId === cartao.id && p.competenciaRef < janela.ini)
       .reduce((s, p) => s - p.valor, 0);
     // Transferências não afetam mais a fatura — somente Pagamento de fatura.
     return sL + sP;
