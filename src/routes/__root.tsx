@@ -5,12 +5,10 @@ import {
   createRootRouteWithContext,
   useRouter,
   useRouterState,
-  HeadContent,
-  Scripts,
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { Bell, Search } from "lucide-react";
 
-import appCss from "../styles.css?url";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
   SidebarInset,
@@ -72,7 +70,7 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
 
@@ -107,51 +105,12 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
+// Metatags, fontes e favicon ficam no index.html (build estático para a Hostinger).
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Sistema Pulsar" },
-      { name: "description", content: "Painel de gestão Pulsar — Financeiro, Comercial e Marketing" },
-      { property: "og:title", content: "Sistema Pulsar" },
-      { name: "twitter:title", content: "Sistema Pulsar" },
-      { property: "og:description", content: "Painel de gestão Pulsar — Financeiro, Comercial e Marketing" },
-      { name: "twitter:description", content: "Painel de gestão Pulsar — Financeiro, Comercial e Marketing" },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/f81c11bb-076f-487c-95d5-c1a544d7c5bf" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/f81c11bb-076f-487c-95d5-c1a544d7c5bf" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { property: "og:type", content: "website" },
-    ],
-    links: [
-      { rel: "stylesheet", href: appCss },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
-      },
-    ],
-  }),
-  shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent,
 });
-
-function RootShell({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  );
-}
 
 function AppShell() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
