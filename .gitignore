@@ -13,10 +13,23 @@ dist-ssr
 .tanstack/**
 *.local
 
+# Scripts de importação gerados a partir de planilhas (contêm dados pessoais)
+importacao/
+
 # Variáveis de ambiente (use .env.example como modelo)
 .env
 .env.*
 !.env.example
+
+# Arquivos temporários do Supabase CLI
+supabase/.temp/
+
+# Configurações locais das ferramentas de IA
+.agents/
+.aider-desk/
+.claude/
+.mcp.json
+skills-lock.json
 
 # Editor directories and files
 .vscode/*

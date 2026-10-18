@@ -19,9 +19,14 @@ Options -Indexes
 </IfModule>
 
 <IfModule mod_headers.c>
-  Header always set X-Content-Type-Options "nosniff"
-  Header always set X-Frame-Options "DENY"
-  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  # "Header set" (e não "always set") para substituir os cabeçalhos herdados do .htaccess
+  # do site principal em public_html; com "always" o navegador receberia os dois.
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "DENY"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+  Header set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+  # O CSP herdado tem connect-src 'none', o que bloquearia o Supabase.
+  Header set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://*.googleusercontent.com; connect-src 'self' https://bhugzynquxcmkvfvenla.supabase.co wss://bhugzynquxcmkvfvenla.supabase.co; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
 
   # Arquivos com hash no nome podem ficar em cache por 1 ano; o index.html nunca.
   <FilesMatch "\.(js|css|woff2?|png|jpe?g|svg|ico|webp)$">
