@@ -22,7 +22,9 @@ import { DataProvider } from "@/lib/data-store";
 import { PessoalProvider } from "@/lib/pessoal-store";
 import { AuthGate } from "@/components/auth-gate";
 import { supabase } from "@/integrations/supabase/client";
-import { LogOut } from "lucide-react";
+import { Download, LogOut } from "lucide-react";
+import { AtualizacaoApp } from "@/components/atualizacao-app";
+import { useInstalarApp } from "@/lib/instalar-app";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -168,6 +170,7 @@ function UserMenu() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
     return () => subscription.unsubscribe();
   }, []);
+  const instalarApp = useInstalarApp();
   const email = session?.user?.email ?? "";
   const initials = email ? email.slice(0, 2).toUpperCase() : "??";
   return (
@@ -187,6 +190,12 @@ function UserMenu() {
           <div className="truncate text-sm font-medium">{email}</div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {instalarApp && (
+          <DropdownMenuItem onClick={instalarApp}>
+            <Download className="mr-2 h-4 w-4" />
+            Instalar aplicativo
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={() => supabase.auth.signOut()}>
           <LogOut className="mr-2 h-4 w-4" />
           Sair
@@ -209,6 +218,7 @@ function RootComponent() {
         </DataProvider>
       </AuthGate>
       <Toaster />
+      <AtualizacaoApp />
     </QueryClientProvider>
   );
 }

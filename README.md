@@ -22,6 +22,17 @@ npm run dev
 O `.htaccess` faz as rotas internas (ex.: `/financeiro/cartoes`) abrirem direto
 pelo link ou após recarregar a página.
 
+## Aplicativo (PWA)
+
+O sistema pode ser instalado como aplicativo (Android, iPhone e computador) a partir do
+próprio site. A configuração fica no `VitePWA` do `vite.config.ts`, e os ícones em `public/`.
+
+- Cada `npm run build` gera um `sw.js` novo. Quem estiver com o app aberto recebe o aviso
+  "Nova versão do Pulsar disponível" e atualiza com um clique (`src/components/atualizacao-app.tsx`).
+- Ao publicar, envie **todo** o conteúdo de `dist/` (inclui `sw.js`, `manifest.webmanifest`,
+  `workbox-*.js` e os ícones). Envie o `index.html` por último.
+- Os dados do Supabase não ficam em cache no aparelho; só a tela do sistema.
+
 ## Supabase (Authentication > URL Configuration)
 
 - **Site URL**: o domínio da Hostinger (ex.: `https://seudominio.com.br`).

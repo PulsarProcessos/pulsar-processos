@@ -2,6 +2,9 @@
 
 Options -Indexes
 
+# Manifesto do aplicativo (PWA).
+AddType application/manifest+json .webmanifest
+
 <IfModule mod_rewrite.c>
   RewriteEngine On
 
@@ -34,5 +37,9 @@ Options -Indexes
   </FilesMatch>
   <FilesMatch "^index\.html$">
     Header set Cache-Control "no-cache, no-store, must-revalidate"
+  </FilesMatch>
+  # sw.js é o que o app consulta para saber se saiu versão nova: nunca pode ficar em cache.
+  <FilesMatch "^(sw\.js|manifest\.webmanifest)$">
+    Header set Cache-Control "no-cache, must-revalidate"
   </FilesMatch>
 </IfModule>
