@@ -26,13 +26,19 @@ pelo link ou após recarregar a página.
 
 - **Site URL**: o domínio da Hostinger (ex.: `https://seudominio.com.br`).
 - **Redirect URLs**: adicione o mesmo domínio e `http://localhost:5173` para desenvolvimento.
-- Login com Google: em **Authentication > Providers > Google**, informe o Client ID e o
-  Client Secret criados no Google Cloud Console. No Google, a URL de retorno autorizada é
-  `https://<id-do-projeto>.supabase.co/auth/v1/callback`.
+- O acesso é só por e-mail e senha, sem cadastro pelo site. O login com Google e o
+  cadastro foram retirados de propósito: mantenha o provedor Google desligado em
+  **Authentication > Providers** e "Allow new users to sign up" desligado em
+  **Authentication > Sign In / Providers**. Usuários novos são criados em
+  **Authentication > Users > Add user**.
+- A tela **Configurações > Usuários** troca senhas pela Edge Function `usuarios`.
+  Quem tem `"role": "admin"` no `app_metadata` vê e altera todos os usuários; os demais,
+  só a própria senha. Para publicar a função: `supabase functions deploy usuarios`.
 
 ## Estrutura
 
 - `src/routes/` — telas (cada arquivo é uma rota; `routeTree.gen.ts` é gerado automaticamente).
 - `src/lib/data-store.tsx` — carregamento e gravação dos dados no Supabase.
 - `supabase/migrations/` — histórico do schema do banco.
+- `supabase/functions/` — Edge Functions (rodam no Supabase, não na Hostinger).
 - `docs/` — anotações de planejamento.
