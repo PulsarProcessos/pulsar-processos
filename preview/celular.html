@@ -1,0 +1,190 @@
+<!doctype html>
+<!--
+  Prévia do Pulsar dentro da moldura de um celular, para abrir ao lado do código.
+  Só existe no modo de prévia (npm run dev): http://localhost:5173/preview/celular.html
+  Não entra no build publicado.
+-->
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pulsar · prévia no celular</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --fundo: #1e1e1e;
+        --texto: #cccccc;
+        --controle: #2d2d2d;
+        --borda: #454545;
+        --aparelho: #0d0d0d;
+      }
+      html, body { height: 100%; margin: 0; }
+      body {
+        background: var(--fundo);
+        color: var(--texto);
+        font: 12px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .barra {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 12px;
+        border-bottom: 1px solid #2a2a2a;
+      }
+      select, button {
+        background: var(--controle);
+        color: #eeeeee;
+        border: 1px solid var(--borda);
+        border-radius: 6px;
+        padding: 5px 10px;
+        font: inherit;
+        cursor: pointer;
+      }
+      button:hover, select:hover { border-color: #6b6b6b; }
+      .tamanho { opacity: .7; }
+      .palco {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding-top: 16px;
+        overflow: hidden;
+      }
+      .celular {
+        position: relative;
+        background: var(--aparelho);
+        border-radius: 52px;
+        padding: 12px;
+        box-shadow: 0 0 0 2px #3a3a3a, 0 0 0 4px #141414, 0 24px 60px rgba(0, 0, 0, .55);
+        transform-origin: top center;
+      }
+      .tela {
+        position: relative;
+        overflow: hidden;
+        border-radius: 40px;
+        background: #ffffff;
+      }
+      .status {
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 28px;
+        background: #f5f5f5;
+        color: #111111;
+        font-weight: 600;
+        font-size: 14px;
+      }
+      .ilha {
+        position: absolute;
+        top: 11px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 104px;
+        height: 28px;
+        border-radius: 20px;
+        background: var(--aparelho);
+      }
+      .icones { display: flex; gap: 5px; align-items: center; }
+      .bateria {
+        width: 22px; height: 11px; border: 1.5px solid #111; border-radius: 3px; position: relative;
+      }
+      .bateria::after {
+        content: ""; position: absolute; inset: 1.5px; right: 5px; background: #111; border-radius: 1px;
+      }
+      iframe { display: block; border: 0; background: #ffffff; }
+      .indicador {
+        position: absolute;
+        bottom: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 120px;
+        height: 5px;
+        border-radius: 3px;
+        background: rgba(0, 0, 0, .35);
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="barra">
+      <select id="aparelho" aria-label="Aparelho"></select>
+      <button id="recarregar" type="button">Recarregar</button>
+      <button id="inicio" type="button">Início</button>
+      <span class="tamanho" id="tamanho"></span>
+    </div>
+    <div class="palco" id="palco">
+      <div class="celular" id="celular">
+        <div class="tela">
+          <div class="status">
+            <span id="hora">9:41</span>
+            <span class="icones" aria-hidden="true">●●●● <span class="bateria"></span></span>
+          </div>
+          <div class="ilha" aria-hidden="true"></div>
+          <iframe id="app" src="/" title="Pulsar"></iframe>
+          <div class="indicador" aria-hidden="true"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Largura x altura da tela em pixels CSS, como o navegador do aparelho enxerga.
+      const APARELHOS = {
+        "iphone-15": { nome: "iPhone 15", largura: 393, altura: 852 },
+        "iphone-se": { nome: "iPhone SE", largura: 375, altura: 667 },
+        "galaxy-s23": { nome: "Galaxy S23", largura: 360, altura: 780 },
+        "pixel-8-pro": { nome: "Pixel 8 Pro", largura: 412, altura: 915 },
+      };
+      const BARRA_STATUS = 44;
+
+      const seletor = document.getElementById("aparelho");
+      const celular = document.getElementById("celular");
+      const palco = document.getElementById("palco");
+      const app = document.getElementById("app");
+      const tamanho = document.getElementById("tamanho");
+
+      for (const [id, a] of Object.entries(APARELHOS)) {
+        seletor.add(new Option(a.nome, id));
+      }
+
+      function lerPreferencia() {
+        try { return localStorage.getItem("pulsar-previa-aparelho"); } catch { return null; }
+      }
+      function salvarPreferencia(id) {
+        try { localStorage.setItem("pulsar-previa-aparelho", id); } catch { /* sem armazenamento */ }
+      }
+
+      seletor.value = APARELHOS[lerPreferencia()] ? lerPreferencia() : "iphone-15";
+
+      function aplicar() {
+        const a = APARELHOS[seletor.value];
+        app.style.width = a.largura + "px";
+        app.style.height = a.altura - BARRA_STATUS + "px";
+        tamanho.textContent = a.largura + " × " + a.altura;
+        // Diminui o aparelho para caber no painel, sem passar do tamanho real.
+        const altura = a.altura + 24;
+        const largura = a.largura + 24;
+        const escala = Math.min(1, (palco.clientHeight - 24) / altura, (palco.clientWidth - 24) / largura);
+        celular.style.transform = "scale(" + escala + ")";
+      }
+
+      seletor.addEventListener("change", () => { salvarPreferencia(seletor.value); aplicar(); });
+      window.addEventListener("resize", aplicar);
+      document.getElementById("recarregar").addEventListener("click", () => app.contentWindow.location.reload());
+      document.getElementById("inicio").addEventListener("click", () => { app.src = "/"; });
+
+      function atualizarHora() {
+        const d = new Date();
+        document.getElementById("hora").textContent = d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
+      }
+      atualizarHora();
+      setInterval(atualizarHora, 30000);
+      aplicar();
+    </script>
+  </body>
+</html>
