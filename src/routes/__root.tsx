@@ -19,6 +19,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataProvider } from "@/lib/data-store";
+import { PessoalProvider } from "@/lib/pessoal-store";
 import { AuthGate } from "@/components/auth-gate";
 import { supabase } from "@/integrations/supabase/client";
 import { LogOut } from "lucide-react";
@@ -45,6 +46,11 @@ const titles: Record<string, string> = {
   "/marketing": "Marketing · Leads",
   "/marketing/campanhas": "Marketing · Campanhas",
   "/marketing/calendario": "Marketing · Calendário",
+  "/pessoal": "Pessoal · Movimentações",
+  "/pessoal/lancamentos": "Pessoal · Lançamentos",
+  "/pessoal/dinheiro-e-contas": "Pessoal · Dinheiro e Contas",
+  "/pessoal/dividas": "Pessoal · Dívidas",
+  "/pessoal/categorias": "Pessoal · Categorias",
   "/configuracoes": "Configurações",
 };
 
@@ -197,7 +203,9 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthGate>
         <DataProvider>
-          <AppShell />
+          <PessoalProvider>
+            <AppShell />
+          </PessoalProvider>
         </DataProvider>
       </AuthGate>
       <Toaster />

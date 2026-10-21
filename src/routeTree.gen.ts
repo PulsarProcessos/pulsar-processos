@@ -22,6 +22,11 @@ import { Route as FinanceiroMetasRouteImport } from './routes/financeiro.metas'
 import { Route as MarketingIndexRouteImport } from './routes/marketing.index'
 import { Route as MarketingCalendarioRouteImport } from './routes/marketing.calendario'
 import { Route as MarketingCampanhasRouteImport } from './routes/marketing.campanhas'
+import { Route as PessoalIndexRouteImport } from './routes/pessoal.index'
+import { Route as PessoalCategoriasRouteImport } from './routes/pessoal.categorias'
+import { Route as PessoalDinheiroEContasRouteImport } from './routes/pessoal.dinheiro-e-contas'
+import { Route as PessoalDividasRouteImport } from './routes/pessoal.dividas'
+import { Route as PessoalLancamentosRouteImport } from './routes/pessoal.lancamentos'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -88,6 +93,31 @@ const MarketingCampanhasRoute = MarketingCampanhasRouteImport.update({
   path: '/marketing/campanhas',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PessoalIndexRoute = PessoalIndexRouteImport.update({
+  id: '/pessoal/',
+  path: '/pessoal/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PessoalCategoriasRoute = PessoalCategoriasRouteImport.update({
+  id: '/pessoal/categorias',
+  path: '/pessoal/categorias',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PessoalDinheiroEContasRoute = PessoalDinheiroEContasRouteImport.update({
+  id: '/pessoal/dinheiro-e-contas',
+  path: '/pessoal/dinheiro-e-contas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PessoalDividasRoute = PessoalDividasRouteImport.update({
+  id: '/pessoal/dividas',
+  path: '/pessoal/dividas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PessoalLancamentosRoute = PessoalLancamentosRouteImport.update({
+  id: '/pessoal/lancamentos',
+  path: '/pessoal/lancamentos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -100,9 +130,14 @@ export interface FileRoutesByFullPath {
   '/financeiro/metas': typeof FinanceiroMetasRoute
   '/marketing/calendario': typeof MarketingCalendarioRoute
   '/marketing/campanhas': typeof MarketingCampanhasRoute
+  '/pessoal/categorias': typeof PessoalCategoriasRoute
+  '/pessoal/dinheiro-e-contas': typeof PessoalDinheiroEContasRoute
+  '/pessoal/dividas': typeof PessoalDividasRoute
+  '/pessoal/lancamentos': typeof PessoalLancamentosRoute
   '/comercial/': typeof ComercialIndexRoute
   '/financeiro/': typeof FinanceiroIndexRoute
   '/marketing/': typeof MarketingIndexRoute
+  '/pessoal/': typeof PessoalIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -115,9 +150,14 @@ export interface FileRoutesByTo {
   '/financeiro/metas': typeof FinanceiroMetasRoute
   '/marketing/calendario': typeof MarketingCalendarioRoute
   '/marketing/campanhas': typeof MarketingCampanhasRoute
+  '/pessoal/categorias': typeof PessoalCategoriasRoute
+  '/pessoal/dinheiro-e-contas': typeof PessoalDinheiroEContasRoute
+  '/pessoal/dividas': typeof PessoalDividasRoute
+  '/pessoal/lancamentos': typeof PessoalLancamentosRoute
   '/comercial': typeof ComercialIndexRoute
   '/financeiro': typeof FinanceiroIndexRoute
   '/marketing': typeof MarketingIndexRoute
+  '/pessoal': typeof PessoalIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -131,9 +171,14 @@ export interface FileRoutesById {
   '/financeiro/metas': typeof FinanceiroMetasRoute
   '/marketing/calendario': typeof MarketingCalendarioRoute
   '/marketing/campanhas': typeof MarketingCampanhasRoute
+  '/pessoal/categorias': typeof PessoalCategoriasRoute
+  '/pessoal/dinheiro-e-contas': typeof PessoalDinheiroEContasRoute
+  '/pessoal/dividas': typeof PessoalDividasRoute
+  '/pessoal/lancamentos': typeof PessoalLancamentosRoute
   '/comercial/': typeof ComercialIndexRoute
   '/financeiro/': typeof FinanceiroIndexRoute
   '/marketing/': typeof MarketingIndexRoute
+  '/pessoal/': typeof PessoalIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -148,9 +193,14 @@ export interface FileRouteTypes {
     | '/financeiro/metas'
     | '/marketing/calendario'
     | '/marketing/campanhas'
+    | '/pessoal/categorias'
+    | '/pessoal/dinheiro-e-contas'
+    | '/pessoal/dividas'
+    | '/pessoal/lancamentos'
     | '/comercial/'
     | '/financeiro/'
     | '/marketing/'
+    | '/pessoal/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -163,9 +213,14 @@ export interface FileRouteTypes {
     | '/financeiro/metas'
     | '/marketing/calendario'
     | '/marketing/campanhas'
+    | '/pessoal/categorias'
+    | '/pessoal/dinheiro-e-contas'
+    | '/pessoal/dividas'
+    | '/pessoal/lancamentos'
     | '/comercial'
     | '/financeiro'
     | '/marketing'
+    | '/pessoal'
   id:
     | '__root__'
     | '/'
@@ -178,9 +233,14 @@ export interface FileRouteTypes {
     | '/financeiro/metas'
     | '/marketing/calendario'
     | '/marketing/campanhas'
+    | '/pessoal/categorias'
+    | '/pessoal/dinheiro-e-contas'
+    | '/pessoal/dividas'
+    | '/pessoal/lancamentos'
     | '/comercial/'
     | '/financeiro/'
     | '/marketing/'
+    | '/pessoal/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -194,9 +254,14 @@ export interface RootRouteChildren {
   FinanceiroMetasRoute: typeof FinanceiroMetasRoute
   MarketingCalendarioRoute: typeof MarketingCalendarioRoute
   MarketingCampanhasRoute: typeof MarketingCampanhasRoute
+  PessoalCategoriasRoute: typeof PessoalCategoriasRoute
+  PessoalDinheiroEContasRoute: typeof PessoalDinheiroEContasRoute
+  PessoalDividasRoute: typeof PessoalDividasRoute
+  PessoalLancamentosRoute: typeof PessoalLancamentosRoute
   ComercialIndexRoute: typeof ComercialIndexRoute
   FinanceiroIndexRoute: typeof FinanceiroIndexRoute
   MarketingIndexRoute: typeof MarketingIndexRoute
+  PessoalIndexRoute: typeof PessoalIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -292,6 +357,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarketingCampanhasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pessoal/': {
+      id: '/pessoal/'
+      path: '/pessoal'
+      fullPath: '/pessoal/'
+      preLoaderRoute: typeof PessoalIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pessoal/categorias': {
+      id: '/pessoal/categorias'
+      path: '/pessoal/categorias'
+      fullPath: '/pessoal/categorias'
+      preLoaderRoute: typeof PessoalCategoriasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pessoal/dinheiro-e-contas': {
+      id: '/pessoal/dinheiro-e-contas'
+      path: '/pessoal/dinheiro-e-contas'
+      fullPath: '/pessoal/dinheiro-e-contas'
+      preLoaderRoute: typeof PessoalDinheiroEContasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pessoal/dividas': {
+      id: '/pessoal/dividas'
+      path: '/pessoal/dividas'
+      fullPath: '/pessoal/dividas'
+      preLoaderRoute: typeof PessoalDividasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pessoal/lancamentos': {
+      id: '/pessoal/lancamentos'
+      path: '/pessoal/lancamentos'
+      fullPath: '/pessoal/lancamentos'
+      preLoaderRoute: typeof PessoalLancamentosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -306,9 +406,14 @@ const rootRouteChildren: RootRouteChildren = {
   FinanceiroMetasRoute: FinanceiroMetasRoute,
   MarketingCalendarioRoute: MarketingCalendarioRoute,
   MarketingCampanhasRoute: MarketingCampanhasRoute,
+  PessoalCategoriasRoute: PessoalCategoriasRoute,
+  PessoalDinheiroEContasRoute: PessoalDinheiroEContasRoute,
+  PessoalDividasRoute: PessoalDividasRoute,
+  PessoalLancamentosRoute: PessoalLancamentosRoute,
   ComercialIndexRoute: ComercialIndexRoute,
   FinanceiroIndexRoute: FinanceiroIndexRoute,
   MarketingIndexRoute: MarketingIndexRoute,
+  PessoalIndexRoute: PessoalIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -4,6 +4,7 @@ import {
   TrendingUp,
   Handshake,
   Megaphone,
+  Wallet,
   Settings,
   ChevronRight,
 } from "lucide-react";
@@ -69,6 +70,18 @@ const items: NavItem[] = [
       { title: "Leads", url: "/marketing" },
       { title: "Campanhas", url: "/marketing/campanhas" },
       { title: "Calendário", url: "/marketing/calendario" },
+    ],
+  },
+  {
+    title: "Pessoal",
+    url: "/pessoal",
+    icon: Wallet,
+    children: [
+      { title: "Movimentações", url: "/pessoal" },
+      { title: "Lançamentos", url: "/pessoal/lancamentos" },
+      { title: "Dinheiro e Contas", url: "/pessoal/dinheiro-e-contas" },
+      { title: "Dívidas", url: "/pessoal/dividas" },
+      { title: "Categorias", url: "/pessoal/categorias" },
     ],
   },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
