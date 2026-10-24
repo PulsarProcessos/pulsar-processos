@@ -24,6 +24,7 @@ import { AuthGate } from "@/components/auth-gate";
 import { supabase } from "@/integrations/supabase/client";
 import { Download, LogOut } from "lucide-react";
 import { AtualizacaoApp } from "@/components/atualizacao-app";
+import { ConviteInstalar } from "@/components/convite-instalar";
 import { useInstalarApp } from "@/lib/instalar-app";
 import {
   DropdownMenu,
@@ -219,6 +220,7 @@ function RootComponent() {
       </AuthGate>
       <Toaster />
       <AtualizacaoApp />
+      <ConviteInstalar />
     </QueryClientProvider>
   );
 }

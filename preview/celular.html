@@ -116,6 +116,7 @@
       <select id="aparelho" aria-label="Aparelho"></select>
       <button id="recarregar" type="button">Recarregar</button>
       <button id="inicio" type="button">Início</button>
+      <button id="convite" type="button">Mostrar convite de instalar</button>
       <span class="tamanho" id="tamanho"></span>
     </div>
     <div class="palco" id="palco">
@@ -126,7 +127,7 @@
             <span class="icones" aria-hidden="true">●●●● <span class="bateria"></span></span>
           </div>
           <div class="ilha" aria-hidden="true"></div>
-          <iframe id="app" src="/" title="Pulsar"></iframe>
+          <iframe id="app" title="Pulsar"></iframe>
           <div class="indicador" aria-hidden="true"></div>
         </div>
       </div>
@@ -135,11 +136,14 @@
     <script>
       // Largura x altura da tela em pixels CSS, como o navegador do aparelho enxerga.
       const APARELHOS = {
-        "iphone-15": { nome: "iPhone 15", largura: 393, altura: 852 },
-        "iphone-se": { nome: "iPhone SE", largura: 375, altura: 667 },
-        "galaxy-s23": { nome: "Galaxy S23", largura: 360, altura: 780 },
-        "pixel-8-pro": { nome: "Pixel 8 Pro", largura: 412, altura: 915 },
+        "iphone-15": { nome: "iPhone 15", largura: 393, altura: 852, sistema: "ios" },
+        "iphone-se": { nome: "iPhone SE", largura: 375, altura: 667, sistema: "ios" },
+        "galaxy-s23": { nome: "Galaxy S23", largura: 360, altura: 780, sistema: "android" },
+        "pixel-8-pro": { nome: "Pixel 8 Pro", largura: 412, altura: 915, sistema: "android" },
       };
+      // Mesmas chaves de src/lib/instalar-app.ts e src/components/convite-instalar.tsx.
+      const CHAVE_SIMULAR = "pulsar-simular-plataforma";
+      const CHAVE_DISPENSA = "pulsar-convite-instalar-dispensado";
       const BARRA_STATUS = 44;
 
       const seletor = document.getElementById("aparelho");
@@ -161,6 +165,11 @@
 
       seletor.value = APARELHOS[lerPreferencia()] ? lerPreferencia() : "iphone-15";
 
+      // O app lê o sistema simulado ao carregar (só no modo de prévia).
+      function simularSistema() {
+        try { sessionStorage.setItem(CHAVE_SIMULAR, APARELHOS[seletor.value].sistema); } catch { /* sem armazenamento */ }
+      }
+
       function aplicar() {
         const a = APARELHOS[seletor.value];
         app.style.width = a.largura + "px";
@@ -173,10 +182,19 @@
         celular.style.transform = "scale(" + escala + ")";
       }
 
-      seletor.addEventListener("change", () => { salvarPreferencia(seletor.value); aplicar(); });
+      seletor.addEventListener("change", () => {
+        salvarPreferencia(seletor.value);
+        simularSistema();
+        aplicar();
+        app.contentWindow.location.reload();
+      });
       window.addEventListener("resize", aplicar);
       document.getElementById("recarregar").addEventListener("click", () => app.contentWindow.location.reload());
       document.getElementById("inicio").addEventListener("click", () => { app.src = "/"; });
+      document.getElementById("convite").addEventListener("click", () => {
+        try { localStorage.removeItem(CHAVE_DISPENSA); } catch { /* sem armazenamento */ }
+        app.contentWindow.location.reload();
+      });
 
       function atualizarHora() {
         const d = new Date();
@@ -184,7 +202,10 @@
       }
       atualizarHora();
       setInterval(atualizarHora, 30000);
+      simularSistema();
       aplicar();
+      // Só carrega o app depois de definir o sistema simulado.
+      app.src = "/";
     </script>
   </body>
 </html>
