@@ -232,7 +232,7 @@ function DividaForm({ editando, onConcluir }: { editando?: Divida; onConcluir: (
           <DialogTitle>{editando ? "Editar dívida" : "Nova dívida"}</DialogTitle>
           <DialogDescription>
             {editando
-              ? "As parcelas já pagas continuam como estão; as que faltam pagar são refeitas com os novos dados."
+              ? "Todas as parcelas são recalculadas com o novo valor e as novas datas; as que já foram pagas continuam marcadas como pagas."
               : "Cada parcela vira uma linha nas Movimentações do mês em que vence."}
           </DialogDescription>
         </DialogHeader>
