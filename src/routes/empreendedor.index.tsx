@@ -11,6 +11,7 @@ import {
   DollarSign, TrendingUp, Briefcase, Users, CalendarClock, AlertCircle, Receipt,
 } from "lucide-react";
 import { useData } from "@/lib/data-store";
+import { brl, formatarData, hojeISO } from "@/lib/pessoal-store";
 
 export const Route = createFileRoute("/empreendedor/")({
   component: Dashboard,
@@ -61,9 +62,9 @@ function Dashboard() {
   }).length;
 
   const kpis = [
-    { label: "Receita do mês", value: `R$ ${receitaMes.toLocaleString("pt-BR")}`, delta: `${lancMes.filter((l) => l.tipo === "Receita").length} lançamentos`, icon: DollarSign },
-    { label: "Lucro líquido", value: `R$ ${lucroMes.toLocaleString("pt-BR")}`, delta: `Margem ${margem}%`, icon: TrendingUp },
-    { label: "Pipeline", value: `R$ ${pipelineTotal.toLocaleString("pt-BR")}`, delta: `${pipelineCount} oportunidades`, icon: Briefcase },
+    { label: "Receita do mês", value: brl(receitaMes), delta: `${lancMes.filter((l) => l.tipo === "Receita").length} lançamentos`, icon: DollarSign },
+    { label: "Lucro líquido", value: brl(lucroMes), delta: `Margem ${margem}%`, icon: TrendingUp },
+    { label: "Pipeline", value: brl(pipelineTotal), delta: `${pipelineCount} oportunidades`, icon: Briefcase },
     { label: "Leads no mês", value: String(leadsMes), delta: `${leads.length} total`, icon: Users },
   ];
 
@@ -86,16 +87,22 @@ function Dashboard() {
     return arr;
   }, [lancamentos, mesAtual, anoAtual]);
 
+  // As datas vêm do banco como "AAAA-MM-DD". Comparar o texto evita o new Date("AAAA-MM-DD"),
+  // que lê em UTC e no Brasil mostrava o dia anterior.
+  const hojeStr = hojeISO();
   const proximosEventos = useMemo(() => {
-    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
     return eventos
-      .filter((e) => new Date(e.data) >= hoje)
+      .filter((e) => e.data >= hojeStr)
       .sort((a, b) => a.data.localeCompare(b.data))
       .slice(0, 4);
-  }, [eventos]);
+  }, [eventos, hojeStr]);
 
   const leadsSemContato = leads.filter((l) => l.status === "Novo").slice(0, 4);
-  const contasVencer = lancamentos.filter((l) => l.status === "Pendente" && l.tipo === "Despesa").slice(0, 4);
+  // As mais antigas primeiro (inclui as já vencidas, que são as mais urgentes).
+  const contasVencer = lancamentos
+    .filter((l) => l.status === "Pendente" && l.tipo === "Despesa")
+    .sort((a, b) => a.data.localeCompare(b.data))
+    .slice(0, 4);
 
   const hasAny = lancamentos.length || deals.length || leads.length;
 
@@ -142,11 +149,12 @@ function Dashboard() {
               <YAxis stroke="oklch(0.5 0.02 270)" fontSize={12} />
               <Tooltip
                 contentStyle={{ background: "white", border: "1px solid oklch(0.92 0.01 270)", borderRadius: 8 }}
-                formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR")}`}
+                formatter={(v: number) => brl(v)}
               />
               <Legend />
-              <Bar dataKey="receita" name="Receita" fill="#F57C00" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="despesas" name="Despesas" fill="#3A3A3A" radius={[6, 6, 0, 0]} />
+              {/* Sem a animação de entrada: com ela (recharts 2) as barras não apareciam, só os eixos. */}
+              <Bar dataKey="receita" name="Receita" fill="#F57C00" radius={[6, 6, 0, 0]} isAnimationActive={false} />
+              <Bar dataKey="despesas" name="Despesas" fill="#3A3A3A" radius={[6, 6, 0, 0]} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -168,7 +176,7 @@ function Dashboard() {
                   <p className="text-sm font-medium">{e.titulo}</p>
                   <p className="text-xs text-muted-foreground">{e.tipo}{e.canal ? ` · ${e.canal}` : ""}</p>
                 </div>
-                <Badge variant="secondary" className="shrink-0">{new Date(e.data).toLocaleDateString("pt-BR")}</Badge>
+                <Badge variant="secondary" className="shrink-0">{formatarData(e.data)}</Badge>
               </div>
             ))}
           </CardContent>
@@ -189,7 +197,7 @@ function Dashboard() {
                   <p className="text-sm font-medium">{l.nome}</p>
                   <p className="text-xs text-muted-foreground">{l.origem}</p>
                 </div>
-                <span className="text-xs text-muted-foreground">{l.data}</span>
+                <span className="shrink-0 text-xs text-muted-foreground">{l.data ? formatarData(l.data) : ""}</span>
               </div>
             ))}
           </CardContent>
@@ -208,9 +216,11 @@ function Dashboard() {
               <div key={c.id} className="flex items-center justify-between gap-3 border-b border-border/60 pb-3 last:border-0 last:pb-0">
                 <div>
                   <p className="text-sm font-medium">{c.desc}</p>
-                  <p className="text-xs text-muted-foreground">Vence {c.data}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {c.data < hojeStr ? "Venceu em" : "Vence"} {formatarData(c.data)}
+                  </p>
                 </div>
-                <span className="text-sm font-semibold text-red-500">R$ {c.valor.toLocaleString("pt-BR")}</span>
+                <span className="shrink-0 text-sm font-semibold text-red-500">{brl(c.valor)}</span>
               </div>
             ))}
           </CardContent>

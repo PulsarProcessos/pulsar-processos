@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { useData } from "@/lib/data-store";
+import { brl } from "@/lib/pessoal-store";
 
 export const Route = createFileRoute("/empreendedor/financeiro/")({
   component: FinanceiroOverview,
@@ -48,10 +49,10 @@ function FinanceiroOverview() {
   const saldoTotal = bancos.reduce((s, b) => s + saldoBanco(b.id), 0);
 
   const dre = [
-    { l: "Total de receitas", v: `R$ ${totalReceitas.toLocaleString("pt-BR")}`, color: "text-emerald-600" },
-    { l: "Total de despesas", v: `R$ ${totalDespesas.toLocaleString("pt-BR")}`, color: "text-red-500" },
-    { l: "Lucro bruto", v: `R$ ${lucro.toLocaleString("pt-BR")}`, color: "text-foreground" },
-    { l: "Saldo em bancos", v: `R$ ${saldoTotal.toLocaleString("pt-BR")}`, color: "text-primary" },
+    { l: "Total de receitas", v: brl(totalReceitas), color: "text-emerald-600" },
+    { l: "Total de despesas", v: brl(totalDespesas), color: "text-red-500" },
+    { l: "Lucro bruto", v: brl(lucro), color: "text-foreground" },
+    { l: "Saldo em bancos", v: brl(saldoTotal), color: "text-primary" },
   ];
 
   const cashflow = useMemo(() => {
@@ -104,13 +105,15 @@ function FinanceiroOverview() {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={cashflow}>
               <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.92 0.01 270)" />
-              <XAxis dataKey="m" stroke="oklch(0.5 0.02 270)" fontSize={12} />
+              <XAxis dataKey="m" stroke="oklch(0.5 0.02 270)" fontSize={12} padding={{ left: 12, right: 12 }} />
               <YAxis stroke="oklch(0.5 0.02 270)" fontSize={12} />
               <Tooltip
                 contentStyle={{ background: "white", border: "1px solid oklch(0.92 0.01 270)", borderRadius: 8 }}
-                formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR")}`}
+                formatter={(v: number) => brl(v)}
               />
-              <Line type="monotone" dataKey="receita" stroke="#F57C00" strokeWidth={2.5} dot={{ r: 4 }} />
+              {/* Sem a animação de entrada: com ela (recharts 2) a linha não aparecia, só os eixos. */}
+              <Line type="monotone" dataKey="receita" stroke="#F57C00" strokeWidth={2.5} dot={{ r: 4 }}
+                isAnimationActive={false} />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>
@@ -129,7 +132,7 @@ function FinanceiroOverview() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Categoria</TableHead>
-                  <TableHead>Participação</TableHead>
+                  <TableHead className="hidden sm:table-cell">Participação</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                 </TableRow>
               </TableHeader>
@@ -138,16 +141,21 @@ function FinanceiroOverview() {
                   const pct = totalCat > 0 ? Math.round((d.v / totalCat) * 100) : 0;
                   return (
                     <TableRow key={d.c}>
-                      <TableCell className="font-medium">{d.c}</TableCell>
-                      <TableCell>
+                      <TableCell className="font-medium">
+                        {d.c}
+                        {/* No celular a coluna Participação some; a barra fica embaixo do nome. */}
+                        <div className="mt-1 flex items-center gap-2 sm:hidden">
+                          <Progress value={pct} className="h-1.5 w-20" />
+                          <span className="text-xs font-normal text-muted-foreground">{pct}%</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <div className="flex items-center gap-3">
                           <Progress value={pct} className="h-2 w-32" />
                           <span className="text-xs text-muted-foreground">{pct}%</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right font-medium">
-                        R$ {d.v.toLocaleString("pt-BR")}
-                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-right font-medium">{brl(d.v)}</TableCell>
                     </TableRow>
                   );
                 })}

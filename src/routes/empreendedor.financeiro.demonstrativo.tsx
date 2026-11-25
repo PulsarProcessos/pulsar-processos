@@ -150,7 +150,8 @@ function Demonstrativo() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border/60 text-xs text-muted-foreground uppercase">
-                  <th className="text-left py-2 pl-2">Descrição</th>
+                  {/* Primeira coluna fixa: no celular a tabela rola de lado e o nome da linha continua à vista. */}
+                  <th className={`text-left py-2 pl-2 ${FIXA}`}>Descrição</th>
                   <th className="text-right py-2 px-3 w-36">Realizado (R$)</th>
                   <th className="text-right py-2 px-3 w-36">Projetado (R$)</th>
                   <th className="text-right py-2 px-3 w-32">Diferença</th>
@@ -159,7 +160,7 @@ function Demonstrativo() {
               </thead>
               <tbody>
                 <tr className="bg-emerald-500/5">
-                  <td colSpan={5} className="py-2 px-2 font-semibold text-emerald-700">RECEITAS</td>
+                  <td colSpan={5} className="py-2 px-2 font-semibold text-emerald-700"><span className="sticky left-2">RECEITAS</span></td>
                 </tr>
                 {dados.rec.blocos.map((b) => (
                   <FragmentBloco
@@ -171,7 +172,7 @@ function Demonstrativo() {
                   real={dados.rec.totalReal} proj={dados.rec.totalProj} mode="receita" />
 
                 <tr className="bg-red-500/5">
-                  <td colSpan={5} className="py-2 px-2 font-semibold text-red-700 pt-4">DESPESAS</td>
+                  <td colSpan={5} className="py-2 px-2 font-semibold text-red-700 pt-4"><span className="sticky left-2">DESPESAS</span></td>
                 </tr>
                 {dados.desp.blocos.map((b) => (
                   <FragmentBloco
@@ -183,7 +184,7 @@ function Demonstrativo() {
                   real={dados.desp.totalReal} proj={dados.desp.totalProj} mode="despesa" />
 
                 <tr className="border-t-2 border-border bg-muted/40 font-bold">
-                  <td className="py-3 pl-2">Resultado do período</td>
+                  <td className={`py-3 pl-2 ${FIXA} bg-linear-to-r from-muted/40 to-muted/40`}>Resultado do período</td>
                   <td className={`text-right px-3 ${resultReal < 0 ? "text-red-600" : "text-emerald-700"}`}>{brl(resultReal)}</td>
                   <td className={`text-right px-3 ${resultProj < 0 ? "text-red-500/80" : "text-emerald-600/80"}`}>{brl(resultProj)}</td>
                   <td className={`text-right px-3 ${(resultReal - resultProj) < 0 ? "text-red-600" : "text-emerald-700"}`}>{brl(resultReal - resultProj)}</td>
@@ -197,6 +198,10 @@ function Demonstrativo() {
     </div>
   );
 }
+
+// Célula da primeira coluna, fixa à esquerda ao rolar de lado. Fundo sólido para os números passarem por baixo;
+// nas linhas com tom (grupo, resultado) o tom vai por cima como camada (bg-linear-to-r).
+const FIXA = "sticky left-0 z-10 bg-card";
 
 function AtingimentoBar({ real, proj, mode }: { real: number; proj: number; mode: "receita" | "despesa" }) {
   const p = pct(real, proj);
@@ -222,7 +227,7 @@ function TotalRow({ label, real, proj, mode }: { label: string; real: number; pr
   const diff = real - proj;
   return (
     <tr className={`border-t-2 ${mode === "receita" ? "border-emerald-300/50" : "border-red-300/50"} font-semibold`}>
-      <td className="py-2 pl-2">{label}</td>
+      <td className={`py-2 pl-2 ${FIXA}`}>{label}</td>
       <td className={`text-right px-3 ${accentText}`}>{brl(real)}</td>
       <td className="text-right px-3 text-muted-foreground">{brl(proj)}</td>
       <td className={`text-right px-3 ${(mode === "despesa" ? diff > 0 : diff < 0) ? "text-red-600" : "text-emerald-700"}`}>
@@ -246,8 +251,8 @@ function FragmentBloco({
   return (
     <>
       <tr className="border-b border-border/40 bg-muted/20 font-medium">
-        <td className="py-1.5 pl-2">
-          <button type="button" className="flex items-center gap-1.5" onClick={onToggle}>
+        <td className={`py-1.5 pl-2 ${FIXA} bg-linear-to-r from-muted/20 to-muted/20`}>
+          <button type="button" className="flex items-center gap-1.5 text-left" onClick={onToggle}>
             {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
             <span>{bloco.nome}</span>
           </button>
@@ -263,7 +268,7 @@ function FragmentBloco({
         const d = l.realizado - l.projetado;
         return (
           <tr key={l.label} className="border-b border-border/30 text-muted-foreground">
-            <td className="py-1.5 pl-10">{l.label}</td>
+            <td className={`py-1.5 pl-6 sm:pl-10 ${FIXA}`}>{l.label}</td>
             <td className="text-right px-3 text-foreground">{brl(l.realizado)}</td>
             <td className="text-right px-3">{brl(l.projetado)}</td>
             <td className={`text-right px-3 ${(mode === "despesa" ? d > 0 : d < 0) ? "text-red-500" : "text-emerald-600"}`}>
@@ -274,7 +279,7 @@ function FragmentBloco({
         );
       })}
       {open && bloco.linhas.length === 0 && (
-        <tr><td colSpan={5} className="text-xs text-muted-foreground pl-10 py-1.5">Sem categorias.</td></tr>
+        <tr><td colSpan={5} className="text-xs text-muted-foreground pl-6 sm:pl-10 py-1.5"><span className="sticky left-6">Sem categorias.</span></td></tr>
       )}
     </>
   );

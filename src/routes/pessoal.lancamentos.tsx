@@ -67,6 +67,39 @@ function LancamentosPessoais() {
 
   const dataPadrao = chave === hojeStr.slice(0, 7) ? hojeStr : `${chave}-01`;
 
+  // Selo de situação (clicável) e botões, iguais na tabela e nos cartões do celular.
+  const selo = (l: LancamentoPessoal) => {
+    const pago = l.status === "Pago";
+    const rotulo = l.tipo === "Receita"
+      ? (pago ? "Recebido" : "A receber")
+      : (pago ? "Pago" : "A pagar");
+    return (
+      <button type="button" onClick={() => alternarStatus(l)} title="Toque para alterar">
+        <Badge
+          variant={pago ? "default" : "secondary"}
+          className={pago ? "bg-emerald-600 hover:bg-emerald-600" : ""}
+        >
+          {rotulo}
+        </Badge>
+      </button>
+    );
+  };
+
+  const acoes = (l: LancamentoPessoal) => (
+    <div className="flex justify-end gap-1">
+      <Button size="icon" variant="ghost" className="h-8 w-8" title="Editar" aria-label="Editar"
+        onClick={() => setForm({ aberto: true, editando: l })}>
+        <Pencil className="h-4 w-4" />
+      </Button>
+      <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500" title="Excluir" aria-label="Excluir"
+        onClick={() => excluir(l)}>
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+
+  const valor = (l: LancamentoPessoal) => `${l.tipo === "Receita" ? "+ " : ""}${brl(l.valor)}`;
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -97,64 +130,67 @@ function LancamentosPessoais() {
               Nenhum lançamento neste mês. Clique em "Novo lançamento" para começar.
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-28">Data</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead className="hidden md:table-cell">Categoria</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead className="w-28">Situação</TableHead>
-                  <TableHead className="w-24" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Celular: um cartão por lançamento, com a situação e os botões à vista. */}
+              <div className="divide-y divide-border/60 md:hidden">
                 {doMes.map((l) => {
                   const d = detalhe(l);
-                  const pago = l.status === "Pago";
-                  const rotulo = l.tipo === "Receita"
-                    ? (pago ? "Recebido" : "A receber")
-                    : (pago ? "Pago" : "A pagar");
+                  const cat = nomeCategoria(l.categoriaId);
                   return (
-                    <TableRow key={l.id}>
-                      <TableCell className="tabular-nums">{formatarData(l.data)}</TableCell>
-                      <TableCell>
-                        <div className="font-medium">{l.descricao}</div>
-                        {d && <div className="text-xs text-muted-foreground">{d}</div>}
-                      </TableCell>
-                      <TableCell className="hidden text-muted-foreground md:table-cell">
-                        {nomeCategoria(l.categoriaId) ?? "—"}
-                      </TableCell>
-                      <TableCell className={`text-right tabular-nums ${l.tipo === "Receita" ? "text-emerald-600" : ""}`}>
-                        {l.tipo === "Receita" ? "+ " : ""}{brl(l.valor)}
-                      </TableCell>
-                      <TableCell>
-                        <button type="button" onClick={() => alternarStatus(l)} title="Clique para alterar">
-                          <Badge
-                            variant={pago ? "default" : "secondary"}
-                            className={pago ? "bg-emerald-600 hover:bg-emerald-600" : ""}
-                          >
-                            {rotulo}
-                          </Badge>
-                        </button>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button size="icon" variant="ghost" className="h-8 w-8" title="Editar"
-                            onClick={() => setForm({ aberto: true, editando: l })}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500" title="Excluir"
-                            onClick={() => excluir(l)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                    <div key={l.id} className="flex items-start gap-3 py-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium leading-snug">{l.descricao}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {formatarData(l.data)}{d ? ` · ${d}` : ""}{cat ? ` · ${cat}` : ""}
+                        </p>
+                        <div className="mt-1.5">{selo(l)}</div>
+                      </div>
+                      <div className="flex shrink-0 flex-col items-end gap-1.5">
+                        <span className={`font-semibold tabular-nums ${l.tipo === "Receita" ? "text-emerald-600" : ""}`}>
+                          {valor(l)}
+                        </span>
+                        {acoes(l)}
+                      </div>
+                    </div>
                   );
                 })}
-              </TableBody>
-            </Table>
+              </div>
+
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-28">Data</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Categoria</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                      <TableHead className="w-28">Situação</TableHead>
+                      <TableHead className="w-24" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {doMes.map((l) => {
+                      const d = detalhe(l);
+                      return (
+                        <TableRow key={l.id}>
+                          <TableCell className="tabular-nums">{formatarData(l.data)}</TableCell>
+                          <TableCell>
+                            <div className="font-medium">{l.descricao}</div>
+                            {d && <div className="text-xs text-muted-foreground">{d}</div>}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{nomeCategoria(l.categoriaId) ?? "—"}</TableCell>
+                          <TableCell className={`text-right tabular-nums ${l.tipo === "Receita" ? "text-emerald-600" : ""}`}>
+                            {valor(l)}
+                          </TableCell>
+                          <TableCell>{selo(l)}</TableCell>
+                          <TableCell className="text-right">{acoes(l)}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

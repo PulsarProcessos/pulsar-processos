@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useData, Campanha, CampStatus } from "@/lib/data-store";
+import { formatarData } from "@/lib/pessoal-store";
 
 export const Route = createFileRoute("/empreendedor/marketing/campanhas")({
   component: Campanhas,
@@ -51,7 +52,7 @@ function Campanhas() {
       <div className="flex justify-end">
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditando(null); }}>
           <DialogTrigger asChild>
-            <Button onClick={() => setEditando(null)}>
+            <Button className="w-full sm:w-auto" onClick={() => setEditando(null)}>
               <Plus className="h-4 w-4" /> Nova Campanha
             </Button>
           </DialogTrigger>
@@ -89,7 +90,9 @@ function Campanhas() {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Período</p>
-                    <p className="font-medium">{c.inicio} – {c.fim}</p>
+                    <p className="font-medium">
+                      {c.inicio ? formatarData(c.inicio) : "—"} – {c.fim ? formatarData(c.fim) : "—"}
+                    </p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">CPL</p>
@@ -134,6 +137,7 @@ function CampanhaForm({
     if (!nome.trim() || !orcamento || !inicio || !fim) { setErro("Preencha todos os campos."); return; }
     const o = Number(orcamento); const l = Number(leads);
     if (Number.isNaN(o) || o <= 0) { setErro("Orçamento inválido."); return; }
+    if (fim < inicio) { setErro("O fim não pode ser antes do início."); return; }
     const payload = {
       nome: nome.trim(), canal, orcamento: o, inicio, fim,
       leads: Number.isNaN(l) ? 0 : l, status,
@@ -178,10 +182,11 @@ function CampanhaForm({
             <Input type="number" min="0" value={leads} onChange={(e) => setLeads(e.target.value)} /></div>
         </div>
         <div className="grid grid-cols-2 gap-3">
+          {/* Campo de data: grava AAAA-MM-DD, o formato que a coluna date aceita ("dd/mm" era recusado). */}
           <div className="space-y-1.5"><Label>Início</Label>
-            <Input placeholder="dd/mm" value={inicio} onChange={(e) => setInicio(e.target.value)} maxLength={10} /></div>
+            <Input type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} /></div>
           <div className="space-y-1.5"><Label>Fim</Label>
-            <Input placeholder="dd/mm" value={fim} onChange={(e) => setFim(e.target.value)} maxLength={10} /></div>
+            <Input type="date" value={fim} min={inicio || undefined} onChange={(e) => setFim(e.target.value)} /></div>
         </div>
         {erro && <p className="text-sm text-red-500">{erro}</p>}
       </div>

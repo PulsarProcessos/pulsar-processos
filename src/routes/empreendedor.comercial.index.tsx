@@ -58,7 +58,7 @@ function Pipeline() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
           Personalize etapas e produtos em{" "}
           <Link to="/empreendedor/comercial/cadastros" className="text-primary underline">Cadastros</Link>.
@@ -114,8 +114,12 @@ function Column({
         </div>
         <p className="text-xs text-muted-foreground">R$ {total.toLocaleString("pt-BR")}</p>
       </CardHeader>
-      <CardContent className="space-y-2 min-h-[120px]">
+      {/* No celular as etapas ficam uma embaixo da outra: vazias não precisam ocupar tanto espaço. */}
+      <CardContent className="space-y-2 min-h-10 md:min-h-[120px]">
         {deals.map((d) => <DealCard key={d.id} deal={d} onClick={() => onSelect(d)} />)}
+        {deals.length === 0 && (
+          <p className="text-xs text-muted-foreground md:hidden">Nenhuma oportunidade nesta etapa.</p>
+        )}
       </CardContent>
     </Card>
   );

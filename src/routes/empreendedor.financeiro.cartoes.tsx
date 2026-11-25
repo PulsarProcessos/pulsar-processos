@@ -319,11 +319,11 @@ function Cartoes() {
 
       {/* Ações + navegação mês */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-2">
-          <Button onClick={abrirPagamento} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+          <Button onClick={abrirPagamento} className="flex-auto bg-emerald-600 hover:bg-emerald-700 text-white sm:flex-none">
             Informar pagamento
           </Button>
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" className="flex-auto sm:flex-none">
             <Link to="/empreendedor/financeiro/lancamentos">Adicionar lançamento</Link>
           </Button>
         </div>

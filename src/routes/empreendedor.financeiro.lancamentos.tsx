@@ -396,6 +396,122 @@ function Lancamentos() {
     toast.success(`Relatório com ${rows.length} registro(s) exportado.`);
   };
 
+  // Cada linha do extrato desenhada uma vez só; a tabela (computador) e a lista (celular) usam as mesmas partes.
+  const itens = linhasOrdenadas.map((row) => {
+    if (row.kind === "transf" || row.kind === "pagfat") {
+      const isPag = row.kind === "pagfat";
+      const ori = bancos.find((b) => b.id === row.bancoOrigemId)?.nome ?? "—";
+      const des = bancos.find((b) => b.id === row.bancoDestinoId)?.nome ?? "—";
+      const isSaida = filtroBanco !== "todos" && row.bancoOrigemId === filtroBanco;
+      const isEntrada = filtroBanco !== "todos" && row.bancoDestinoId === filtroBanco;
+      const sinal = isSaida ? -1 : (isEntrada ? 1 : 0);
+      const valorClass = sinal < 0 ? "text-red-600" : sinal > 0 ? "text-emerald-600" : (isPag ? "text-emerald-700" : "text-sky-700");
+      const prefix = sinal < 0 ? "− " : sinal > 0 ? "+ " : "";
+      const iconCol = isPag ? "text-emerald-600" : "text-sky-600";
+      const tagBg = isPag ? "bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/20" : "bg-sky-500/15 text-sky-700 hover:bg-sky-500/20";
+      const title = isPag ? "Pagamento de fatura" : "Transferência";
+      return {
+        id: row.id,
+        data: row.data,
+        fundo: isPag ? "bg-emerald-500/5" : "bg-sky-500/5",
+        selecao: null,
+        resumo: (
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-medium">
+              <ArrowRightLeft className={`h-3.5 w-3.5 ${iconCol}`} />
+              <span>{title}</span>
+              <Badge variant="outline" className="text-[10px]">{ori} → {des}</Badge>
+            </div>
+            {row.descricao && <div className="text-xs text-muted-foreground">{row.descricao}</div>}
+          </div>
+        ),
+        situacao: <Badge className={`${tagBg} border-0`}>{title}</Badge>,
+        valor: `${prefix}${brl(row.valor)}`,
+        valorClass,
+        acoes: (
+          <div className="flex justify-end gap-1">
+            {!isPag && (
+              <Button variant="ghost" size="icon" className="h-8 w-8"
+                title="Editar transferência" aria-label="Editar transferência"
+                onClick={() => {
+                  const t = transferencias.find((x) => x.id === row.id.slice(2));
+                  if (t) abrirTransf(t);
+                }}>
+                <Pencil className="h-4 w-4" />
+              </Button>
+            )}
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" title="Excluir" aria-label="Excluir"
+              onClick={() => {
+                if (!confirm(isPag ? "Excluir este pagamento de fatura?" : "Excluir esta transferência?")) return;
+                if (isPag) removePagamentoFatura(row.id.slice(2));
+                else removeTransferencia(row.id.slice(2));
+              }}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ),
+      };
+    }
+    const r = row.lanc;
+    return {
+      id: r.id,
+      data: r.data,
+      fundo: selecionados.has(r.id) ? "bg-muted/40" : "",
+      selecao: (
+        <Checkbox checked={selecionados.has(r.id)} onCheckedChange={() => toggle(r.id)} aria-label="Selecionar" />
+      ),
+      resumo: (
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-medium">
+            {r.parcelaTotal ? <Repeat className="h-3.5 w-3.5 text-muted-foreground" /> : null}
+            {r.parcelaTotal ? (
+              <span className="text-xs text-muted-foreground">{r.parcelaNumero}/{r.parcelaTotal} —</span>
+            ) : null}
+            <span>{r.desc}</span>
+            {r.rateios && r.rateios.length > 0 ? (
+              <Badge variant="outline" className="text-[10px] gap-1">
+                <Layers className="h-3 w-3" /> Rateado
+              </Badge>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+            <Badge variant="outline" className="text-[10px]">{catName(r.categoriaId)}</Badge>
+            <span>{contName(r.contatoId)}</span>
+          </div>
+        </div>
+      ),
+      situacao: r.status === "Pago" ? (
+        <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/20 border-0">Pago</Badge>
+      ) : (
+        <Badge className="bg-amber-500/15 text-amber-700 hover:bg-amber-500/20 border-0">Em aberto</Badge>
+      ),
+      valor: `${r.tipo === "Receita" ? "+" : "−"} ${brl(r.valor)}`,
+      valorClass: r.tipo === "Receita" ? "text-emerald-600" : "text-red-500",
+      acoes: (
+        <div className="flex justify-end gap-1">
+          <Button
+            variant="ghost" size="icon"
+            className={`h-8 w-8 ${r.status === "Pago" ? "text-emerald-600" : (r.tipo === "Receita" ? "text-muted-foreground hover:text-emerald-600" : "text-muted-foreground hover:text-red-600")}`}
+            title={r.status === "Pago"
+              ? "Marcar como em aberto"
+              : (r.tipo === "Receita" ? "Dar como recebido" : "Dar como pago")}
+            aria-label={r.status === "Pago" ? "Marcar como em aberto" : "Dar baixa"}
+            onClick={() => marcarPago(r)}>
+            <Check className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" title="Editar" aria-label="Editar"
+            onClick={() => iniciarEdicao(r)}>
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" title="Excluir" aria-label="Excluir"
+            onClick={() => removeLancamento(r.id)}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      ),
+    };
+  });
+
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
@@ -586,16 +702,16 @@ function Lancamentos() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex gap-2 ml-auto">
-              <Button variant="outline" onClick={exportarCSV} title="Exportar extrato em CSV">
+            <div className="flex w-full flex-wrap gap-2 sm:ml-auto sm:w-auto">
+              <Button variant="outline" className="flex-auto sm:flex-none" onClick={exportarCSV} title="Exportar extrato em CSV">
                 <Download className="h-4 w-4" /> Exportar
               </Button>
-              <Button variant="outline" onClick={() => abrirTransf(null)}>
+              <Button variant="outline" className="flex-auto sm:flex-none" onClick={() => abrirTransf(null)}>
                 <ArrowRightLeft className="h-4 w-4" /> Transferência
               </Button>
               <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditando(null); }}>
                 <DialogTrigger asChild>
-                  <Button onClick={() => setEditando(null)}>
+                  <Button className="flex-auto sm:flex-none" onClick={() => setEditando(null)}>
                     <Plus className="h-4 w-4" /> Novo Lançamento
                   </Button>
                 </DialogTrigger>
@@ -614,7 +730,11 @@ function Lancamentos() {
           </div>
 
           {/* Ações em lote */}
-          <div className="flex items-center gap-2 text-sm">
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <label className="flex items-center gap-2 md:hidden">
+              <Checkbox checked={todasSelecionadas} onCheckedChange={toggleTodas} aria-label="Selecionar todos" />
+              Todos
+            </label>
             <span className="text-muted-foreground">{selecionados.size} registro(s) selecionado(s)</span>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -632,6 +752,28 @@ function Lancamentos() {
         </CardHeader>
 
         <CardContent>
+          {/* Celular: um cartão por linha, com situação, valor e botões sempre à vista. */}
+          <div className="divide-y divide-border/60 md:hidden">
+            {itens.map((it) => (
+              <div key={it.id} className={`-mx-3 flex items-start gap-3 rounded-md px-3 py-3 ${it.fundo}`}>
+                <div className="flex w-4 shrink-0 justify-center pt-0.5">{it.selecao}</div>
+                <div className="min-w-0 flex-1">
+                  {it.resumo}
+                  <p className="mt-1 text-xs text-muted-foreground">{fmtDate(it.data)}</p>
+                  <div className="mt-1.5">{it.situacao}</div>
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-1.5">
+                  <span className={`font-semibold tabular-nums ${it.valorClass}`}>{it.valor}</span>
+                  {it.acoes}
+                </div>
+              </div>
+            ))}
+            {itens.length === 0 && (
+              <p className="py-8 text-center text-sm text-muted-foreground">Nenhum lançamento neste período.</p>
+            )}
+          </div>
+
+          <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -650,129 +792,17 @@ function Lancamentos() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {linhasOrdenadas.map((row) => {
-                if (row.kind === "transf" || row.kind === "pagfat") {
-                  const isPag = row.kind === "pagfat";
-                  const ori = bancos.find((b) => b.id === row.bancoOrigemId)?.nome ?? "—";
-                  const des = bancos.find((b) => b.id === row.bancoDestinoId)?.nome ?? "—";
-                  const isSaida = filtroBanco !== "todos" && row.bancoOrigemId === filtroBanco;
-                  const isEntrada = filtroBanco !== "todos" && row.bancoDestinoId === filtroBanco;
-                  const sinal = isSaida ? -1 : (isEntrada ? 1 : 0);
-                  const valorClass = sinal < 0 ? "text-red-600" : sinal > 0 ? "text-emerald-600" : (isPag ? "text-emerald-700" : "text-sky-700");
-                  const prefix = sinal < 0 ? "− " : sinal > 0 ? "+ " : "";
-                  const bg = isPag ? "bg-emerald-500/5" : "bg-sky-500/5";
-                  const iconCol = isPag ? "text-emerald-600" : "text-sky-600";
-                  const tagBg = isPag ? "bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/20" : "bg-sky-500/15 text-sky-700 hover:bg-sky-500/20";
-                  const title = isPag ? "Pagamento de fatura" : "Transferência";
-                  return (
-                    <TableRow key={row.id} className={bg}>
-                      <TableCell />
-                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{fmtDate(row.data)}</TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 font-medium">
-                            <ArrowRightLeft className={`h-3.5 w-3.5 ${iconCol}`} />
-                            <span>{title}</span>
-                            <Badge variant="outline" className="text-[10px]">{ori} → {des}</Badge>
-                          </div>
-                          {row.descricao && (
-                            <div className="text-xs text-muted-foreground">{row.descricao}</div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={`${tagBg} border-0`}>{title}</Badge>
-                      </TableCell>
-                      <TableCell className={`text-right font-medium ${valorClass}`}>
-                        {prefix}{brl(row.valor)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          {!isPag && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8"
-                              title="Editar transferência"
-                              onClick={() => {
-                                const t = transferencias.find((x) => x.id === row.id.slice(2));
-                                if (t) abrirTransf(t);
-                              }}>
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          )}
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500"
-                            onClick={() => {
-                              if (!confirm(isPag ? "Excluir este pagamento de fatura?" : "Excluir esta transferência?")) return;
-                              if (isPag) removePagamentoFatura(row.id.slice(2));
-                              else removeTransferencia(row.id.slice(2));
-                            }}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                }
-                const r = row.lanc;
-                return (
-                  <TableRow key={r.id} className={selecionados.has(r.id) ? "bg-muted/40" : ""}>
-                    <TableCell>
-                      <Checkbox checked={selecionados.has(r.id)} onCheckedChange={() => toggle(r.id)} />
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{fmtDate(r.data)}</TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 font-medium">
-                          {r.parcelaTotal ? <Repeat className="h-3.5 w-3.5 text-muted-foreground" /> : null}
-                          {r.parcelaTotal ? (
-                            <span className="text-xs text-muted-foreground">{r.parcelaNumero}/{r.parcelaTotal} —</span>
-                          ) : null}
-                          <span>{r.desc}</span>
-                          {r.rateios && r.rateios.length > 0 ? (
-                            <Badge variant="outline" className="text-[10px] gap-1">
-                              <Layers className="h-3 w-3" /> Rateado
-                            </Badge>
-                          ) : null}
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Badge variant="outline" className="text-[10px]">{catName(r.categoriaId)}</Badge>
-                          <span>{contName(r.contatoId)}</span>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {r.status === "Pago" ? (
-                        <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/20 border-0">Pago</Badge>
-                      ) : (
-                        <Badge className="bg-amber-500/15 text-amber-700 hover:bg-amber-500/20 border-0">Em aberto</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className={`text-right font-medium ${r.tipo === "Receita" ? "text-emerald-600" : "text-red-500"}`}>
-                      {r.tipo === "Receita" ? "+" : "−"} {brl(r.valor)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost" size="icon"
-                          className={`h-8 w-8 ${r.status === "Pago" ? "text-emerald-600" : (r.tipo === "Receita" ? "text-muted-foreground hover:text-emerald-600" : "text-muted-foreground hover:text-red-600")}`}
-                          title={r.status === "Pago"
-                            ? "Marcar como em aberto"
-                            : (r.tipo === "Receita" ? "Dar como recebido" : "Dar como pago")}
-                          onClick={() => marcarPago(r)}>
-                          <Check className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8"
-                          onClick={() => iniciarEdicao(r)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500"
-                          onClick={() => removeLancamento(r.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-              {linhasOrdenadas.length === 0 && (
+              {itens.map((it) => (
+                <TableRow key={it.id} className={it.fundo}>
+                  <TableCell>{it.selecao}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{fmtDate(it.data)}</TableCell>
+                  <TableCell>{it.resumo}</TableCell>
+                  <TableCell>{it.situacao}</TableCell>
+                  <TableCell className={`text-right font-medium ${it.valorClass}`}>{it.valor}</TableCell>
+                  <TableCell className="text-right">{it.acoes}</TableCell>
+                </TableRow>
+              ))}
+              {itens.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
                     Nenhum lançamento neste período.
@@ -781,6 +811,7 @@ function Lancamentos() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -877,7 +908,8 @@ function LancamentoForm({
   const [tipo, setTipo] = useState<LancTipo>(editando?.tipo ?? "Despesa");
   const [desc, setDesc] = useState(editando?.desc ?? "");
   const [valor, setValor] = useState(editando ? String(editando.valor) : "");
-  const [data, setData] = useState(editando?.data ?? new Date().toISOString().slice(0, 10));
+  // toISO usa o dia local; toISOString() usava UTC e, depois das 21h, sugeria o dia seguinte.
+  const [data, setData] = useState(editando?.data ?? toISO(new Date()));
   const [categoriaId, setCategoriaId] = useState(editando?.categoriaId ?? "");
   const [contatoId, setContatoId] = useState(editando?.contatoId ?? "");
   const [bancoId, setBancoId] = useState(editando?.bancoId ?? "");

@@ -87,6 +87,28 @@ function Movimentacoes() {
 
   const dataPadrao = chave === hojeStr.slice(0, 7) ? hojeStr : `${chave}-01`;
 
+  // Mesmos botões na tabela (computador) e nos cartões (celular).
+  const acoes = (l: Linha) => (
+    <div className="flex justify-end gap-1">
+      {l.status === "Pendente" ? (
+        <Button size="sm" variant="outline" className="h-8" onClick={() => marcarPago(l)}>
+          <Check className="h-4 w-4" /> {l.tipo === "Receita" ? "Recebi" : "Paguei"}
+        </Button>
+      ) : (
+        <Button size="icon" variant="ghost" className="h-8 w-8" title="Desfazer pagamento" aria-label="Desfazer pagamento"
+          onClick={() => desfazer(l)}>
+          <Undo2 className="h-4 w-4" />
+        </Button>
+      )}
+      {l.lancamento && (
+        <Button size="icon" variant="ghost" className="h-8 w-8" title="Editar" aria-label="Editar"
+          onClick={() => setForm({ aberto: true, editando: l.lancamento })}>
+          <Pencil className="h-4 w-4" />
+        </Button>
+      )}
+    </div>
+  );
+
   const situacao = (l: Linha) => {
     if (l.tipo === "Receita") {
       return l.status === "Pago"
@@ -116,14 +138,14 @@ function Movimentacoes() {
         </Button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         {cards.map((c) => (
           <Card key={c.titulo} className="border-border/60">
-            <CardHeader className="pb-2">
+            <CardHeader className="p-4 pb-1 sm:p-6 sm:pb-2">
               <CardDescription>{c.titulo}</CardDescription>
-              <CardTitle className={`text-2xl tabular-nums ${c.cor}`}>{brl(c.valor)}</CardTitle>
+              <CardTitle className={`text-lg tabular-nums sm:text-2xl ${c.cor}`}>{brl(c.valor)}</CardTitle>
             </CardHeader>
-            <CardContent className="text-xs text-muted-foreground">{c.dica}</CardContent>
+            <CardContent className="px-4 pb-4 text-xs text-muted-foreground sm:px-6 sm:pb-6">{c.dica}</CardContent>
           </Card>
         ))}
       </div>
@@ -157,56 +179,62 @@ function Movimentacoes() {
           ) : visiveis.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">Nada por aqui neste mês.</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-28">Data</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead className="hidden md:table-cell">Categoria</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead className="w-28">Situação</TableHead>
-                  <TableHead className="w-32 text-right" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Celular: um cartão por linha, com a situação e os botões sempre à vista. */}
+              <div className="divide-y divide-border/60 md:hidden">
                 {visiveis.map((l) => (
-                  <TableRow key={l.chave}>
-                    <TableCell className="tabular-nums">{formatarData(l.data)}</TableCell>
-                    <TableCell>
-                      <div className="font-medium">{l.descricao}</div>
-                      {l.detalhe && <div className="text-xs text-muted-foreground">{l.detalhe}</div>}
-                    </TableCell>
-                    <TableCell className="hidden text-muted-foreground md:table-cell">
-                      {nomeCategoria(l.categoriaId) ?? "—"}
-                    </TableCell>
-                    <TableCell className={`text-right tabular-nums ${l.tipo === "Receita" ? "text-emerald-600" : ""}`}>
-                      {l.tipo === "Receita" ? "+ " : ""}{brl(l.valor)}
-                    </TableCell>
-                    <TableCell>{situacao(l)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        {l.status === "Pendente" ? (
-                          <Button size="sm" variant="outline" className="h-8" onClick={() => marcarPago(l)}>
-                            <Check className="h-4 w-4" /> {l.tipo === "Receita" ? "Recebi" : "Paguei"}
-                          </Button>
-                        ) : (
-                          <Button size="icon" variant="ghost" className="h-8 w-8" title="Desfazer pagamento"
-                            onClick={() => desfazer(l)}>
-                            <Undo2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {l.lancamento && (
-                          <Button size="icon" variant="ghost" className="h-8 w-8" title="Editar"
-                            onClick={() => setForm({ aberto: true, editando: l.lancamento })}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                  <div key={l.chave} className="flex items-start gap-3 py-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium leading-snug">{l.descricao}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {formatarData(l.data)}
+                        {l.detalhe ? ` · ${l.detalhe}` : ""}
+                        {nomeCategoria(l.categoriaId) ? ` · ${nomeCategoria(l.categoriaId)}` : ""}
+                      </p>
+                      <div className="mt-1.5">{situacao(l)}</div>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-1.5">
+                      <span className={`font-semibold tabular-nums ${l.tipo === "Receita" ? "text-emerald-600" : ""}`}>
+                        {l.tipo === "Receita" ? "+ " : ""}{brl(l.valor)}
+                      </span>
+                      {acoes(l)}
+                    </div>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-28">Data</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Categoria</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                      <TableHead className="w-28">Situação</TableHead>
+                      <TableHead className="w-32 text-right" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {visiveis.map((l) => (
+                      <TableRow key={l.chave}>
+                        <TableCell className="tabular-nums">{formatarData(l.data)}</TableCell>
+                        <TableCell>
+                          <div className="font-medium">{l.descricao}</div>
+                          {l.detalhe && <div className="text-xs text-muted-foreground">{l.detalhe}</div>}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{nomeCategoria(l.categoriaId) ?? "—"}</TableCell>
+                        <TableCell className={`text-right tabular-nums ${l.tipo === "Receita" ? "text-emerald-600" : ""}`}>
+                          {l.tipo === "Receita" ? "+ " : ""}{brl(l.valor)}
+                        </TableCell>
+                        <TableCell>{situacao(l)}</TableCell>
+                        <TableCell className="text-right">{acoes(l)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

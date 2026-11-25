@@ -63,6 +63,8 @@
 
 :root {
   --radius: 0.75rem;
+  /* Margem interna dos cartões (ui/card.tsx): menor no celular para sobrar espaço ao conteúdo. */
+  --card-pad: 1rem;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   /* #F5F5F5 branco gelo */
   --background: oklch(0.97 0 0);
@@ -135,6 +137,13 @@
   --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.551 0.027 264.364);
+}
+
+/* A partir do tamanho "sm" (tablet/computador) os cartões voltam à margem de sempre (p-6). */
+@media (width >= 40rem) {
+  :root {
+    --card-pad: 1.5rem;
+  }
 }
 
 @layer base {

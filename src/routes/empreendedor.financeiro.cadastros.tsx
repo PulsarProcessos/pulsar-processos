@@ -19,6 +19,7 @@ import { ChevronDown, ChevronRight, CreditCard, Folder, Pencil, Plus, Search, Tr
 import {
   useData, Contato, ContatoTipo, Categoria, Banco, GrupoCategoria,
 } from "@/lib/data-store";
+import { brl } from "@/lib/pessoal-store";
 
 export const Route = createFileRoute("/empreendedor/financeiro/cadastros")({
   component: Cadastros,
@@ -27,7 +28,8 @@ export const Route = createFileRoute("/empreendedor/financeiro/cadastros")({
 function Cadastros() {
   return (
     <Tabs defaultValue="clientes" className="space-y-4">
-      <TabsList>
+      {/* No celular as 4 abas ficam em 2 linhas, para não passar da tela. */}
+      <TabsList className="grid h-auto w-full grid-cols-2 sm:inline-flex sm:h-9 sm:w-auto">
         <TabsTrigger value="clientes">Clientes</TabsTrigger>
         <TabsTrigger value="fornecedores">Fornecedores</TabsTrigger>
         <TabsTrigger value="bancos">Contas</TabsTrigger>
@@ -99,17 +101,25 @@ function ContatosPanel({ tipo }: { tipo: ContatoTipo }) {
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
-              <TableHead>Documento</TableHead>
-              <TableHead>Contato</TableHead>
+              <TableHead className="hidden sm:table-cell">Documento</TableHead>
+              <TableHead className="hidden sm:table-cell">Contato</TableHead>
               <TableHead className="w-20" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {lista.map((c) => (
               <TableRow key={c.id}>
-                <TableCell className="font-medium">{c.nome}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{c.documento || "—"}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">
+                <TableCell className="font-medium">
+                  {c.nome}
+                  {/* No celular, documento e contato aparecem embaixo do nome. */}
+                  {(c.documento || c.email || c.telefone) && (
+                    <div className="wrap-anywhere text-xs font-normal text-muted-foreground sm:hidden">
+                      {[c.documento, c.email || c.telefone].filter(Boolean).join(" · ")}
+                    </div>
+                  )}
+                </TableCell>
+                <TableCell className="hidden text-sm text-muted-foreground sm:table-cell">{c.documento || "—"}</TableCell>
+                <TableCell className="hidden text-sm text-muted-foreground sm:table-cell">
                   {c.email || c.telefone || "—"}
                 </TableCell>
                 <TableCell className="text-right">
@@ -204,12 +214,12 @@ function BancosPanel() {
 
   return (
     <Card className="border-border/60">
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
         <div>
           <CardTitle>Contas</CardTitle>
           <CardDescription>
             Contas bancárias e cartões de crédito. Saldo total das contas:{" "}
-            <span className="font-semibold text-foreground">R$ {totalContas.toLocaleString("pt-BR")}</span>
+            <span className="font-semibold text-foreground">{brl(totalContas)}</span>
           </CardDescription>
         </div>
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditando(null); }}>
@@ -231,9 +241,9 @@ function BancosPanel() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
-                <TableHead>Agência</TableHead>
-                <TableHead>Conta</TableHead>
-                <TableHead className="text-right">Saldo Inicial</TableHead>
+                <TableHead className="hidden sm:table-cell">Agência</TableHead>
+                <TableHead className="hidden sm:table-cell">Conta</TableHead>
+                <TableHead className="hidden text-right sm:table-cell">Saldo Inicial</TableHead>
                 <TableHead className="text-right">Saldo Atual</TableHead>
                 <TableHead className="w-20" />
               </TableRow>
@@ -243,12 +253,19 @@ function BancosPanel() {
                 const s = saldoBanco(b.id);
                 return (
                   <TableRow key={b.id}>
-                    <TableCell className="font-medium">{b.nome}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{b.agencia || "—"}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{b.conta || "—"}</TableCell>
-                    <TableCell className="text-right">R$ {b.saldoInicial.toLocaleString("pt-BR")}</TableCell>
+                    <TableCell className="font-medium">
+                      {b.nome}
+                      {(b.agencia || b.conta) && (
+                        <div className="text-xs font-normal text-muted-foreground sm:hidden">
+                          {[b.agencia && `Ag. ${b.agencia}`, b.conta && `Conta ${b.conta}`].filter(Boolean).join(" · ")}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="hidden text-sm text-muted-foreground sm:table-cell">{b.agencia || "—"}</TableCell>
+                    <TableCell className="hidden text-sm text-muted-foreground sm:table-cell">{b.conta || "—"}</TableCell>
+                    <TableCell className="hidden text-right sm:table-cell">{brl(b.saldoInicial)}</TableCell>
                     <TableCell className={`text-right font-semibold ${s < 0 ? "text-red-500" : "text-emerald-600"}`}>
-                      R$ {s.toLocaleString("pt-BR")}
+                      {brl(s)}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
@@ -285,9 +302,9 @@ function BancosPanel() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
-                <TableHead className="text-center">Fechamento</TableHead>
-                <TableHead className="text-center">Vencimento</TableHead>
-                <TableHead className="text-right">Limite</TableHead>
+                <TableHead className="hidden text-center sm:table-cell">Fechamento</TableHead>
+                <TableHead className="hidden text-center sm:table-cell">Vencimento</TableHead>
+                <TableHead className="hidden text-right sm:table-cell">Limite</TableHead>
                 <TableHead className="text-right">Fatura atual</TableHead>
                 <TableHead className="w-20" />
               </TableRow>
@@ -298,12 +315,17 @@ function BancosPanel() {
                 const fatura = -s; // gastos no cartão diminuem saldo; fatura é o oposto
                 return (
                   <TableRow key={b.id}>
-                    <TableCell className="font-medium">{b.nome}</TableCell>
-                    <TableCell className="text-center text-sm">Dia {b.fechamentoDia ?? "—"}</TableCell>
-                    <TableCell className="text-center text-sm">Dia {b.vencimentoDia ?? "—"}</TableCell>
-                    <TableCell className="text-right text-sm">{b.limite != null ? `R$ ${b.limite.toLocaleString("pt-BR")}` : "—"}</TableCell>
+                    <TableCell className="font-medium">
+                      {b.nome}
+                      <div className="text-xs font-normal text-muted-foreground sm:hidden">
+                        Fecha dia {b.fechamentoDia ?? "—"} · vence dia {b.vencimentoDia ?? "—"}
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden text-center text-sm sm:table-cell">Dia {b.fechamentoDia ?? "—"}</TableCell>
+                    <TableCell className="hidden text-center text-sm sm:table-cell">Dia {b.vencimentoDia ?? "—"}</TableCell>
+                    <TableCell className="hidden text-right text-sm sm:table-cell">{b.limite != null ? brl(b.limite) : "—"}</TableCell>
                     <TableCell className="text-right font-semibold text-violet-600">
-                      R$ {fatura.toLocaleString("pt-BR")}
+                      {brl(fatura)}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">

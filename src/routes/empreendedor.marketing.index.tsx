@@ -21,6 +21,7 @@ import {
 import { ArrowRight, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useData, Lead, LeadStatus, LEAD_STATUS } from "@/lib/data-store";
+import { hojeISO } from "@/lib/pessoal-store";
 
 export const Route = createFileRoute("/empreendedor/marketing/")({
   component: Leads,
@@ -71,14 +72,15 @@ function Leads() {
   };
 
   return (
+    // min-w-0 nos cartões: sem isso a tabela empurra a coluna da grade além da tela no celular.
     <div className="grid gap-4 lg:grid-cols-3">
-      <Card className="border-border/60 lg:col-span-2">
+      <Card className="min-w-0 border-border/60 lg:col-span-2">
         <CardHeader className="flex flex-row flex-wrap items-end justify-between gap-3">
-          <div className="flex flex-wrap items-end gap-3">
+          <div className="grid w-full grid-cols-2 items-end gap-3 sm:flex sm:w-auto sm:flex-wrap">
             <div className="space-y-1">
               <Label className="text-xs">Origem</Label>
               <Select value={fOrigem} onValueChange={setFOrigem}>
-                <SelectTrigger className="h-9 w-40"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 w-full sm:w-40"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todas">Todas</SelectItem>
                   {ORIGENS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
@@ -88,7 +90,7 @@ function Leads() {
             <div className="space-y-1">
               <Label className="text-xs">Status</Label>
               <Select value={fStatus} onValueChange={setFStatus}>
-                <SelectTrigger className="h-9 w-40"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 w-full sm:w-40"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
                   {LEAD_STATUS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
@@ -98,7 +100,7 @@ function Leads() {
           </div>
           <Dialog open={openNew} onOpenChange={setOpenNew}>
             <DialogTrigger asChild>
-              <Button><Plus className="h-4 w-4" /> Novo Lead</Button>
+              <Button className="w-full sm:w-auto"><Plus className="h-4 w-4" /> Novo Lead</Button>
             </DialogTrigger>
             <LeadForm key="novo" editando={null} onClose={() => setOpenNew(false)} />
           </Dialog>
@@ -108,7 +110,7 @@ function Leads() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
-                <TableHead>Origem</TableHead>
+                <TableHead className="hidden sm:table-cell">Origem</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ação</TableHead>
               </TableRow>
@@ -121,16 +123,19 @@ function Leads() {
                     onClick={() => setSelected(l)}>
                     <TableCell>
                       <p className="font-medium hover:text-primary">{l.nome}</p>
-                      <p className="text-xs text-muted-foreground">{l.email} · {l.tel}</p>
+                      <p className="wrap-anywhere text-xs text-muted-foreground">
+                        {[l.email, l.tel].filter(Boolean).join(" · ")}
+                      </p>
+                      <Badge variant="outline" className="mt-1 sm:hidden">{l.origem}</Badge>
                     </TableCell>
-                    <TableCell><Badge variant="outline">{l.origem}</Badge></TableCell>
+                    <TableCell className="hidden sm:table-cell"><Badge variant="outline">{l.origem}</Badge></TableCell>
                     <TableCell><Badge className={statusBadge[l.status]}>{l.status}</Badge></TableCell>
                     <TableCell className="text-right">
                       <Button
-                        size="sm" variant="ghost" disabled={isFinal}
+                        size="sm" variant="ghost" disabled={isFinal} title="Avançar" aria-label="Avançar"
                         onClick={(e) => { e.stopPropagation(); handleAdvance(l); }}
                       >
-                        Avançar <ArrowRight className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Avançar</span> <ArrowRight className="h-3.5 w-3.5" />
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -147,21 +152,30 @@ function Leads() {
         </CardContent>
       </Card>
 
-      <Card className="border-border/60">
+      <Card className="min-w-0 border-border/60">
         <CardHeader>
           <CardTitle>Distribuição por origem</CardTitle>
           <CardDescription>Total: {leads.length} leads</CardDescription>
         </CardHeader>
         <CardContent className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={90} paddingAngle={2}>
-                {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-              </Pie>
-              <Tooltip />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
-            </PieChart>
-          </ResponsiveContainer>
+          {/* isAnimationActive={false}: com a animação de entrada do recharts 2 a rosca não aparecia
+              (ficava só a legenda), no computador e no celular. */}
+          {leads.length === 0 ? (
+            <p className="flex h-full items-center justify-center text-sm text-muted-foreground">
+              Nenhum lead cadastrado ainda.
+            </p>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={90} paddingAngle={2}
+                  isAnimationActive={false}>
+                  {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                </Pie>
+                <Tooltip />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
         </CardContent>
       </Card>
 
@@ -199,7 +213,8 @@ function LeadForm({
     } else {
       addLead({
         ...payload,
-        data: new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+        // A coluna é do tipo date: precisa ser AAAA-MM-DD ("25/11" era recusado pelo banco).
+        data: hojeISO(),
       });
     }
     onClose();

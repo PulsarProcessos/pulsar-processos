@@ -81,9 +81,10 @@ function RendasCard() {
         {rendas.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">Nenhuma renda cadastrada.</p>
         ) : (
-          <div className="divide-y divide-border/60">
+          <div className="@container divide-y divide-border/60">
             {rendas.map((r) => (
-              <div key={r.id} className={`flex items-center justify-between gap-3 py-3 ${r.ativa ? "" : "opacity-60"}`}>
+              <div key={r.id}
+                className={`flex flex-col gap-2 py-3 @lg:flex-row @lg:items-center @lg:justify-between @lg:gap-3 ${r.ativa ? "" : "opacity-60"}`}>
                 <div className="min-w-0">
                   <p className="flex items-center gap-2 text-sm font-medium">
                     <span className="truncate">{r.descricao}</span>
@@ -93,18 +94,21 @@ function RendasCard() {
                     {r.diaRecebimento ? `Recebe todo dia ${r.diaRecebimento}` : "Sem dia definido"} · desde {formatarMesAno(r.inicio)}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                {/* No celular: valor à esquerda e controles à direita, numa segunda linha. */}
+                <div className="flex items-center justify-between gap-2 @lg:justify-end">
                   <span className="text-sm font-semibold tabular-nums text-emerald-600">{brl(r.valor)}</span>
-                  <Switch checked={r.ativa} onCheckedChange={(v) => updateRenda(r.id, { ativa: v })}
-                    aria-label="Renda ativa" />
-                  <Button size="icon" variant="ghost" className="h-8 w-8" title="Editar"
-                    onClick={() => setForm({ aberto: true, editando: r })}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500" title="Excluir"
-                    onClick={() => excluir(r)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-1 @lg:gap-2">
+                    <Switch checked={r.ativa} onCheckedChange={(v) => updateRenda(r.id, { ativa: v })}
+                      aria-label="Renda ativa" />
+                    <Button size="icon" variant="ghost" className="h-8 w-8" title="Editar" aria-label="Editar"
+                      onClick={() => setForm({ aberto: true, editando: r })}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500" title="Excluir" aria-label="Excluir"
+                      onClick={() => excluir(r)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -207,9 +211,10 @@ function ContasFixasCard() {
         {contasFixas.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">Nenhuma conta fixa cadastrada.</p>
         ) : (
-          <div className="divide-y divide-border/60">
+          <div className="@container divide-y divide-border/60">
             {contasFixas.map((c) => (
-              <div key={c.id} className={`flex items-center justify-between gap-3 py-3 ${c.ativa ? "" : "opacity-60"}`}>
+              <div key={c.id}
+                className={`flex flex-col gap-2 py-3 @lg:flex-row @lg:items-center @lg:justify-between @lg:gap-3 ${c.ativa ? "" : "opacity-60"}`}>
                 <div className="min-w-0">
                   <p className="flex items-center gap-2 text-sm font-medium">
                     <span className="truncate">{c.descricao}</span>
@@ -220,18 +225,20 @@ function ContasFixasCard() {
                     {c.categoriaId && ` · ${categorias.find((x) => x.id === c.categoriaId)?.nome ?? ""}`}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between gap-2 @lg:justify-end">
                   <span className="text-sm font-semibold tabular-nums text-red-500">{brl(c.valor)}</span>
-                  <Switch checked={c.ativa} onCheckedChange={(v) => updateContaFixa(c.id, { ativa: v })}
-                    aria-label="Conta ativa" />
-                  <Button size="icon" variant="ghost" className="h-8 w-8" title="Editar"
-                    onClick={() => setForm({ aberto: true, editando: c })}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500" title="Excluir"
-                    onClick={() => excluir(c)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-1 @lg:gap-2">
+                    <Switch checked={c.ativa} onCheckedChange={(v) => updateContaFixa(c.id, { ativa: v })}
+                      aria-label="Conta ativa" />
+                    <Button size="icon" variant="ghost" className="h-8 w-8" title="Editar" aria-label="Editar"
+                      onClick={() => setForm({ aberto: true, editando: c })}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500" title="Excluir" aria-label="Excluir"
+                      onClick={() => excluir(c)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}

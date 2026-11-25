@@ -63,9 +63,9 @@ function Metas() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="Despesa" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="Despesa">Metas de gastos</TabsTrigger>
-              <TabsTrigger value="Receita">Metas de recebimento</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 sm:inline-flex sm:w-auto">
+              <TabsTrigger value="Despesa"><span className="sm:hidden">Gastos</span><span className="hidden sm:inline">Metas de gastos</span></TabsTrigger>
+              <TabsTrigger value="Receita"><span className="sm:hidden">Recebimentos</span><span className="hidden sm:inline">Metas de recebimento</span></TabsTrigger>
             </TabsList>
             <TabsContent value="Despesa">
               <MetasTabela tipo="Despesa" mes={mes} ano={ano} />
@@ -144,25 +144,26 @@ function MetasTabela({ tipo, mes, ano }: { tipo: "Receita" | "Despesa"; mes: num
     const pctV = meta > 0 ? Math.min(100, (real / meta) * 100) : 0;
     const isDirty = valores[c.id] !== undefined;
     const bom = tipo === "Receita" ? real >= meta && meta > 0 : real <= meta;
+    const corPct = meta === 0 ? "text-muted-foreground" : bom ? "text-emerald-600" : "text-red-500";
+    const textoPct = meta > 0 ? `${((real / meta) * 100).toFixed(0)}%` : "—";
     return (
-      <TableRow key={c.id}>
+      <Fragment key={c.id}>
+      <TableRow className="border-b-0 md:border-b">
         <TableCell className="font-medium">{c.nome}</TableCell>
-        <TableCell className="w-44">
-          <Input type="number" min="0" step="0.01" className="h-8"
-            value={valorAtual(c.id)} placeholder="0,00"
+        <TableCell className="w-28 md:w-44">
+          <Input type="number" inputMode="decimal" min="0" step="0.01" className="h-8"
+            value={valorAtual(c.id)} placeholder="0,00" aria-label={`Meta de ${c.nome}`}
             onChange={(e) => setValores((p) => ({ ...p, [c.id]: e.target.value }))} />
         </TableCell>
-        <TableCell className="text-right tabular-nums">R$ {brl(real)}</TableCell>
-        <TableCell className="w-60">
+        <TableCell className="hidden text-right tabular-nums md:table-cell">R$ {brl(real)}</TableCell>
+        <TableCell className="hidden w-60 md:table-cell">
           <div className="flex items-center gap-2">
             <Progress value={pctV} />
-            <span className={`text-xs font-medium min-w-[3rem] text-right ${meta === 0 ? "text-muted-foreground" : bom ? "text-emerald-600" : "text-red-500"}`}>
-              {meta > 0 ? `${((real / meta) * 100).toFixed(0)}%` : "—"}
-            </span>
+            <span className={`text-xs font-medium min-w-[3rem] text-right ${corPct}`}>{textoPct}</span>
           </div>
         </TableCell>
         <TableCell className="text-right">
-          <div className="flex justify-end gap-1">
+          <div className="flex justify-end gap-0.5 md:gap-1">
             <Button size="icon" variant={isDirty ? "default" : "ghost"} className="h-8 w-8"
               onClick={() => salvar(c.id)} title="Salvar meta">
               <Save className="h-4 w-4" />
@@ -174,6 +175,17 @@ function MetasTabela({ tipo, mes, ano }: { tipo: "Receita" | "Despesa"; mes: num
           </div>
         </TableCell>
       </TableRow>
+      {/* No celular as colunas Realizado e Atingimento somem; aparecem nesta linha, com a largura toda. */}
+      <TableRow className="hover:bg-transparent md:hidden">
+        <TableCell colSpan={3} className="pt-0">
+          <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+            <span>Realizado R$ {brl(real)}</span>
+            <span className={`font-medium ${corPct}`}>{textoPct}</span>
+          </div>
+          <Progress value={pctV} className="mt-1 h-1.5" />
+        </TableCell>
+      </TableRow>
+      </Fragment>
     );
   });
 
@@ -190,10 +202,10 @@ function MetasTabela({ tipo, mes, ano }: { tipo: "Receita" | "Despesa"; mes: num
       <TableHeader>
         <TableRow>
           <TableHead>Categoria</TableHead>
-          <TableHead className="w-44">Meta (R$)</TableHead>
-          <TableHead className="text-right">Realizado</TableHead>
-          <TableHead className="w-60">Atingimento</TableHead>
-          <TableHead className="w-24" />
+          <TableHead className="w-28 md:w-44">Meta (R$)</TableHead>
+          <TableHead className="hidden text-right md:table-cell">Realizado</TableHead>
+          <TableHead className="hidden w-60 md:table-cell">Atingimento</TableHead>
+          <TableHead className="w-20 md:w-24" />
         </TableRow>
       </TableHeader>
       <TableBody>
