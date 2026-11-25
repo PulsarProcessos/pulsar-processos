@@ -15,6 +15,7 @@ export type Renda = {
   descricao: string;
   valor: number;
   diaRecebimento?: number;
+  inicio: string; // 1º dia do primeiro mês em que a renda conta (AAAA-MM-01)
   ativa: boolean;
 };
 
@@ -107,7 +108,7 @@ const opt = <T,>(v: T | null | undefined) => (v === null ? undefined : v);
 const mapCategoria = (r: any): CategoriaPessoal => ({ id: r.id, nome: r.nome, tipo: r.tipo });
 const mapRenda = (r: any): Renda => ({
   id: r.id, descricao: r.descricao, valor: num(r.valor),
-  diaRecebimento: opt(r.dia_recebimento), ativa: r.ativa,
+  diaRecebimento: opt(r.dia_recebimento), inicio: r.inicio, ativa: r.ativa,
 });
 const mapContaFixa = (r: any): ContaFixa => ({
   id: r.id, descricao: r.descricao, valor: num(r.valor), diaVencimento: r.dia_vencimento,
@@ -129,6 +130,7 @@ const rendaToDb = (r: Partial<Renda>) => ({
   ...(r.descricao !== undefined && { descricao: r.descricao }),
   ...(r.valor !== undefined && { valor: r.valor }),
   ...(r.diaRecebimento !== undefined && { dia_recebimento: r.diaRecebimento || null }),
+  ...(r.inicio !== undefined && { inicio: r.inicio }),
   ...(r.ativa !== undefined && { ativa: r.ativa }),
 });
 const contaFixaToDb = (c: Partial<ContaFixa>) => ({
@@ -455,4 +457,78 @@ export function resumirDivida(d: Divida, lancamentos: LancamentoPessoal[]): Resu
     emAtraso: pendentes.some((p) => p.data < hoje),
     quitada: total > 0 && pagas.length >= total,
   };
+}
+
+// ============ O MÊS (Movimentações e Painel usam a mesma regra) ============
+export type LinhaMes = {
+  chave: string;
+  data: string;
+  descricao: string;
+  detalhe?: string;
+  categoriaId?: string;
+  tipo: TipoMov;
+  valor: number;
+  status: StatusPag;
+  origem: "lancamento" | "parcela" | "conta_fixa";
+  lancamento?: LancamentoPessoal;
+  /** Conta fixa que ainda não foi paga neste mês (não existe lançamento para ela). */
+  contaFixa?: ContaFixa;
+};
+
+/**
+ * Tudo o que entra e sai num mês: os lançamentos com data no mês (inclusive parcelas de dívida e
+ * contas fixas já pagas) e as contas fixas que valem no mês e ainda não foram pagas.
+ */
+export function linhasDoMes(
+  dados: { lancamentos: LancamentoPessoal[]; contasFixas: ContaFixa[]; dividas: Divida[] },
+  ano: number,
+  mes: number,
+): LinhaMes[] {
+  const chave = chaveMes(ano, mes);
+  const competencia = competenciaDe(ano, mes);
+  const lista: LinhaMes[] = dados.lancamentos
+    .filter((l) => l.data.startsWith(chave))
+    .map((l) => {
+      const divida = l.dividaId ? dados.dividas.find((d) => d.id === l.dividaId) : undefined;
+      return {
+        chave: l.id,
+        data: l.data,
+        descricao: l.descricao,
+        detalhe: divida
+          ? `Parcela ${l.parcelaNumero}/${divida.totalParcelas}`
+          : l.contaFixaId ? "Conta fixa" : undefined,
+        categoriaId: l.categoriaId,
+        tipo: l.tipo,
+        valor: l.valor,
+        status: l.status,
+        origem: l.dividaId ? "parcela" : l.contaFixaId ? "conta_fixa" : "lancamento",
+        lancamento: l,
+      };
+    });
+  // Contas fixas: aparecem todo mês a partir do início, até serem pagas.
+  const pagas = new Set(
+    dados.lancamentos.filter((l) => l.contaFixaId && l.competencia === competencia).map((l) => l.contaFixaId),
+  );
+  for (const c of dados.contasFixas) {
+    if (!c.ativa || c.inicio > competencia || pagas.has(c.id)) continue;
+    lista.push({
+      chave: `cf-${c.id}`,
+      data: dataNoMes(ano, mes, c.diaVencimento),
+      descricao: c.descricao,
+      detalhe: "Conta fixa",
+      categoriaId: c.categoriaId,
+      tipo: "Despesa",
+      valor: c.valor,
+      status: "Pendente",
+      origem: "conta_fixa",
+      contaFixa: c,
+    });
+  }
+  return lista.sort((a, b) => a.data.localeCompare(b.data) || a.descricao.localeCompare(b.descricao));
+}
+
+/** Soma das rendas ativas que já valiam no mês. */
+export function rendaDoMes(rendas: Renda[], ano: number, mes: number) {
+  const competencia = competenciaDe(ano, mes);
+  return rendas.filter((r) => r.ativa && r.inicio <= competencia).reduce((s, r) => s + r.valor, 0);
 }

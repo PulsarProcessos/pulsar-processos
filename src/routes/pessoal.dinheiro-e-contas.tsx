@@ -90,7 +90,7 @@ function RendasCard() {
                     {!r.ativa && <Badge variant="outline">Pausada</Badge>}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {r.diaRecebimento ? `Recebe todo dia ${r.diaRecebimento}` : "Sem dia definido"}
+                    {r.diaRecebimento ? `Recebe todo dia ${r.diaRecebimento}` : "Sem dia definido"} · desde {formatarMesAno(r.inicio)}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -124,6 +124,8 @@ function RendaForm({ editando, onConcluir }: { editando?: Renda; onConcluir: () 
   const [descricao, setDescricao] = useState(editando?.descricao ?? "");
   const [valor, setValor] = useState(editando ? String(editando.valor) : "");
   const [dia, setDia] = useState(editando?.diaRecebimento ? String(editando.diaRecebimento) : "");
+  // <input type="month"> usa AAAA-MM; no banco fica o 1º dia do mês.
+  const [inicio, setInicio] = useState((editando?.inicio ?? hojeISO()).slice(0, 7));
   const [salvando, setSalvando] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -133,8 +135,9 @@ function RendaForm({ editando, onConcluir }: { editando?: Renda; onConcluir: () 
     if (!descricao.trim()) { toast.error("Informe a descrição."); return; }
     if (!Number.isFinite(v) || v < 0) { toast.error("Valor inválido."); return; }
     if (dia && (!Number.isInteger(d) || d < 1 || d > 31)) { toast.error("O dia precisa ser de 1 a 31."); return; }
+    if (!inicio) { toast.error("Informe desde quando recebe."); return; }
     setSalvando(true);
-    const dados = { descricao: descricao.trim(), valor: v, diaRecebimento: d || undefined };
+    const dados = { descricao: descricao.trim(), valor: v, diaRecebimento: d || undefined, inicio: `${inicio}-01` };
     const ok = editando
       ? await updateRenda(editando.id, { ...dados, diaRecebimento: d })
       : !!(await addRenda({ ...dados, ativa: true }));
@@ -164,6 +167,11 @@ function RendaForm({ editando, onConcluir }: { editando?: Renda; onConcluir: () 
             <Input id="r-dia" type="number" min="1" max="31" value={dia}
               onChange={(e) => setDia(e.target.value)} placeholder="Opcional" />
           </div>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="r-inicio">Recebe desde</Label>
+          <Input id="r-inicio" type="month" required value={inicio} onChange={(e) => setInicio(e.target.value)} />
+          <p className="text-xs text-muted-foreground">A renda entra nas contas a partir deste mês.</p>
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onConcluir} disabled={salvando}>Cancelar</Button>

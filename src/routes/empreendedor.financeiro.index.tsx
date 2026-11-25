@@ -10,7 +10,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { useData } from "@/lib/data-store";
 
-export const Route = createFileRoute("/financeiro/")({
+export const Route = createFileRoute("/empreendedor/financeiro/")({
   component: FinanceiroOverview,
 });
 

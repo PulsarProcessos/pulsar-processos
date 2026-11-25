@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { useData } from "@/lib/data-store";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/empreendedor/")({
   component: Dashboard,
 });
 
@@ -105,9 +105,9 @@ function Dashboard() {
         <Card className="border-dashed border-primary/40 bg-primary/5">
           <CardContent className="py-6 text-center text-sm text-muted-foreground">
             Sistema pronto para uso. Comece cadastrando{" "}
-            <Link to="/financeiro/cadastros" className="text-primary underline">bancos, clientes e categorias</Link>{" "}
+            <Link to="/empreendedor/financeiro/cadastros" className="text-primary underline">bancos, clientes e categorias</Link>{" "}
             ou registrando{" "}
-            <Link to="/financeiro/lancamentos" className="text-primary underline">lançamentos</Link>.
+            <Link to="/empreendedor/financeiro/lancamentos" className="text-primary underline">lançamentos</Link>.
           </CardContent>
         </Card>
       )}

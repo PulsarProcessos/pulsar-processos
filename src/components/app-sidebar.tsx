@@ -1,14 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import {
-  LayoutDashboard,
-  TrendingUp,
-  Handshake,
-  Megaphone,
-  Wallet,
-  Settings,
-  ChevronRight,
-} from "lucide-react";
+import { ChevronRight, House } from "lucide-react";
 import pulsarLogo from "@/assets/pulsar-logo.png";
+import type { Modulo } from "@/lib/modulos";
 
 import {
   Sidebar,
@@ -23,6 +16,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
 import {
@@ -31,141 +25,89 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 
-type NavItem = {
-  title: string;
-  url: string;
-  icon: React.ComponentType<{ className?: string }>;
-  children?: { title: string; url: string }[];
-};
-
-const items: NavItem[] = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  {
-    title: "Financeiro",
-    url: "/financeiro",
-    icon: TrendingUp,
-    children: [
-      { title: "Visão Geral", url: "/financeiro" },
-      { title: "Extrato", url: "/financeiro/lancamentos" },
-      { title: "Cartões", url: "/financeiro/cartoes" },
-      { title: "Demonstrativo", url: "/financeiro/demonstrativo" },
-      { title: "Cadastros", url: "/financeiro/cadastros" },
-      { title: "Metas", url: "/financeiro/metas" },
-    ],
-  },
-  {
-    title: "Comercial",
-    url: "/comercial",
-    icon: Handshake,
-    children: [
-      { title: "Pipeline", url: "/comercial" },
-      { title: "Cadastros", url: "/comercial/cadastros" },
-    ],
-  },
-  {
-    title: "Marketing",
-    url: "/marketing",
-    icon: Megaphone,
-    children: [
-      { title: "Leads", url: "/marketing" },
-      { title: "Campanhas", url: "/marketing/campanhas" },
-      { title: "Calendário", url: "/marketing/calendario" },
-    ],
-  },
-  {
-    title: "Pessoal",
-    url: "/pessoal",
-    icon: Wallet,
-    children: [
-      { title: "Movimentações", url: "/pessoal" },
-      { title: "Lançamentos", url: "/pessoal/lancamentos" },
-      { title: "Dinheiro e Contas", url: "/pessoal/dinheiro-e-contas" },
-      { title: "Dívidas", url: "/pessoal/dividas" },
-      { title: "Categorias", url: "/pessoal/categorias" },
-    ],
-  },
-  { title: "Configurações", url: "/configuracoes", icon: Settings },
-];
-
-export function AppSidebar() {
-  const { state } = useSidebar();
-  const collapsed = state === "collapsed";
+/**
+ * Menu lateral de um módulo: só as telas daquele módulo, e o Início para trocar de módulo.
+ * Recolhido, mostra só os ícones e abre por cima da tela ao passar o mouse; ao escolher uma
+ * tela, volta a ficar recolhido. O que muda quando recolhe usa as classes
+ * group-data-[collapsible=icon], que seguem a aparência (inclusive aberto pelo mouse).
+ */
+export function AppSidebar({ modulo }: { modulo: Modulo }) {
+  const { isMobile, setOpenMobile } = useSidebar();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const atual = pathname.length > 1 ? pathname.replace(/\/$/, "") : pathname;
 
-  const isActive = (url: string) =>
-    url === "/" ? pathname === "/" : pathname === url;
-  const groupActive = (item: NavItem) =>
-    item.children?.some((c) => pathname === c.url) ?? false;
+  // No celular o menu fica por cima da tela: fecha ao escolher uma opção.
+  const fechar = () => { if (isMobile) setOpenMobile(false); };
 
   return (
-    <Sidebar collapsible="icon" className="border-r-0">
+    <Sidebar collapsible="icon" expandOnHover className="border-r-0">
       <SidebarHeader className="border-b border-sidebar-border">
-        <div className={`flex items-center gap-2.5 py-3 ${collapsed ? "justify-center px-0" : "px-2"}`}>
-          <div className={`flex shrink-0 items-center justify-center ${collapsed ? "h-7 w-7" : "h-10 w-10"}`}>
+        <div className="flex items-center gap-2.5 px-2 py-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7">
             <img src={pulsarLogo} alt="Pulsar" className="h-full w-full object-contain" />
           </div>
-          {!collapsed && (
-            <div className="flex flex-col leading-tight">
-              <span className="text-sm font-bold tracking-[0.15em] text-sidebar-foreground">
-                PULS<span className="text-primary">AR</span>
-              </span>
-              <span className="text-[10px] uppercase tracking-[0.22em] text-sidebar-foreground/55">
-                Processos
-              </span>
-            </div>
-          )}
+          <div className="flex flex-col whitespace-nowrap leading-tight group-data-[collapsible=icon]:hidden">
+            <span className="text-sm font-bold tracking-[0.15em] text-sidebar-foreground">
+              PULS<span className="text-primary">AR</span>
+            </span>
+            <span className="text-[10px] uppercase tracking-[0.22em] text-sidebar-foreground/55">
+              {modulo.nome}
+            </span>
+          </div>
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-2 py-4">
+      <SidebarContent className="py-2">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => {
-                if (!item.children) {
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link to="/" onClick={fechar}>
+                    <House className="h-4 w-4" />
+                    <span>Início</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarSeparator />
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {modulo.menu.map((item) => {
+                if (!item.filhos) {
                   return (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={isActive(item.url)}
-                        tooltip={item.title}
-                      >
-                        <Link to={item.url}>
-                          <item.icon className="h-4 w-4" />
-                          <span>{item.title}</span>
+                    <SidebarMenuItem key={item.url}>
+                      <SidebarMenuButton asChild isActive={atual === item.url}>
+                        <Link to={item.url} onClick={fechar}>
+                          <item.icone className="h-4 w-4" />
+                          <span>{item.titulo}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );
                 }
 
+                const grupoAtivo = item.filhos.some((f) => f.url === atual);
                 return (
-                  <Collapsible
-                    key={item.title}
-                    defaultOpen={groupActive(item)}
-                    className="group/collapsible"
-                  >
+                  <Collapsible key={item.url} defaultOpen={grupoAtivo} className="group/collapsible">
                     <SidebarMenuItem>
                       <CollapsibleTrigger asChild>
-                        <SidebarMenuButton
-                          tooltip={item.title}
-                          isActive={groupActive(item)}
-                        >
-                          <item.icon className="h-4 w-4" />
-                          <span>{item.title}</span>
+                        <SidebarMenuButton isActive={grupoAtivo}>
+                          <item.icone className="h-4 w-4" />
+                          <span>{item.titulo}</span>
                           <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90 group-data-[collapsible=icon]:hidden" />
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <SidebarMenuSub>
-                          {item.children.map((child) => (
-                            <SidebarMenuSubItem key={child.url}>
-                              <SidebarMenuSubButton
-                                asChild
-                                isActive={pathname === child.url}
-                              >
-                                <Link to={child.url}>
-                                  <span>{child.title}</span>
+                          {item.filhos.map((filho) => (
+                            <SidebarMenuSubItem key={filho.url}>
+                              <SidebarMenuSubButton asChild isActive={atual === filho.url}>
+                                <Link to={filho.url} onClick={fechar}>
+                                  <span>{filho.titulo}</span>
                                 </Link>
                               </SidebarMenuSubButton>
                             </SidebarMenuSubItem>
@@ -182,11 +124,9 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-3">
-        {!collapsed && (
-          <div className="text-xs text-sidebar-foreground/50">
-            v1.0 · Pulsar
-          </div>
-        )}
+        <div className="whitespace-nowrap text-xs text-sidebar-foreground/50 group-data-[collapsible=icon]:invisible">
+          v2.0 · Pulsar
+        </div>
       </SidebarFooter>
     </Sidebar>
   );

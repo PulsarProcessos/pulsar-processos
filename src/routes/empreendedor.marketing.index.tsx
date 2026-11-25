@@ -22,7 +22,7 @@ import { ArrowRight, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useData, Lead, LeadStatus, LEAD_STATUS } from "@/lib/data-store";
 
-export const Route = createFileRoute("/marketing/")({
+export const Route = createFileRoute("/empreendedor/marketing/")({
   component: Leads,
 });
 

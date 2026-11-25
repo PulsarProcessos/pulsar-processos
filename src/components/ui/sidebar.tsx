@@ -156,6 +156,8 @@ const Sidebar = React.forwardRef<
     side?: "left" | "right";
     variant?: "sidebar" | "floating" | "inset";
     collapsible?: "offcanvas" | "icon" | "none";
+    /** Recolhido em ícones, abre por cima da tela ao passar o mouse e fecha ao escolher um link. */
+    expandOnHover?: boolean;
   }
 >(
   (
@@ -163,6 +165,7 @@ const Sidebar = React.forwardRef<
       side = "left",
       variant = "sidebar",
       collapsible = "offcanvas",
+      expandOnHover = false,
       className,
       children,
       ...props
@@ -170,6 +173,34 @@ const Sidebar = React.forwardRef<
     ref,
   ) => {
     const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
+    const [hoverAberto, setHoverAberto] = React.useState(false);
+    // Depois de escolher uma tela, só volta a abrir quando o mouse sair e entrar de novo.
+    const travado = React.useRef(false);
+    const espera = React.useRef<number | undefined>(undefined);
+    React.useEffect(() => () => window.clearTimeout(espera.current), []);
+
+    const recolhido = state === "collapsed";
+    const podeAbrirNoHover = expandOnHover && collapsible === "icon" && recolhido;
+    const abertoPorHover = podeAbrirNoHover && hoverAberto;
+    // Como o menu aparece: aberto por hover mostra os nomes, mas o espaço reservado continua estreito.
+    const visualRecolhido = recolhido && !abertoPorHover;
+
+    const entrar = () => {
+      if (!podeAbrirNoHover || travado.current) return;
+      window.clearTimeout(espera.current);
+      espera.current = window.setTimeout(() => setHoverAberto(true), 120);
+    };
+    const sair = () => {
+      window.clearTimeout(espera.current);
+      travado.current = false;
+      setHoverAberto(false);
+    };
+    const escolher = (e: React.MouseEvent) => {
+      if (abertoPorHover && (e.target as HTMLElement).closest("a")) {
+        travado.current = true;
+        setHoverAberto(false);
+      }
+    };
 
     if (collapsible === "none") {
       return (
@@ -214,8 +245,8 @@ const Sidebar = React.forwardRef<
       <div
         ref={ref}
         className="group peer hidden text-sidebar-foreground md:block"
-        data-state={state}
-        data-collapsible={state === "collapsed" ? collapsible : ""}
+        data-state={visualRecolhido ? "collapsed" : "expanded"}
+        data-collapsible={visualRecolhido ? collapsible : ""}
         data-variant={variant}
         data-side={side}
       >
@@ -228,9 +259,14 @@ const Sidebar = React.forwardRef<
             variant === "floating" || variant === "inset"
               ? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4))]"
               : "group-data-[collapsible=icon]:w-(--sidebar-width-icon)",
+            // Aberto por hover: o menu passa por cima, o conteúdo não se mexe.
+            abertoPorHover && "!w-(--sidebar-width-icon)",
           )}
         />
         <div
+          onMouseEnter={entrar}
+          onMouseLeave={sair}
+          onClickCapture={escolher}
           className={cn(
             "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
             side === "left"
@@ -240,6 +276,7 @@ const Sidebar = React.forwardRef<
             variant === "floating" || variant === "inset"
               ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4)_+2px)]"
               : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l",
+            abertoPorHover && "z-40 shadow-2xl",
             className,
           )}
           {...props}

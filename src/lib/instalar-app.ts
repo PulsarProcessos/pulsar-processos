@@ -45,7 +45,8 @@ export function useAppInstalado(): boolean {
   return useSyncExternalStore(assinar, () => instaladoAgora || abertoComoApp());
 }
 
-function abertoComoApp() {
+/** O Pulsar está aberto como app instalado (tela de início), e não numa aba do navegador. */
+export function abertoComoApp() {
   return (
     window.matchMedia("(display-mode: standalone)").matches ||
     (navigator as Navigator & { standalone?: boolean }).standalone === true

@@ -14,7 +14,7 @@ import {
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useData, Campanha, CampStatus } from "@/lib/data-store";
 
-export const Route = createFileRoute("/marketing/campanhas")({
+export const Route = createFileRoute("/empreendedor/marketing/campanhas")({
   component: Campanhas,
 });
 

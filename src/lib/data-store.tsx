@@ -453,7 +453,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     let etapas = etapasFromDb;
     if (etapasFromDb.length === 0) {
       const seed = DEFAULT_ETAPAS.map((nome, i) => ({ user_id: user.id, nome, ordem: i }));
-      await supabase.from("etapas_pipeline").insert(seed);
+      // O carregamento pode rodar duas vezes ao abrir; ignorar repetidas evita erro na segunda.
+      await supabase.from("etapas_pipeline").upsert(seed, { onConflict: "user_id,nome", ignoreDuplicates: true });
       etapas = DEFAULT_ETAPAS;
     }
 

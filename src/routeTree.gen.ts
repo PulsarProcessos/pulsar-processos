@@ -10,258 +10,308 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
-import { Route as ComercialIndexRouteImport } from './routes/comercial.index'
-import { Route as ComercialCadastrosRouteImport } from './routes/comercial.cadastros'
-import { Route as FinanceiroIndexRouteImport } from './routes/financeiro.index'
-import { Route as FinanceiroCadastrosRouteImport } from './routes/financeiro.cadastros'
-import { Route as FinanceiroCartoesRouteImport } from './routes/financeiro.cartoes'
-import { Route as FinanceiroDemonstrativoRouteImport } from './routes/financeiro.demonstrativo'
-import { Route as FinanceiroLancamentosRouteImport } from './routes/financeiro.lancamentos'
-import { Route as FinanceiroMetasRouteImport } from './routes/financeiro.metas'
-import { Route as MarketingIndexRouteImport } from './routes/marketing.index'
-import { Route as MarketingCalendarioRouteImport } from './routes/marketing.calendario'
-import { Route as MarketingCampanhasRouteImport } from './routes/marketing.campanhas'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as EmpreendedorRouteImport } from './routes/empreendedor'
+import { Route as PessoalRouteImport } from './routes/pessoal'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as EmpreendedorIndexRouteImport } from './routes/empreendedor.index'
+import { Route as EmpreendedorAgendaRouteImport } from './routes/empreendedor.agenda'
 import { Route as PessoalIndexRouteImport } from './routes/pessoal.index'
 import { Route as PessoalCategoriasRouteImport } from './routes/pessoal.categorias'
 import { Route as PessoalDinheiroEContasRouteImport } from './routes/pessoal.dinheiro-e-contas'
 import { Route as PessoalDividasRouteImport } from './routes/pessoal.dividas'
 import { Route as PessoalLancamentosRouteImport } from './routes/pessoal.lancamentos'
+import { Route as PessoalMovimentacoesRouteImport } from './routes/pessoal.movimentacoes'
+import { Route as EmpreendedorComercialIndexRouteImport } from './routes/empreendedor.comercial.index'
+import { Route as EmpreendedorComercialCadastrosRouteImport } from './routes/empreendedor.comercial.cadastros'
+import { Route as EmpreendedorFinanceiroIndexRouteImport } from './routes/empreendedor.financeiro.index'
+import { Route as EmpreendedorFinanceiroCadastrosRouteImport } from './routes/empreendedor.financeiro.cadastros'
+import { Route as EmpreendedorFinanceiroCartoesRouteImport } from './routes/empreendedor.financeiro.cartoes'
+import { Route as EmpreendedorFinanceiroDemonstrativoRouteImport } from './routes/empreendedor.financeiro.demonstrativo'
+import { Route as EmpreendedorFinanceiroLancamentosRouteImport } from './routes/empreendedor.financeiro.lancamentos'
+import { Route as EmpreendedorFinanceiroMetasRouteImport } from './routes/empreendedor.financeiro.metas'
+import { Route as EmpreendedorMarketingIndexRouteImport } from './routes/empreendedor.marketing.index'
+import { Route as EmpreendedorMarketingCampanhasRouteImport } from './routes/empreendedor.marketing.campanhas'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
-  id: '/configuracoes',
-  path: '/configuracoes',
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ComercialIndexRoute = ComercialIndexRouteImport.update({
-  id: '/comercial/',
-  path: '/comercial/',
+const EmpreendedorRoute = EmpreendedorRouteImport.update({
+  id: '/empreendedor',
+  path: '/empreendedor',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ComercialCadastrosRoute = ComercialCadastrosRouteImport.update({
-  id: '/comercial/cadastros',
-  path: '/comercial/cadastros',
+const PessoalRoute = PessoalRouteImport.update({
+  id: '/pessoal',
+  path: '/pessoal',
   getParentRoute: () => rootRouteImport,
 } as any)
-const FinanceiroIndexRoute = FinanceiroIndexRouteImport.update({
-  id: '/financeiro/',
-  path: '/financeiro/',
-  getParentRoute: () => rootRouteImport,
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
 } as any)
-const FinanceiroCadastrosRoute = FinanceiroCadastrosRouteImport.update({
-  id: '/financeiro/cadastros',
-  path: '/financeiro/cadastros',
-  getParentRoute: () => rootRouteImport,
+const EmpreendedorIndexRoute = EmpreendedorIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => EmpreendedorRoute,
 } as any)
-const FinanceiroCartoesRoute = FinanceiroCartoesRouteImport.update({
-  id: '/financeiro/cartoes',
-  path: '/financeiro/cartoes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FinanceiroDemonstrativoRoute = FinanceiroDemonstrativoRouteImport.update({
-  id: '/financeiro/demonstrativo',
-  path: '/financeiro/demonstrativo',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FinanceiroLancamentosRoute = FinanceiroLancamentosRouteImport.update({
-  id: '/financeiro/lancamentos',
-  path: '/financeiro/lancamentos',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FinanceiroMetasRoute = FinanceiroMetasRouteImport.update({
-  id: '/financeiro/metas',
-  path: '/financeiro/metas',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MarketingIndexRoute = MarketingIndexRouteImport.update({
-  id: '/marketing/',
-  path: '/marketing/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MarketingCalendarioRoute = MarketingCalendarioRouteImport.update({
-  id: '/marketing/calendario',
-  path: '/marketing/calendario',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MarketingCampanhasRoute = MarketingCampanhasRouteImport.update({
-  id: '/marketing/campanhas',
-  path: '/marketing/campanhas',
-  getParentRoute: () => rootRouteImport,
+const EmpreendedorAgendaRoute = EmpreendedorAgendaRouteImport.update({
+  id: '/agenda',
+  path: '/agenda',
+  getParentRoute: () => EmpreendedorRoute,
 } as any)
 const PessoalIndexRoute = PessoalIndexRouteImport.update({
-  id: '/pessoal/',
-  path: '/pessoal/',
-  getParentRoute: () => rootRouteImport,
+  id: '/',
+  path: '/',
+  getParentRoute: () => PessoalRoute,
 } as any)
 const PessoalCategoriasRoute = PessoalCategoriasRouteImport.update({
-  id: '/pessoal/categorias',
-  path: '/pessoal/categorias',
-  getParentRoute: () => rootRouteImport,
+  id: '/categorias',
+  path: '/categorias',
+  getParentRoute: () => PessoalRoute,
 } as any)
 const PessoalDinheiroEContasRoute = PessoalDinheiroEContasRouteImport.update({
-  id: '/pessoal/dinheiro-e-contas',
-  path: '/pessoal/dinheiro-e-contas',
-  getParentRoute: () => rootRouteImport,
+  id: '/dinheiro-e-contas',
+  path: '/dinheiro-e-contas',
+  getParentRoute: () => PessoalRoute,
 } as any)
 const PessoalDividasRoute = PessoalDividasRouteImport.update({
-  id: '/pessoal/dividas',
-  path: '/pessoal/dividas',
-  getParentRoute: () => rootRouteImport,
+  id: '/dividas',
+  path: '/dividas',
+  getParentRoute: () => PessoalRoute,
 } as any)
 const PessoalLancamentosRoute = PessoalLancamentosRouteImport.update({
-  id: '/pessoal/lancamentos',
-  path: '/pessoal/lancamentos',
-  getParentRoute: () => rootRouteImport,
+  id: '/lancamentos',
+  path: '/lancamentos',
+  getParentRoute: () => PessoalRoute,
 } as any)
+const PessoalMovimentacoesRoute = PessoalMovimentacoesRouteImport.update({
+  id: '/movimentacoes',
+  path: '/movimentacoes',
+  getParentRoute: () => PessoalRoute,
+} as any)
+const EmpreendedorComercialIndexRoute =
+  EmpreendedorComercialIndexRouteImport.update({
+    id: '/comercial/',
+    path: '/comercial/',
+    getParentRoute: () => EmpreendedorRoute,
+  } as any)
+const EmpreendedorComercialCadastrosRoute =
+  EmpreendedorComercialCadastrosRouteImport.update({
+    id: '/comercial/cadastros',
+    path: '/comercial/cadastros',
+    getParentRoute: () => EmpreendedorRoute,
+  } as any)
+const EmpreendedorFinanceiroIndexRoute =
+  EmpreendedorFinanceiroIndexRouteImport.update({
+    id: '/financeiro/',
+    path: '/financeiro/',
+    getParentRoute: () => EmpreendedorRoute,
+  } as any)
+const EmpreendedorFinanceiroCadastrosRoute =
+  EmpreendedorFinanceiroCadastrosRouteImport.update({
+    id: '/financeiro/cadastros',
+    path: '/financeiro/cadastros',
+    getParentRoute: () => EmpreendedorRoute,
+  } as any)
+const EmpreendedorFinanceiroCartoesRoute =
+  EmpreendedorFinanceiroCartoesRouteImport.update({
+    id: '/financeiro/cartoes',
+    path: '/financeiro/cartoes',
+    getParentRoute: () => EmpreendedorRoute,
+  } as any)
+const EmpreendedorFinanceiroDemonstrativoRoute =
+  EmpreendedorFinanceiroDemonstrativoRouteImport.update({
+    id: '/financeiro/demonstrativo',
+    path: '/financeiro/demonstrativo',
+    getParentRoute: () => EmpreendedorRoute,
+  } as any)
+const EmpreendedorFinanceiroLancamentosRoute =
+  EmpreendedorFinanceiroLancamentosRouteImport.update({
+    id: '/financeiro/lancamentos',
+    path: '/financeiro/lancamentos',
+    getParentRoute: () => EmpreendedorRoute,
+  } as any)
+const EmpreendedorFinanceiroMetasRoute =
+  EmpreendedorFinanceiroMetasRouteImport.update({
+    id: '/financeiro/metas',
+    path: '/financeiro/metas',
+    getParentRoute: () => EmpreendedorRoute,
+  } as any)
+const EmpreendedorMarketingIndexRoute =
+  EmpreendedorMarketingIndexRouteImport.update({
+    id: '/marketing/',
+    path: '/marketing/',
+    getParentRoute: () => EmpreendedorRoute,
+  } as any)
+const EmpreendedorMarketingCampanhasRoute =
+  EmpreendedorMarketingCampanhasRouteImport.update({
+    id: '/marketing/campanhas',
+    path: '/marketing/campanhas',
+    getParentRoute: () => EmpreendedorRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/configuracoes': typeof ConfiguracoesRoute
-  '/comercial/cadastros': typeof ComercialCadastrosRoute
-  '/financeiro/cadastros': typeof FinanceiroCadastrosRoute
-  '/financeiro/cartoes': typeof FinanceiroCartoesRoute
-  '/financeiro/demonstrativo': typeof FinanceiroDemonstrativoRoute
-  '/financeiro/lancamentos': typeof FinanceiroLancamentosRoute
-  '/financeiro/metas': typeof FinanceiroMetasRoute
-  '/marketing/calendario': typeof MarketingCalendarioRoute
-  '/marketing/campanhas': typeof MarketingCampanhasRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/empreendedor': typeof EmpreendedorRouteWithChildren
+  '/pessoal': typeof PessoalRouteWithChildren
+  '/empreendedor/agenda': typeof EmpreendedorAgendaRoute
   '/pessoal/categorias': typeof PessoalCategoriasRoute
   '/pessoal/dinheiro-e-contas': typeof PessoalDinheiroEContasRoute
   '/pessoal/dividas': typeof PessoalDividasRoute
   '/pessoal/lancamentos': typeof PessoalLancamentosRoute
-  '/comercial/': typeof ComercialIndexRoute
-  '/financeiro/': typeof FinanceiroIndexRoute
-  '/marketing/': typeof MarketingIndexRoute
+  '/pessoal/movimentacoes': typeof PessoalMovimentacoesRoute
+  '/admin/': typeof AdminIndexRoute
+  '/empreendedor/': typeof EmpreendedorIndexRoute
   '/pessoal/': typeof PessoalIndexRoute
+  '/empreendedor/comercial/cadastros': typeof EmpreendedorComercialCadastrosRoute
+  '/empreendedor/financeiro/cadastros': typeof EmpreendedorFinanceiroCadastrosRoute
+  '/empreendedor/financeiro/cartoes': typeof EmpreendedorFinanceiroCartoesRoute
+  '/empreendedor/financeiro/demonstrativo': typeof EmpreendedorFinanceiroDemonstrativoRoute
+  '/empreendedor/financeiro/lancamentos': typeof EmpreendedorFinanceiroLancamentosRoute
+  '/empreendedor/financeiro/metas': typeof EmpreendedorFinanceiroMetasRoute
+  '/empreendedor/marketing/campanhas': typeof EmpreendedorMarketingCampanhasRoute
+  '/empreendedor/comercial/': typeof EmpreendedorComercialIndexRoute
+  '/empreendedor/financeiro/': typeof EmpreendedorFinanceiroIndexRoute
+  '/empreendedor/marketing/': typeof EmpreendedorMarketingIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/configuracoes': typeof ConfiguracoesRoute
-  '/comercial/cadastros': typeof ComercialCadastrosRoute
-  '/financeiro/cadastros': typeof FinanceiroCadastrosRoute
-  '/financeiro/cartoes': typeof FinanceiroCartoesRoute
-  '/financeiro/demonstrativo': typeof FinanceiroDemonstrativoRoute
-  '/financeiro/lancamentos': typeof FinanceiroLancamentosRoute
-  '/financeiro/metas': typeof FinanceiroMetasRoute
-  '/marketing/calendario': typeof MarketingCalendarioRoute
-  '/marketing/campanhas': typeof MarketingCampanhasRoute
+  '/empreendedor/agenda': typeof EmpreendedorAgendaRoute
   '/pessoal/categorias': typeof PessoalCategoriasRoute
   '/pessoal/dinheiro-e-contas': typeof PessoalDinheiroEContasRoute
   '/pessoal/dividas': typeof PessoalDividasRoute
   '/pessoal/lancamentos': typeof PessoalLancamentosRoute
-  '/comercial': typeof ComercialIndexRoute
-  '/financeiro': typeof FinanceiroIndexRoute
-  '/marketing': typeof MarketingIndexRoute
+  '/pessoal/movimentacoes': typeof PessoalMovimentacoesRoute
+  '/admin': typeof AdminIndexRoute
+  '/empreendedor': typeof EmpreendedorIndexRoute
   '/pessoal': typeof PessoalIndexRoute
+  '/empreendedor/comercial/cadastros': typeof EmpreendedorComercialCadastrosRoute
+  '/empreendedor/financeiro/cadastros': typeof EmpreendedorFinanceiroCadastrosRoute
+  '/empreendedor/financeiro/cartoes': typeof EmpreendedorFinanceiroCartoesRoute
+  '/empreendedor/financeiro/demonstrativo': typeof EmpreendedorFinanceiroDemonstrativoRoute
+  '/empreendedor/financeiro/lancamentos': typeof EmpreendedorFinanceiroLancamentosRoute
+  '/empreendedor/financeiro/metas': typeof EmpreendedorFinanceiroMetasRoute
+  '/empreendedor/marketing/campanhas': typeof EmpreendedorMarketingCampanhasRoute
+  '/empreendedor/comercial': typeof EmpreendedorComercialIndexRoute
+  '/empreendedor/financeiro': typeof EmpreendedorFinanceiroIndexRoute
+  '/empreendedor/marketing': typeof EmpreendedorMarketingIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/configuracoes': typeof ConfiguracoesRoute
-  '/comercial/cadastros': typeof ComercialCadastrosRoute
-  '/financeiro/cadastros': typeof FinanceiroCadastrosRoute
-  '/financeiro/cartoes': typeof FinanceiroCartoesRoute
-  '/financeiro/demonstrativo': typeof FinanceiroDemonstrativoRoute
-  '/financeiro/lancamentos': typeof FinanceiroLancamentosRoute
-  '/financeiro/metas': typeof FinanceiroMetasRoute
-  '/marketing/calendario': typeof MarketingCalendarioRoute
-  '/marketing/campanhas': typeof MarketingCampanhasRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/empreendedor': typeof EmpreendedorRouteWithChildren
+  '/pessoal': typeof PessoalRouteWithChildren
+  '/empreendedor/agenda': typeof EmpreendedorAgendaRoute
   '/pessoal/categorias': typeof PessoalCategoriasRoute
   '/pessoal/dinheiro-e-contas': typeof PessoalDinheiroEContasRoute
   '/pessoal/dividas': typeof PessoalDividasRoute
   '/pessoal/lancamentos': typeof PessoalLancamentosRoute
-  '/comercial/': typeof ComercialIndexRoute
-  '/financeiro/': typeof FinanceiroIndexRoute
-  '/marketing/': typeof MarketingIndexRoute
+  '/pessoal/movimentacoes': typeof PessoalMovimentacoesRoute
+  '/admin/': typeof AdminIndexRoute
+  '/empreendedor/': typeof EmpreendedorIndexRoute
   '/pessoal/': typeof PessoalIndexRoute
+  '/empreendedor/comercial/cadastros': typeof EmpreendedorComercialCadastrosRoute
+  '/empreendedor/financeiro/cadastros': typeof EmpreendedorFinanceiroCadastrosRoute
+  '/empreendedor/financeiro/cartoes': typeof EmpreendedorFinanceiroCartoesRoute
+  '/empreendedor/financeiro/demonstrativo': typeof EmpreendedorFinanceiroDemonstrativoRoute
+  '/empreendedor/financeiro/lancamentos': typeof EmpreendedorFinanceiroLancamentosRoute
+  '/empreendedor/financeiro/metas': typeof EmpreendedorFinanceiroMetasRoute
+  '/empreendedor/marketing/campanhas': typeof EmpreendedorMarketingCampanhasRoute
+  '/empreendedor/comercial/': typeof EmpreendedorComercialIndexRoute
+  '/empreendedor/financeiro/': typeof EmpreendedorFinanceiroIndexRoute
+  '/empreendedor/marketing/': typeof EmpreendedorMarketingIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/configuracoes'
-    | '/comercial/cadastros'
-    | '/financeiro/cadastros'
-    | '/financeiro/cartoes'
-    | '/financeiro/demonstrativo'
-    | '/financeiro/lancamentos'
-    | '/financeiro/metas'
-    | '/marketing/calendario'
-    | '/marketing/campanhas'
+    | '/admin'
+    | '/empreendedor'
+    | '/pessoal'
+    | '/empreendedor/agenda'
     | '/pessoal/categorias'
     | '/pessoal/dinheiro-e-contas'
     | '/pessoal/dividas'
     | '/pessoal/lancamentos'
-    | '/comercial/'
-    | '/financeiro/'
-    | '/marketing/'
+    | '/pessoal/movimentacoes'
+    | '/admin/'
+    | '/empreendedor/'
     | '/pessoal/'
+    | '/empreendedor/comercial/cadastros'
+    | '/empreendedor/financeiro/cadastros'
+    | '/empreendedor/financeiro/cartoes'
+    | '/empreendedor/financeiro/demonstrativo'
+    | '/empreendedor/financeiro/lancamentos'
+    | '/empreendedor/financeiro/metas'
+    | '/empreendedor/marketing/campanhas'
+    | '/empreendedor/comercial/'
+    | '/empreendedor/financeiro/'
+    | '/empreendedor/marketing/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/configuracoes'
-    | '/comercial/cadastros'
-    | '/financeiro/cadastros'
-    | '/financeiro/cartoes'
-    | '/financeiro/demonstrativo'
-    | '/financeiro/lancamentos'
-    | '/financeiro/metas'
-    | '/marketing/calendario'
-    | '/marketing/campanhas'
+    | '/empreendedor/agenda'
     | '/pessoal/categorias'
     | '/pessoal/dinheiro-e-contas'
     | '/pessoal/dividas'
     | '/pessoal/lancamentos'
-    | '/comercial'
-    | '/financeiro'
-    | '/marketing'
+    | '/pessoal/movimentacoes'
+    | '/admin'
+    | '/empreendedor'
     | '/pessoal'
+    | '/empreendedor/comercial/cadastros'
+    | '/empreendedor/financeiro/cadastros'
+    | '/empreendedor/financeiro/cartoes'
+    | '/empreendedor/financeiro/demonstrativo'
+    | '/empreendedor/financeiro/lancamentos'
+    | '/empreendedor/financeiro/metas'
+    | '/empreendedor/marketing/campanhas'
+    | '/empreendedor/comercial'
+    | '/empreendedor/financeiro'
+    | '/empreendedor/marketing'
   id:
     | '__root__'
     | '/'
-    | '/configuracoes'
-    | '/comercial/cadastros'
-    | '/financeiro/cadastros'
-    | '/financeiro/cartoes'
-    | '/financeiro/demonstrativo'
-    | '/financeiro/lancamentos'
-    | '/financeiro/metas'
-    | '/marketing/calendario'
-    | '/marketing/campanhas'
+    | '/admin'
+    | '/empreendedor'
+    | '/pessoal'
+    | '/empreendedor/agenda'
     | '/pessoal/categorias'
     | '/pessoal/dinheiro-e-contas'
     | '/pessoal/dividas'
     | '/pessoal/lancamentos'
-    | '/comercial/'
-    | '/financeiro/'
-    | '/marketing/'
+    | '/pessoal/movimentacoes'
+    | '/admin/'
+    | '/empreendedor/'
     | '/pessoal/'
+    | '/empreendedor/comercial/cadastros'
+    | '/empreendedor/financeiro/cadastros'
+    | '/empreendedor/financeiro/cartoes'
+    | '/empreendedor/financeiro/demonstrativo'
+    | '/empreendedor/financeiro/lancamentos'
+    | '/empreendedor/financeiro/metas'
+    | '/empreendedor/marketing/campanhas'
+    | '/empreendedor/comercial/'
+    | '/empreendedor/financeiro/'
+    | '/empreendedor/marketing/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ConfiguracoesRoute: typeof ConfiguracoesRoute
-  ComercialCadastrosRoute: typeof ComercialCadastrosRoute
-  FinanceiroCadastrosRoute: typeof FinanceiroCadastrosRoute
-  FinanceiroCartoesRoute: typeof FinanceiroCartoesRoute
-  FinanceiroDemonstrativoRoute: typeof FinanceiroDemonstrativoRoute
-  FinanceiroLancamentosRoute: typeof FinanceiroLancamentosRoute
-  FinanceiroMetasRoute: typeof FinanceiroMetasRoute
-  MarketingCalendarioRoute: typeof MarketingCalendarioRoute
-  MarketingCampanhasRoute: typeof MarketingCampanhasRoute
-  PessoalCategoriasRoute: typeof PessoalCategoriasRoute
-  PessoalDinheiroEContasRoute: typeof PessoalDinheiroEContasRoute
-  PessoalDividasRoute: typeof PessoalDividasRoute
-  PessoalLancamentosRoute: typeof PessoalLancamentosRoute
-  ComercialIndexRoute: typeof ComercialIndexRoute
-  FinanceiroIndexRoute: typeof FinanceiroIndexRoute
-  MarketingIndexRoute: typeof MarketingIndexRoute
-  PessoalIndexRoute: typeof PessoalIndexRoute
+  AdminRoute: typeof AdminRouteWithChildren
+  EmpreendedorRoute: typeof EmpreendedorRouteWithChildren
+  PessoalRoute: typeof PessoalRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -273,147 +323,235 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/configuracoes': {
-      id: '/configuracoes'
-      path: '/configuracoes'
-      fullPath: '/configuracoes'
-      preLoaderRoute: typeof ConfiguracoesRouteImport
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/comercial/': {
-      id: '/comercial/'
-      path: '/comercial'
-      fullPath: '/comercial/'
-      preLoaderRoute: typeof ComercialIndexRouteImport
+    '/empreendedor': {
+      id: '/empreendedor'
+      path: '/empreendedor'
+      fullPath: '/empreendedor'
+      preLoaderRoute: typeof EmpreendedorRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/comercial/cadastros': {
-      id: '/comercial/cadastros'
-      path: '/comercial/cadastros'
-      fullPath: '/comercial/cadastros'
-      preLoaderRoute: typeof ComercialCadastrosRouteImport
+    '/pessoal': {
+      id: '/pessoal'
+      path: '/pessoal'
+      fullPath: '/pessoal'
+      preLoaderRoute: typeof PessoalRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/financeiro/': {
-      id: '/financeiro/'
-      path: '/financeiro'
-      fullPath: '/financeiro/'
-      preLoaderRoute: typeof FinanceiroIndexRouteImport
-      parentRoute: typeof rootRouteImport
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/financeiro/cadastros': {
-      id: '/financeiro/cadastros'
-      path: '/financeiro/cadastros'
-      fullPath: '/financeiro/cadastros'
-      preLoaderRoute: typeof FinanceiroCadastrosRouteImport
-      parentRoute: typeof rootRouteImport
+    '/empreendedor/': {
+      id: '/empreendedor/'
+      path: '/'
+      fullPath: '/empreendedor/'
+      preLoaderRoute: typeof EmpreendedorIndexRouteImport
+      parentRoute: typeof EmpreendedorRoute
     }
-    '/financeiro/cartoes': {
-      id: '/financeiro/cartoes'
-      path: '/financeiro/cartoes'
-      fullPath: '/financeiro/cartoes'
-      preLoaderRoute: typeof FinanceiroCartoesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/financeiro/demonstrativo': {
-      id: '/financeiro/demonstrativo'
-      path: '/financeiro/demonstrativo'
-      fullPath: '/financeiro/demonstrativo'
-      preLoaderRoute: typeof FinanceiroDemonstrativoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/financeiro/lancamentos': {
-      id: '/financeiro/lancamentos'
-      path: '/financeiro/lancamentos'
-      fullPath: '/financeiro/lancamentos'
-      preLoaderRoute: typeof FinanceiroLancamentosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/financeiro/metas': {
-      id: '/financeiro/metas'
-      path: '/financeiro/metas'
-      fullPath: '/financeiro/metas'
-      preLoaderRoute: typeof FinanceiroMetasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/marketing/': {
-      id: '/marketing/'
-      path: '/marketing'
-      fullPath: '/marketing/'
-      preLoaderRoute: typeof MarketingIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/marketing/calendario': {
-      id: '/marketing/calendario'
-      path: '/marketing/calendario'
-      fullPath: '/marketing/calendario'
-      preLoaderRoute: typeof MarketingCalendarioRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/marketing/campanhas': {
-      id: '/marketing/campanhas'
-      path: '/marketing/campanhas'
-      fullPath: '/marketing/campanhas'
-      preLoaderRoute: typeof MarketingCampanhasRouteImport
-      parentRoute: typeof rootRouteImport
+    '/empreendedor/agenda': {
+      id: '/empreendedor/agenda'
+      path: '/agenda'
+      fullPath: '/empreendedor/agenda'
+      preLoaderRoute: typeof EmpreendedorAgendaRouteImport
+      parentRoute: typeof EmpreendedorRoute
     }
     '/pessoal/': {
       id: '/pessoal/'
-      path: '/pessoal'
+      path: '/'
       fullPath: '/pessoal/'
       preLoaderRoute: typeof PessoalIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof PessoalRoute
     }
     '/pessoal/categorias': {
       id: '/pessoal/categorias'
-      path: '/pessoal/categorias'
+      path: '/categorias'
       fullPath: '/pessoal/categorias'
       preLoaderRoute: typeof PessoalCategoriasRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof PessoalRoute
     }
     '/pessoal/dinheiro-e-contas': {
       id: '/pessoal/dinheiro-e-contas'
-      path: '/pessoal/dinheiro-e-contas'
+      path: '/dinheiro-e-contas'
       fullPath: '/pessoal/dinheiro-e-contas'
       preLoaderRoute: typeof PessoalDinheiroEContasRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof PessoalRoute
     }
     '/pessoal/dividas': {
       id: '/pessoal/dividas'
-      path: '/pessoal/dividas'
+      path: '/dividas'
       fullPath: '/pessoal/dividas'
       preLoaderRoute: typeof PessoalDividasRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof PessoalRoute
     }
     '/pessoal/lancamentos': {
       id: '/pessoal/lancamentos'
-      path: '/pessoal/lancamentos'
+      path: '/lancamentos'
       fullPath: '/pessoal/lancamentos'
       preLoaderRoute: typeof PessoalLancamentosRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof PessoalRoute
+    }
+    '/pessoal/movimentacoes': {
+      id: '/pessoal/movimentacoes'
+      path: '/movimentacoes'
+      fullPath: '/pessoal/movimentacoes'
+      preLoaderRoute: typeof PessoalMovimentacoesRouteImport
+      parentRoute: typeof PessoalRoute
+    }
+    '/empreendedor/comercial/': {
+      id: '/empreendedor/comercial/'
+      path: '/comercial'
+      fullPath: '/empreendedor/comercial/'
+      preLoaderRoute: typeof EmpreendedorComercialIndexRouteImport
+      parentRoute: typeof EmpreendedorRoute
+    }
+    '/empreendedor/comercial/cadastros': {
+      id: '/empreendedor/comercial/cadastros'
+      path: '/comercial/cadastros'
+      fullPath: '/empreendedor/comercial/cadastros'
+      preLoaderRoute: typeof EmpreendedorComercialCadastrosRouteImport
+      parentRoute: typeof EmpreendedorRoute
+    }
+    '/empreendedor/financeiro/': {
+      id: '/empreendedor/financeiro/'
+      path: '/financeiro'
+      fullPath: '/empreendedor/financeiro/'
+      preLoaderRoute: typeof EmpreendedorFinanceiroIndexRouteImport
+      parentRoute: typeof EmpreendedorRoute
+    }
+    '/empreendedor/financeiro/cadastros': {
+      id: '/empreendedor/financeiro/cadastros'
+      path: '/financeiro/cadastros'
+      fullPath: '/empreendedor/financeiro/cadastros'
+      preLoaderRoute: typeof EmpreendedorFinanceiroCadastrosRouteImport
+      parentRoute: typeof EmpreendedorRoute
+    }
+    '/empreendedor/financeiro/cartoes': {
+      id: '/empreendedor/financeiro/cartoes'
+      path: '/financeiro/cartoes'
+      fullPath: '/empreendedor/financeiro/cartoes'
+      preLoaderRoute: typeof EmpreendedorFinanceiroCartoesRouteImport
+      parentRoute: typeof EmpreendedorRoute
+    }
+    '/empreendedor/financeiro/demonstrativo': {
+      id: '/empreendedor/financeiro/demonstrativo'
+      path: '/financeiro/demonstrativo'
+      fullPath: '/empreendedor/financeiro/demonstrativo'
+      preLoaderRoute: typeof EmpreendedorFinanceiroDemonstrativoRouteImport
+      parentRoute: typeof EmpreendedorRoute
+    }
+    '/empreendedor/financeiro/lancamentos': {
+      id: '/empreendedor/financeiro/lancamentos'
+      path: '/financeiro/lancamentos'
+      fullPath: '/empreendedor/financeiro/lancamentos'
+      preLoaderRoute: typeof EmpreendedorFinanceiroLancamentosRouteImport
+      parentRoute: typeof EmpreendedorRoute
+    }
+    '/empreendedor/financeiro/metas': {
+      id: '/empreendedor/financeiro/metas'
+      path: '/financeiro/metas'
+      fullPath: '/empreendedor/financeiro/metas'
+      preLoaderRoute: typeof EmpreendedorFinanceiroMetasRouteImport
+      parentRoute: typeof EmpreendedorRoute
+    }
+    '/empreendedor/marketing/': {
+      id: '/empreendedor/marketing/'
+      path: '/marketing'
+      fullPath: '/empreendedor/marketing/'
+      preLoaderRoute: typeof EmpreendedorMarketingIndexRouteImport
+      parentRoute: typeof EmpreendedorRoute
+    }
+    '/empreendedor/marketing/campanhas': {
+      id: '/empreendedor/marketing/campanhas'
+      path: '/marketing/campanhas'
+      fullPath: '/empreendedor/marketing/campanhas'
+      preLoaderRoute: typeof EmpreendedorMarketingCampanhasRouteImport
+      parentRoute: typeof EmpreendedorRoute
     }
   }
 }
 
-const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  ConfiguracoesRoute: ConfiguracoesRoute,
-  ComercialCadastrosRoute: ComercialCadastrosRoute,
-  FinanceiroCadastrosRoute: FinanceiroCadastrosRoute,
-  FinanceiroCartoesRoute: FinanceiroCartoesRoute,
-  FinanceiroDemonstrativoRoute: FinanceiroDemonstrativoRoute,
-  FinanceiroLancamentosRoute: FinanceiroLancamentosRoute,
-  FinanceiroMetasRoute: FinanceiroMetasRoute,
-  MarketingCalendarioRoute: MarketingCalendarioRoute,
-  MarketingCampanhasRoute: MarketingCampanhasRoute,
+interface AdminRouteChildren {
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
+interface EmpreendedorRouteChildren {
+  EmpreendedorAgendaRoute: typeof EmpreendedorAgendaRoute
+  EmpreendedorIndexRoute: typeof EmpreendedorIndexRoute
+  EmpreendedorComercialCadastrosRoute: typeof EmpreendedorComercialCadastrosRoute
+  EmpreendedorFinanceiroCadastrosRoute: typeof EmpreendedorFinanceiroCadastrosRoute
+  EmpreendedorFinanceiroCartoesRoute: typeof EmpreendedorFinanceiroCartoesRoute
+  EmpreendedorFinanceiroDemonstrativoRoute: typeof EmpreendedorFinanceiroDemonstrativoRoute
+  EmpreendedorFinanceiroLancamentosRoute: typeof EmpreendedorFinanceiroLancamentosRoute
+  EmpreendedorFinanceiroMetasRoute: typeof EmpreendedorFinanceiroMetasRoute
+  EmpreendedorMarketingCampanhasRoute: typeof EmpreendedorMarketingCampanhasRoute
+  EmpreendedorComercialIndexRoute: typeof EmpreendedorComercialIndexRoute
+  EmpreendedorFinanceiroIndexRoute: typeof EmpreendedorFinanceiroIndexRoute
+  EmpreendedorMarketingIndexRoute: typeof EmpreendedorMarketingIndexRoute
+}
+
+const EmpreendedorRouteChildren: EmpreendedorRouteChildren = {
+  EmpreendedorAgendaRoute: EmpreendedorAgendaRoute,
+  EmpreendedorIndexRoute: EmpreendedorIndexRoute,
+  EmpreendedorComercialCadastrosRoute: EmpreendedorComercialCadastrosRoute,
+  EmpreendedorFinanceiroCadastrosRoute: EmpreendedorFinanceiroCadastrosRoute,
+  EmpreendedorFinanceiroCartoesRoute: EmpreendedorFinanceiroCartoesRoute,
+  EmpreendedorFinanceiroDemonstrativoRoute:
+    EmpreendedorFinanceiroDemonstrativoRoute,
+  EmpreendedorFinanceiroLancamentosRoute:
+    EmpreendedorFinanceiroLancamentosRoute,
+  EmpreendedorFinanceiroMetasRoute: EmpreendedorFinanceiroMetasRoute,
+  EmpreendedorMarketingCampanhasRoute: EmpreendedorMarketingCampanhasRoute,
+  EmpreendedorComercialIndexRoute: EmpreendedorComercialIndexRoute,
+  EmpreendedorFinanceiroIndexRoute: EmpreendedorFinanceiroIndexRoute,
+  EmpreendedorMarketingIndexRoute: EmpreendedorMarketingIndexRoute,
+}
+
+const EmpreendedorRouteWithChildren = EmpreendedorRoute._addFileChildren(
+  EmpreendedorRouteChildren,
+)
+
+interface PessoalRouteChildren {
+  PessoalCategoriasRoute: typeof PessoalCategoriasRoute
+  PessoalDinheiroEContasRoute: typeof PessoalDinheiroEContasRoute
+  PessoalDividasRoute: typeof PessoalDividasRoute
+  PessoalLancamentosRoute: typeof PessoalLancamentosRoute
+  PessoalMovimentacoesRoute: typeof PessoalMovimentacoesRoute
+  PessoalIndexRoute: typeof PessoalIndexRoute
+}
+
+const PessoalRouteChildren: PessoalRouteChildren = {
   PessoalCategoriasRoute: PessoalCategoriasRoute,
   PessoalDinheiroEContasRoute: PessoalDinheiroEContasRoute,
   PessoalDividasRoute: PessoalDividasRoute,
   PessoalLancamentosRoute: PessoalLancamentosRoute,
-  ComercialIndexRoute: ComercialIndexRoute,
-  FinanceiroIndexRoute: FinanceiroIndexRoute,
-  MarketingIndexRoute: MarketingIndexRoute,
+  PessoalMovimentacoesRoute: PessoalMovimentacoesRoute,
   PessoalIndexRoute: PessoalIndexRoute,
+}
+
+const PessoalRouteWithChildren =
+  PessoalRoute._addFileChildren(PessoalRouteChildren)
+
+const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
+  AdminRoute: AdminRouteWithChildren,
+  EmpreendedorRoute: EmpreendedorRouteWithChildren,
+  PessoalRoute: PessoalRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

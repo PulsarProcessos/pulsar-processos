@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Política de Privacidade · Pulsar</title>
+    <meta name="description" content="Como o Pulsar trata os seus dados, inclusive os do Google Agenda." />
+    <link rel="icon" href="/favicon.ico" />
+    <style>
+      :root {
+        --texto: #1f2328;
+        --suave: #59636e;
+        --fundo: #f5f5f5;
+        --cartao: #ffffff;
+        --marca: #e8862f;
+        --borda: #e3e3e3;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --texto: #e6e6e6;
+          --suave: #a0a7b0;
+          --fundo: #161616;
+          --cartao: #1f1f1f;
+          --borda: #333333;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--fundo);
+        color: var(--texto);
+        font: 16px/1.65 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      main {
+        max-width: 760px;
+        margin: 32px auto;
+        padding: 32px 28px;
+        background: var(--cartao);
+        border: 1px solid var(--borda);
+        border-radius: 14px;
+      }
+      @media (max-width: 640px) {
+        main { margin: 0; border-radius: 0; border-width: 0 0 1px; padding: 24px 16px; }
+      }
+      header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+      header img { width: 48px; height: 48px; border-radius: 10px; border: 1px solid var(--borda); }
+      h1 { font-size: 1.6rem; line-height: 1.25; margin: 0; }
+      h2 { font-size: 1.1rem; margin: 28px 0 6px; }
+      p, li { margin: 6px 0; }
+      ul { padding-left: 20px; }
+      .data { color: var(--suave); font-size: .9rem; margin-bottom: 20px; }
+      .destaque {
+        border-left: 4px solid var(--marca);
+        background: color-mix(in srgb, var(--marca) 10%, transparent);
+        padding: 12px 16px;
+        border-radius: 6px;
+      }
+      a { color: var(--marca); }
+      footer { margin-top: 32px; color: var(--suave); font-size: .9rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <img src="/pwa-192x192.png" alt="" />
+        <h1>Política de Privacidade do Pulsar</h1>
+      </header>
+      <p class="data">Última atualização: 10 de novembro de 2026</p>
+
+      <p>
+        O Pulsar (<a href="https://pulsar.devalorepulsar.com.br">pulsar.devalorepulsar.com.br</a>) é um sistema
+        de gestão de uso privado, mantido por Alan Silveira, para organizar finanças da empresa e pessoais,
+        clientes, marketing e agenda. Só entra quem recebe um usuário do administrador; não há cadastro aberto.
+      </p>
+
+      <h2>Quais dados o Pulsar trata</h2>
+      <ul>
+        <li><strong>Dados de acesso:</strong> e-mail e nome do usuário, usados para entrar no sistema.</li>
+        <li><strong>Dados que você lança:</strong> lançamentos, contas, dívidas, categorias, clientes e demais
+          informações que você mesmo cadastra.</li>
+        <li><strong>Google Agenda (se você conectar):</strong> o e-mail da sua conta Google e o acesso às duas
+          agendas que o próprio Pulsar cria na sua conta, "Pulsar · Pessoal" e "Pulsar · Empreendedor",
+          e aos compromissos dentro delas.</li>
+      </ul>
+
+      <h2>Como o Pulsar usa os dados do Google</h2>
+      <p>
+        A permissão pedida ao Google só alcança as agendas criadas pelo Pulsar. Com ela, o Pulsar mostra,
+        cria, altera e exclui compromissos nessas duas agendas, sempre a seu pedido. O Pulsar
+        <strong>não</strong> vê as suas outras agendas, não lê e-mails, contatos ou arquivos, e não usa os
+        dados do Google para nenhuma outra finalidade.
+      </p>
+      <p class="destaque">
+        O uso e a transferência, pelo Pulsar, de informações recebidas das APIs do Google para qualquer outro
+        aplicativo seguirão a
+        <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noreferrer">Política
+        de Dados do Usuário dos Serviços de API do Google</a>, incluindo os requisitos de Uso Limitado.
+      </p>
+
+      <h2>Onde os dados ficam</h2>
+      <ul>
+        <li>Os compromissos da agenda continuam no seu Google Agenda; o Pulsar não guarda cópia deles.</li>
+        <li>Do Google, o Pulsar guarda só o e-mail da conta conectada e uma credencial de acesso, que fica
+          <strong>cifrada</strong> no banco de dados e nunca passa pelo navegador.</li>
+        <li>Os demais dados ficam no banco de dados do Pulsar (Supabase), e cada usuário só enxerga os próprios
+          registros. Toda a comunicação é feita com criptografia (HTTPS).</li>
+      </ul>
+
+      <h2>Com quem os dados são compartilhados</h2>
+      <p>
+        Com ninguém. O Pulsar não vende dados, não os usa para publicidade e não os usa para treinar inteligência
+        artificial. Os únicos serviços envolvidos são os que fazem o sistema funcionar: Supabase (banco de dados
+        e servidor), Hostinger (hospedagem do site) e Google (agenda, quando você conecta).
+      </p>
+
+      <h2>Como desconectar o Google e apagar dados</h2>
+      <ul>
+        <li>Na Agenda do Pulsar, use <strong>Desconectar</strong>: o acesso é revogado no Google e a credencial
+          guardada é apagada. Você também pode remover o acesso em
+          <a href="https://myaccount.google.com/permissions" target="_blank" rel="noreferrer">myaccount.google.com/permissions</a>.</li>
+        <li>Para ver, corrigir ou apagar os seus dados, como garante a Lei Geral de Proteção de Dados
+          (Lei 13.709/2018), escreva para o contato abaixo.</li>
+      </ul>
+
+      <h2>Contato</h2>
+      <p>Alan Silveira · <a href="mailto:alansilveira@pulsarprocessos.com.br">alansilveira@pulsarprocessos.com.br</a></p>
+
+      <footer>
+        <a href="/">Voltar ao Pulsar</a>
+      </footer>
+    </main>
+  </body>
+</html>

@@ -20,7 +20,7 @@ import {
   useData, Contato, ContatoTipo, Categoria, Banco, GrupoCategoria,
 } from "@/lib/data-store";
 
-export const Route = createFileRoute("/financeiro/cadastros")({
+export const Route = createFileRoute("/empreendedor/financeiro/cadastros")({
   component: Cadastros,
 });
 

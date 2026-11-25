@@ -39,7 +39,8 @@ AddType application/manifest+json .webmanifest
     Header set Cache-Control "no-cache, no-store, must-revalidate"
   </FilesMatch>
   # sw.js é o que o app consulta para saber se saiu versão nova: nunca pode ficar em cache.
-  <FilesMatch "^(sw\.js|manifest\.webmanifest)$">
+  # push-sw.js é carregado por ele (notificações) e também precisa vir sempre atualizado.
+  <FilesMatch "^(sw\.js|push-sw\.js|manifest\.webmanifest)$">
     Header set Cache-Control "no-cache, must-revalidate"
   </FilesMatch>
 </IfModule>

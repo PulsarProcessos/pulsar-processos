@@ -13,27 +13,13 @@ import {
 import { MesNavegador } from "@/components/pessoal/mes-navegador";
 import { LancamentoForm } from "@/components/pessoal/lancamento-form";
 import {
-  usePessoal, brl, chaveMes, competenciaDe, dataNoMes, formatarData, hojeISO,
-  ContaFixa, LancamentoPessoal, StatusPag, TipoMov,
+  usePessoal, brl, chaveMes, formatarData, hojeISO, linhasDoMes, rendaDoMes,
+  LancamentoPessoal, LinhaMes as Linha,
 } from "@/lib/pessoal-store";
 
-export const Route = createFileRoute("/pessoal/")({
+export const Route = createFileRoute("/pessoal/movimentacoes")({
   component: Movimentacoes,
 });
-
-type Linha = {
-  chave: string;
-  data: string;
-  descricao: string;
-  detalhe?: string;
-  categoriaId?: string;
-  tipo: TipoMov;
-  valor: number;
-  status: StatusPag;
-  lancamento?: LancamentoPessoal;
-  /** Conta fixa que ainda não foi paga neste mês (não existe lançamento para ela). */
-  contaFixa?: ContaFixa;
-};
 
 type Filtro = "todos" | "a-pagar" | "pagos" | "entradas";
 
@@ -49,50 +35,15 @@ function Movimentacoes() {
   const [form, setForm] = useState<{ aberto: boolean; editando?: LancamentoPessoal }>({ aberto: false });
 
   const chave = chaveMes(ano, mes);
-  const competencia = competenciaDe(ano, mes);
   const hojeStr = hojeISO();
 
-  const linhas = useMemo<Linha[]>(() => {
-    const doMes = lancamentos.filter((l) => l.data.startsWith(chave));
-    const lista: Linha[] = doMes.map((l) => {
-      const divida = l.dividaId ? dividas.find((d) => d.id === l.dividaId) : undefined;
-      return {
-        chave: l.id,
-        data: l.data,
-        descricao: l.descricao,
-        detalhe: divida
-          ? `Parcela ${l.parcelaNumero}/${divida.totalParcelas}`
-          : l.contaFixaId ? "Conta fixa" : undefined,
-        categoriaId: l.categoriaId,
-        tipo: l.tipo,
-        valor: l.valor,
-        status: l.status,
-        lancamento: l,
-      };
-    });
-    // Contas fixas: aparecem todo mês a partir do início, até serem pagas.
-    const pagas = new Set(
-      lancamentos.filter((l) => l.contaFixaId && l.competencia === competencia).map((l) => l.contaFixaId),
-    );
-    for (const c of contasFixas) {
-      if (!c.ativa || c.inicio > competencia || pagas.has(c.id)) continue;
-      lista.push({
-        chave: `cf-${c.id}`,
-        data: dataNoMes(ano, mes, c.diaVencimento),
-        descricao: c.descricao,
-        detalhe: "Conta fixa",
-        categoriaId: c.categoriaId,
-        tipo: "Despesa",
-        valor: c.valor,
-        status: "Pendente",
-        contaFixa: c,
-      });
-    }
-    return lista.sort((a, b) => a.data.localeCompare(b.data) || a.descricao.localeCompare(b.descricao));
-  }, [lancamentos, contasFixas, dividas, chave, competencia, ano, mes]);
+  const linhas = useMemo(
+    () => linhasDoMes({ lancamentos, contasFixas, dividas }, ano, mes),
+    [lancamentos, contasFixas, dividas, ano, mes],
+  );
 
   const resumo = useMemo(() => {
-    const renda = rendas.filter((r) => r.ativa).reduce((s, r) => s + r.valor, 0);
+    const renda = rendaDoMes(rendas, ano, mes);
     let entradas = 0, gasto = 0, aPagar = 0;
     for (const l of linhas) {
       if (l.tipo === "Receita") entradas += l.valor;
@@ -100,7 +51,7 @@ function Movimentacoes() {
       else aPagar += l.valor;
     }
     return { renda, entradas, gasto, aPagar, saldo: renda + entradas - gasto - aPagar };
-  }, [rendas, linhas]);
+  }, [rendas, linhas, ano, mes]);
 
   // Contas de meses anteriores que ficaram sem pagar.
   const atrasadas = useMemo(() => {

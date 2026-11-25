@@ -40,7 +40,11 @@ export default defineConfig({
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         navigateFallback: "/index.html",
+        // Páginas soltas (fora do sistema) não podem cair na tela do sistema.
+        navigateFallbackDenylist: [/^\/privacidade\.html$/],
         cleanupOutdatedCaches: true,
+        // Recebe e mostra as notificações do Pulsar (public/push-sw.js).
+        importScripts: ["push-sw.js"],
       },
     }),
   ],

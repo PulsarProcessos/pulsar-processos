@@ -16,7 +16,7 @@ import {
 import { ArrowDown, ArrowUp, Pencil, Plus, Trash2 } from "lucide-react";
 import { useData, Produto } from "@/lib/data-store";
 
-export const Route = createFileRoute("/comercial/cadastros")({
+export const Route = createFileRoute("/empreendedor/comercial/cadastros")({
   component: ComercialCadastros,
 });
 

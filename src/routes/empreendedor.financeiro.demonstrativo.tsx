@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronRight, ChevronLeft } from "lucide-react";
 import { useData, Lancamento } from "@/lib/data-store";
 
-export const Route = createFileRoute("/financeiro/demonstrativo")({
+export const Route = createFileRoute("/empreendedor/financeiro/demonstrativo")({
   component: Demonstrativo,
 });
 

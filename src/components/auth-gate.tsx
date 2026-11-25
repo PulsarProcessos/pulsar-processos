@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,28 +9,46 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import pulsarLogo from "@/assets/pulsar-logo.png";
+import { limparAssinaturaDeOutraPessoa } from "@/lib/notificacoes";
 
-type AuthGateProps = {
-  children: React.ReactNode;
-  onSession?: (session: Session | null) => void;
-};
+const SessaoContext = createContext<Session | null>(null);
 
-export function AuthGate({ children, onSession }: AuthGateProps) {
+/** Sessão de quem está conectado. Só existe dentro do AuthGate (ou seja, sempre logado). */
+export function useSessao(): Session {
+  const sessao = useContext(SessaoContext);
+  if (!sessao) throw new Error("useSessao precisa estar dentro do AuthGate");
+  return sessao;
+}
+
+export function AuthGate({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const router = useRouter();
+  const usuarioAnterior = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+    const aplicar = (s: Session | null) => {
+      const id = s?.user.id ?? null;
+      if (usuarioAnterior.current !== undefined && usuarioAnterior.current !== id) {
+        // Trocou de pessoa (ou saiu) no mesmo aparelho: nada do usuário anterior pode ficar na memória.
+        queryClient.clear();
+        // Quem acabou de entrar começa no Início, não na última tela de quem usou antes.
+        if (id) router.navigate({ to: "/", replace: true });
+      }
+      // O aparelho não pode continuar recebendo avisos de outra pessoa. Fora do callback do
+      // Supabase (chamar o banco dentro dele pode travar a sessão).
+      if (id && usuarioAnterior.current !== id) setTimeout(() => limparAssinaturaDeOutraPessoa(), 0);
+      usuarioAnterior.current = id;
       setSession(s);
-      onSession?.(s);
-    });
+    };
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => aplicar(s));
     supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      onSession?.(data.session);
+      aplicar(data.session);
       setLoading(false);
     });
     return () => subscription.unsubscribe();
-  }, [onSession]);
+  }, [queryClient, router]);
 
   if (loading) {
     return (
@@ -39,7 +59,12 @@ export function AuthGate({ children, onSession }: AuthGateProps) {
   }
 
   if (!session) return <AuthPage />;
-  return <>{children}</>;
+  // key: ao trocar de pessoa, toda a árvore é montada do zero (sem estado da anterior).
+  return (
+    <SessaoContext.Provider value={session} key={session.user.id}>
+      {children}
+    </SessaoContext.Provider>
+  );
 }
 
 function AuthPage() {
@@ -56,7 +81,7 @@ function AuthPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4 py-10">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-muted/30 px-4 py-10">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-3 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center">
@@ -88,6 +113,9 @@ function AuthPage() {
           </form>
         </CardContent>
       </Card>
+      <a href="/privacidade.html" className="mt-4 text-xs text-muted-foreground underline-offset-4 hover:underline">
+        Política de privacidade
+      </a>
     </div>
   );
 }

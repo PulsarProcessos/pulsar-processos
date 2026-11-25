@@ -13,7 +13,7 @@ import { ChevronLeft, ChevronRight, Save, Trash2 } from "lucide-react";
 import { useData, Lancamento } from "@/lib/data-store";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/financeiro/metas")({
+export const Route = createFileRoute("/empreendedor/financeiro/metas")({
   component: Metas,
 });
 

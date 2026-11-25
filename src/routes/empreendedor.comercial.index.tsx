@@ -19,7 +19,7 @@ import {
 } from "@dnd-kit/core";
 import { useData, Deal, DealStage } from "@/lib/data-store";
 
-export const Route = createFileRoute("/comercial/")({
+export const Route = createFileRoute("/empreendedor/comercial/")({
   component: Pipeline,
 });
 
@@ -61,7 +61,7 @@ function Pipeline() {
       <div className="flex justify-between items-center">
         <p className="text-sm text-muted-foreground">
           Personalize etapas e produtos em{" "}
-          <Link to="/comercial/cadastros" className="text-primary underline">Cadastros</Link>.
+          <Link to="/empreendedor/comercial/cadastros" className="text-primary underline">Cadastros</Link>.
         </p>
         <Dialog open={openNew} onOpenChange={setOpenNew}>
           <DialogTrigger asChild>

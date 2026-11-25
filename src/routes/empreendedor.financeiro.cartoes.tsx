@@ -19,7 +19,7 @@ import { Trash2, ChevronLeft, ChevronRight, CreditCard, Pencil } from "lucide-re
 import { useData, Lancamento } from "@/lib/data-store";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/financeiro/cartoes")({
+export const Route = createFileRoute("/empreendedor/financeiro/cartoes")({
   component: Cartoes,
 });
 
@@ -287,7 +287,7 @@ function Cartoes() {
         <h1 className="text-xl font-bold">Cartões</h1>
         <p className="text-sm text-muted-foreground">
           Nenhum cartão cadastrado. Crie um banco do tipo "Cartão" em{" "}
-          <Link to="/financeiro/cadastros" className="text-primary underline">Cadastros</Link>.
+          <Link to="/empreendedor/financeiro/cadastros" className="text-primary underline">Cadastros</Link>.
         </p>
       </div>
     );
@@ -313,7 +313,7 @@ function Cartoes() {
           </Select>
         </div>
         <Button asChild variant="outline">
-          <Link to="/financeiro/cadastros">Editar conta</Link>
+          <Link to="/empreendedor/financeiro/cadastros">Editar conta</Link>
         </Button>
       </div>
 
@@ -324,7 +324,7 @@ function Cartoes() {
             Informar pagamento
           </Button>
           <Button asChild variant="outline">
-            <Link to="/financeiro/lancamentos">Adicionar lançamento</Link>
+            <Link to="/empreendedor/financeiro/lancamentos">Adicionar lançamento</Link>
           </Button>
         </div>
         <div className="flex flex-col items-end gap-1">
@@ -418,7 +418,7 @@ function Cartoes() {
       {limiteTotal === 0 && (
         <div className="text-xs text-muted-foreground">
           Defina o limite do cartão em{" "}
-          <Link to="/financeiro/cadastros" className="text-primary underline">Cadastros</Link>{" "}
+          <Link to="/empreendedor/financeiro/cadastros" className="text-primary underline">Cadastros</Link>{" "}
           para visualizar o limite disponível e o uso atual.
         </div>
       )}

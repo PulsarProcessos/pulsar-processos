@@ -34,7 +34,7 @@ import {
 } from "@/lib/data-store";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/financeiro/lancamentos")({
+export const Route = createFileRoute("/empreendedor/financeiro/lancamentos")({
   component: Lancamentos,
 });
 
@@ -400,7 +400,7 @@ function Lancamentos() {
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
         Extrato consolidado das movimentações. Gerencie clientes, fornecedores, contas e plano de contas em{" "}
-        <Link to="/financeiro/cadastros" className="text-primary underline">Cadastros</Link>.
+        <Link to="/empreendedor/financeiro/cadastros" className="text-primary underline">Cadastros</Link>.
       </p>
 
       {/* Saldo das contas/cartões */}
@@ -476,7 +476,7 @@ function Lancamentos() {
                       {vencRef ? ` · vence ${String(vencRef.getDate()).padStart(2,"0")}/${String(vencRef.getMonth()+1).padStart(2,"0")}` : ` · venc. dia ${b.vencimentoDia ?? "—"}`}
                     </p>
                     <Button asChild size="sm" variant="outline" className="mt-2 h-7 w-full text-xs">
-                      <Link to="/financeiro/cartoes">Ver cartão</Link>
+                      <Link to="/empreendedor/financeiro/cartoes">Ver cartão</Link>
                     </Button>
                   </>
                 ) : (
