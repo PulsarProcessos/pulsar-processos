@@ -17,10 +17,13 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as EmpreendedorIndexRouteImport } from './routes/empreendedor.index'
 import { Route as EmpreendedorAgendaRouteImport } from './routes/empreendedor.agenda'
 import { Route as PessoalIndexRouteImport } from './routes/pessoal.index'
+import { Route as PessoalBensRouteImport } from './routes/pessoal.bens'
 import { Route as PessoalCategoriasRouteImport } from './routes/pessoal.categorias'
 import { Route as PessoalDinheiroEContasRouteImport } from './routes/pessoal.dinheiro-e-contas'
 import { Route as PessoalDividasRouteImport } from './routes/pessoal.dividas'
+import { Route as PessoalDivisaoRouteImport } from './routes/pessoal.divisao'
 import { Route as PessoalLancamentosRouteImport } from './routes/pessoal.lancamentos'
+import { Route as PessoalMetasRouteImport } from './routes/pessoal.metas'
 import { Route as PessoalMovimentacoesRouteImport } from './routes/pessoal.movimentacoes'
 import { Route as PessoalResultadoRouteImport } from './routes/pessoal.resultado'
 import { Route as EmpreendedorComercialIndexRouteImport } from './routes/empreendedor.comercial.index'
@@ -74,6 +77,11 @@ const PessoalIndexRoute = PessoalIndexRouteImport.update({
   path: '/',
   getParentRoute: () => PessoalRoute,
 } as any)
+const PessoalBensRoute = PessoalBensRouteImport.update({
+  id: '/bens',
+  path: '/bens',
+  getParentRoute: () => PessoalRoute,
+} as any)
 const PessoalCategoriasRoute = PessoalCategoriasRouteImport.update({
   id: '/categorias',
   path: '/categorias',
@@ -89,9 +97,19 @@ const PessoalDividasRoute = PessoalDividasRouteImport.update({
   path: '/dividas',
   getParentRoute: () => PessoalRoute,
 } as any)
+const PessoalDivisaoRoute = PessoalDivisaoRouteImport.update({
+  id: '/divisao',
+  path: '/divisao',
+  getParentRoute: () => PessoalRoute,
+} as any)
 const PessoalLancamentosRoute = PessoalLancamentosRouteImport.update({
   id: '/lancamentos',
   path: '/lancamentos',
+  getParentRoute: () => PessoalRoute,
+} as any)
+const PessoalMetasRoute = PessoalMetasRouteImport.update({
+  id: '/metas',
+  path: '/metas',
   getParentRoute: () => PessoalRoute,
 } as any)
 const PessoalMovimentacoesRoute = PessoalMovimentacoesRouteImport.update({
@@ -171,10 +189,13 @@ export interface FileRoutesByFullPath {
   '/empreendedor': typeof EmpreendedorRouteWithChildren
   '/pessoal': typeof PessoalRouteWithChildren
   '/empreendedor/agenda': typeof EmpreendedorAgendaRoute
+  '/pessoal/bens': typeof PessoalBensRoute
   '/pessoal/categorias': typeof PessoalCategoriasRoute
   '/pessoal/dinheiro-e-contas': typeof PessoalDinheiroEContasRoute
   '/pessoal/dividas': typeof PessoalDividasRoute
+  '/pessoal/divisao': typeof PessoalDivisaoRoute
   '/pessoal/lancamentos': typeof PessoalLancamentosRoute
+  '/pessoal/metas': typeof PessoalMetasRoute
   '/pessoal/movimentacoes': typeof PessoalMovimentacoesRoute
   '/pessoal/resultado': typeof PessoalResultadoRoute
   '/admin/': typeof AdminIndexRoute
@@ -194,10 +215,13 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/empreendedor/agenda': typeof EmpreendedorAgendaRoute
+  '/pessoal/bens': typeof PessoalBensRoute
   '/pessoal/categorias': typeof PessoalCategoriasRoute
   '/pessoal/dinheiro-e-contas': typeof PessoalDinheiroEContasRoute
   '/pessoal/dividas': typeof PessoalDividasRoute
+  '/pessoal/divisao': typeof PessoalDivisaoRoute
   '/pessoal/lancamentos': typeof PessoalLancamentosRoute
+  '/pessoal/metas': typeof PessoalMetasRoute
   '/pessoal/movimentacoes': typeof PessoalMovimentacoesRoute
   '/pessoal/resultado': typeof PessoalResultadoRoute
   '/admin': typeof AdminIndexRoute
@@ -221,10 +245,13 @@ export interface FileRoutesById {
   '/empreendedor': typeof EmpreendedorRouteWithChildren
   '/pessoal': typeof PessoalRouteWithChildren
   '/empreendedor/agenda': typeof EmpreendedorAgendaRoute
+  '/pessoal/bens': typeof PessoalBensRoute
   '/pessoal/categorias': typeof PessoalCategoriasRoute
   '/pessoal/dinheiro-e-contas': typeof PessoalDinheiroEContasRoute
   '/pessoal/dividas': typeof PessoalDividasRoute
+  '/pessoal/divisao': typeof PessoalDivisaoRoute
   '/pessoal/lancamentos': typeof PessoalLancamentosRoute
+  '/pessoal/metas': typeof PessoalMetasRoute
   '/pessoal/movimentacoes': typeof PessoalMovimentacoesRoute
   '/pessoal/resultado': typeof PessoalResultadoRoute
   '/admin/': typeof AdminIndexRoute
@@ -249,10 +276,13 @@ export interface FileRouteTypes {
     | '/empreendedor'
     | '/pessoal'
     | '/empreendedor/agenda'
+    | '/pessoal/bens'
     | '/pessoal/categorias'
     | '/pessoal/dinheiro-e-contas'
     | '/pessoal/dividas'
+    | '/pessoal/divisao'
     | '/pessoal/lancamentos'
+    | '/pessoal/metas'
     | '/pessoal/movimentacoes'
     | '/pessoal/resultado'
     | '/admin/'
@@ -272,10 +302,13 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/empreendedor/agenda'
+    | '/pessoal/bens'
     | '/pessoal/categorias'
     | '/pessoal/dinheiro-e-contas'
     | '/pessoal/dividas'
+    | '/pessoal/divisao'
     | '/pessoal/lancamentos'
+    | '/pessoal/metas'
     | '/pessoal/movimentacoes'
     | '/pessoal/resultado'
     | '/admin'
@@ -298,10 +331,13 @@ export interface FileRouteTypes {
     | '/empreendedor'
     | '/pessoal'
     | '/empreendedor/agenda'
+    | '/pessoal/bens'
     | '/pessoal/categorias'
     | '/pessoal/dinheiro-e-contas'
     | '/pessoal/dividas'
+    | '/pessoal/divisao'
     | '/pessoal/lancamentos'
+    | '/pessoal/metas'
     | '/pessoal/movimentacoes'
     | '/pessoal/resultado'
     | '/admin/'
@@ -384,6 +420,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PessoalIndexRouteImport
       parentRoute: typeof PessoalRoute
     }
+    '/pessoal/bens': {
+      id: '/pessoal/bens'
+      path: '/bens'
+      fullPath: '/pessoal/bens'
+      preLoaderRoute: typeof PessoalBensRouteImport
+      parentRoute: typeof PessoalRoute
+    }
     '/pessoal/categorias': {
       id: '/pessoal/categorias'
       path: '/categorias'
@@ -405,11 +448,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PessoalDividasRouteImport
       parentRoute: typeof PessoalRoute
     }
+    '/pessoal/divisao': {
+      id: '/pessoal/divisao'
+      path: '/divisao'
+      fullPath: '/pessoal/divisao'
+      preLoaderRoute: typeof PessoalDivisaoRouteImport
+      parentRoute: typeof PessoalRoute
+    }
     '/pessoal/lancamentos': {
       id: '/pessoal/lancamentos'
       path: '/lancamentos'
       fullPath: '/pessoal/lancamentos'
       preLoaderRoute: typeof PessoalLancamentosRouteImport
+      parentRoute: typeof PessoalRoute
+    }
+    '/pessoal/metas': {
+      id: '/pessoal/metas'
+      path: '/metas'
+      fullPath: '/pessoal/metas'
+      preLoaderRoute: typeof PessoalMetasRouteImport
       parentRoute: typeof PessoalRoute
     }
     '/pessoal/movimentacoes': {
@@ -546,20 +603,26 @@ const EmpreendedorRouteWithChildren = EmpreendedorRoute._addFileChildren(
 )
 
 interface PessoalRouteChildren {
+  PessoalBensRoute: typeof PessoalBensRoute
   PessoalCategoriasRoute: typeof PessoalCategoriasRoute
   PessoalDinheiroEContasRoute: typeof PessoalDinheiroEContasRoute
   PessoalDividasRoute: typeof PessoalDividasRoute
+  PessoalDivisaoRoute: typeof PessoalDivisaoRoute
   PessoalLancamentosRoute: typeof PessoalLancamentosRoute
+  PessoalMetasRoute: typeof PessoalMetasRoute
   PessoalMovimentacoesRoute: typeof PessoalMovimentacoesRoute
   PessoalResultadoRoute: typeof PessoalResultadoRoute
   PessoalIndexRoute: typeof PessoalIndexRoute
 }
 
 const PessoalRouteChildren: PessoalRouteChildren = {
+  PessoalBensRoute: PessoalBensRoute,
   PessoalCategoriasRoute: PessoalCategoriasRoute,
   PessoalDinheiroEContasRoute: PessoalDinheiroEContasRoute,
   PessoalDividasRoute: PessoalDividasRoute,
+  PessoalDivisaoRoute: PessoalDivisaoRoute,
   PessoalLancamentosRoute: PessoalLancamentosRoute,
+  PessoalMetasRoute: PessoalMetasRoute,
   PessoalMovimentacoesRoute: PessoalMovimentacoesRoute,
   PessoalResultadoRoute: PessoalResultadoRoute,
   PessoalIndexRoute: PessoalIndexRoute,

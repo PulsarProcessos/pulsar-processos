@@ -5,8 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  usePessoal, brl, hojeISO, linhasDoMes, rendaDoMes, resumirDivida, MESES,
+  usePessoal, brl, divisaoDoMes, formatarData, hojeISO, linhasDoMes, mesesAte, patrimonio, rendaDoMes,
+  resumirDivida, MESES,
 } from "@/lib/pessoal-store";
+import { corDoDestino } from "@/lib/cores-destinos";
 
 // Tela de entrada do Pessoal: o caminho em 3 partes (Onde estou → Meu mês → Para onde vou),
 // a situação de cada uma e o que fazer agora. Tudo calculado dos cadastros da própria pessoa.
@@ -26,7 +28,7 @@ const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um :
 type Passo = { titulo: string; texto: string; para: string; botao: string; alerta?: boolean };
 
 function MeuCaminho() {
-  const { rendas, contasFixas, dividas, lancamentos, carregando } = usePessoal();
+  const { rendas, contasFixas, dividas, lancamentos, carregando, destinos, categorias, bens, metas } = usePessoal();
   const hoje = new Date();
   const ano = hoje.getFullYear();
   const mes = hoje.getMonth() + 1;
@@ -71,6 +73,9 @@ function MeuCaminho() {
     }
     const sobraMedia = sobras.length ? sobras.reduce((s, v) => s + v, 0) / sobras.length : null;
 
+    // Meta ou sonho em aberto com o prazo mais próximo.
+    const proximaMeta = metas.filter((m) => !m.concluida).sort((a, b) => a.prazo.localeCompare(b.prazo))[0];
+
     return {
       renda, entradas, pago, aPagar, fixas, parcelas, vencidas, dividasAtivas, devendo, sobraMedia,
       mesesNaMedia: sobras.length,
@@ -78,8 +83,11 @@ function MeuCaminho() {
       comprometido: renda > 0 ? Math.round(((fixas + parcelas) / renda) * 100) : null,
       rendasAtivas: rendas.filter((r) => r.ativa).length,
       fixasAtivas: contasFixas.filter((c) => c.ativa).length,
+      patrimonio: patrimonio({ bens, dividas, lancamentos }),
+      divisao: divisaoDoMes({ destinos, categorias, rendas, lancamentos, contasFixas, dividas }, ano, mes),
+      proximaMeta,
     };
-  }, [rendas, contasFixas, dividas, lancamentos, ano, mes, hojeStr]);
+  }, [rendas, contasFixas, dividas, lancamentos, destinos, categorias, bens, metas, ano, mes, hojeStr]);
 
   if (carregando) return <p className="py-10 text-center text-sm text-muted-foreground">Carregando...</p>;
 
@@ -95,11 +103,18 @@ function MeuCaminho() {
       : d.vencidas.qtd > 0
         ? { titulo: `${plural(d.vencidas.qtd, "conta vencida", "contas vencidas")}`, texto: `Somam ${brl(d.vencidas.total)}. Pague e marque como paga no Dia a dia.`,
             para: "/pessoal/movimentacoes", botao: "Ver o dia a dia", alerta: true }
-        : d.aPagar > 0
-          ? { titulo: `Faltam ${brl(d.aPagar)} para pagar em ${nomeMes}`, texto: "Marque o que já pagou e lance os gastos do dia a dia, para a sobra do mês ficar certa.",
-              para: "/pessoal/movimentacoes", botao: "Abrir o dia a dia" }
-          : { titulo: "Tudo em dia neste mês", texto: "Veja como o seu ano está indo, mês a mês.",
-              para: "/pessoal/resultado", botao: "Ver resultado do ano" };
+        // Os dois primeiros passos da parte 3 aparecem uma vez só: depois de feitos, não voltam.
+        : destinos.length === 0
+          ? { titulo: "Dê um destino para cada real que entra", texto: "Decida quanto da renda vai para contas, investir, sonhos e lazer, antes de gastar.",
+              para: "/pessoal/divisao", botao: "Dividir minha renda" }
+          : metas.length === 0
+            ? { titulo: "Qual é o seu próximo sonho?", texto: "Dê nome, valor e prazo ao que você quer conquistar, e veja quanto guardar por mês.",
+                para: "/pessoal/metas", botao: "Criar meu primeiro sonho" }
+            : d.aPagar > 0
+              ? { titulo: `Faltam ${brl(d.aPagar)} para pagar em ${nomeMes}`, texto: "Marque o que já pagou e lance os gastos do dia a dia, para a sobra do mês ficar certa.",
+                  para: "/pessoal/movimentacoes", botao: "Abrir o dia a dia" }
+              : { titulo: "Tudo em dia neste mês", texto: "Veja como o seu ano está indo, mês a mês.",
+                  para: "/pessoal/resultado", botao: "Ver resultado do ano" };
 
   const faixa = d.comprometido === null ? null : FAIXAS.find((f) => d.comprometido! <= f.ate)!;
 
@@ -133,13 +148,16 @@ function MeuCaminho() {
           situacao={parte1Completa
             ? <Badge className="bg-emerald-600 hover:bg-emerald-600">Preenchido</Badge>
             : <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">Falta preencher</Badge>}>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Dado rotulo="Entra por mês" valor={brl(d.renda)} cor="text-emerald-600"
               detalhe={d.rendasAtivas ? plural(d.rendasAtivas, "renda", "rendas") : "nenhuma renda cadastrada"} />
             <Dado rotulo="Contas fixas" valor={brl(d.fixas)}
               detalhe={d.fixasAtivas ? plural(d.fixasAtivas, "conta", "contas") : "nenhuma conta cadastrada"} />
             <Dado rotulo={`Parcelas em ${nomeMes}`} valor={brl(d.parcelas)}
               detalhe={d.dividasAtivas ? `${plural(d.dividasAtivas, "dívida", "dívidas")} · faltam ${brl(d.devendo)}` : "nenhuma dívida em andamento"} />
+            <Dado rotulo="Meu patrimônio" valor={brl(d.patrimonio.liquido)}
+              cor={d.patrimonio.liquido >= 0 ? "text-primary" : "text-red-500"}
+              detalhe={bens.length ? `tenho ${brl(d.patrimonio.tenho)} · devo ${brl(d.patrimonio.devo)}` : "cadastre seus bens e investimentos"} />
           </div>
 
           {faixa && d.comprometido !== null ? (
@@ -177,6 +195,7 @@ function MeuCaminho() {
           <Atalhos itens={[
             { para: "/pessoal/dinheiro-e-contas", rotulo: "Rendas e contas fixas" },
             { para: "/pessoal/dividas", rotulo: "Dívidas" },
+            { para: "/pessoal/bens", rotulo: "Bens e investimentos" },
           ]} />
         </Parte>
 
@@ -206,8 +225,10 @@ function MeuCaminho() {
           ]} />
         </Parte>
 
-        <Parte numero={3} titulo="Para onde vou" dica="O que fazer com o que sobra" ultima
-          situacao={<Badge variant="outline">Em breve</Badge>}>
+        <Parte numero={3} titulo="Para onde vou" dica="Um destino para cada real e aonde quero chegar" ultima
+          situacao={destinos.length && metas.length
+            ? <Badge className="bg-emerald-600 hover:bg-emerald-600">Em andamento</Badge>
+            : <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">Falta começar</Badge>}>
           {d.sobraMedia === null ? (
             <p className="text-sm text-muted-foreground">
               Quando houver alguns meses registrados, aqui aparece quanto costuma sobrar por mês.
@@ -222,11 +243,53 @@ function MeuCaminho() {
                 : " Antes de pensar no futuro, a parte 2 precisa fechar no azul."}
             </p>
           )}
-          <ul className="space-y-1.5 text-sm text-muted-foreground">
-            <li>• Dividir a sobra em destinos: guardar, investir, sonhos e lazer</li>
-            <li>• Metas e sonhos, com prazo e quanto guardar por mês</li>
-            <li>• Bens e investimentos: quanto você tem de verdade</li>
-          </ul>
+
+          {d.divisao.itens.length === 0 ? (
+            <p className="rounded-md bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+              Ainda sem divisão da renda: decida quanto vai para contas, investir, sonhos e lazer.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Divisão da renda em {nomeMes}: usado × planejado</p>
+              {d.divisao.itens.map(({ destino, planejado, usado }, i) => {
+                const pct = planejado > 0 ? (usado / planejado) * 100 : usado > 0 ? 100 : 0;
+                return (
+                  <div key={destino.id}>
+                    <div className="flex items-baseline justify-between gap-3 text-sm">
+                      <span className="flex min-w-0 items-center gap-1.5 leading-snug">
+                        <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: corDoDestino(i) }} />
+                        {destino.nome}
+                      </span>
+                      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                        <span className="font-semibold text-foreground">{brl(usado)}</span> de {brl(planejado)}
+                      </span>
+                    </div>
+                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+                      <div className="h-full rounded-full" style={{ width: `${Math.min(pct, 100)}%`, background: corDoDestino(i) }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {d.proximaMeta ? (
+            <p className="text-sm">
+              Próxima meta: <strong>{d.proximaMeta.titulo}</strong> até {formatarData(d.proximaMeta.prazo)}
+              {mesesAte(d.proximaMeta.prazo) >= 0
+                ? <span className="text-muted-foreground"> · {plural(metas.filter((m) => !m.concluida).length, "meta em aberto", "metas em aberto")}</span>
+                : <span className="text-amber-700 dark:text-amber-400"> · o prazo já passou</span>}
+            </p>
+          ) : (
+            <p className="rounded-md bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+              {metas.length ? "Todas as metas foram concluídas. Qual é a próxima?" : "Nenhum sonho ou meta ainda."}
+            </p>
+          )}
+
+          <Atalhos itens={[
+            { para: "/pessoal/divisao", rotulo: "Divisão da renda" },
+            { para: "/pessoal/metas", rotulo: "Metas e sonhos" },
+          ]} />
         </Parte>
       </ol>
     </div>

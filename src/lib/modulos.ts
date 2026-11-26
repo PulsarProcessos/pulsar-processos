@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeftRight, BarChart3, Briefcase, CalendarDays, Compass, CreditCard, FileSpreadsheet,
-  Handshake, HandCoins, LayoutDashboard, Megaphone, Package, PiggyBank, Receipt, Settings2,
-  ShieldCheck, Tags, Target, TrendingUp, UserPlus, Users, Wallet, type LucideIcon,
+  Handshake, HandCoins, Landmark, LayoutDashboard, Megaphone, Package, PieChart, PiggyBank, Receipt,
+  Settings2, ShieldCheck, Sparkles, Tags, Target, TrendingUp, UserPlus, Users, Wallet, type LucideIcon,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSessao } from "@/components/auth-gate";
@@ -98,6 +98,7 @@ export const MODULOS: Record<ModuloId, Modulo> = {
         itens: [
           { titulo: "Rendas e contas fixas", url: "/pessoal/dinheiro-e-contas", icone: PiggyBank },
           { titulo: "Dívidas", url: "/pessoal/dividas", icone: HandCoins },
+          { titulo: "Bens e investimentos", url: "/pessoal/bens", icone: Landmark },
         ],
       },
       {
@@ -105,6 +106,13 @@ export const MODULOS: Record<ModuloId, Modulo> = {
         itens: [
           { titulo: "Dia a dia", url: "/pessoal/movimentacoes", icone: ArrowLeftRight },
           { titulo: "Resultado do ano", url: "/pessoal/resultado", icone: BarChart3 },
+        ],
+      },
+      {
+        nome: "Para onde vou",
+        itens: [
+          { titulo: "Divisão da renda", url: "/pessoal/divisao", icone: PieChart },
+          { titulo: "Metas e sonhos", url: "/pessoal/metas", icone: Sparkles },
         ],
       },
       { itens: [{ titulo: "Categorias", url: "/pessoal/categorias", icone: Tags }] },

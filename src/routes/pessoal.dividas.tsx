@@ -89,8 +89,8 @@ function Dividas() {
         </div>
       )}
 
-      <ProximoPasso para="/pessoal/movimentacoes" rotulo="Próximo passo · parte 2" titulo="Dia a dia"
-        texto="Com o que entra, o que é fixo e o que você deve no lugar, acompanhe o mês: pague e lance os gastos." />
+      <ProximoPasso para="/pessoal/bens" titulo="Bens e investimentos"
+        texto="O que você tem. Com as dívidas, mostra o seu patrimônio de verdade." />
 
       <Dialog open={form.aberto} onOpenChange={(v) => { if (!v) setForm({ aberto: false }); }}>
         {form.aberto && <DividaForm editando={form.editando} onConcluir={() => setForm({ aberto: false })} />}

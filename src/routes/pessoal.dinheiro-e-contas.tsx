@@ -205,7 +205,7 @@ function ContasFixasCard() {
       <CardHeader className="flex flex-row items-start justify-between gap-3">
         <div>
           <CardTitle>Contas fixas</CardTitle>
-          <CardDescription>Contas que se repetem todo mês com o mesmo valor. Aparecem nas Movimentações.</CardDescription>
+          <CardDescription>Contas que se repetem todo mês com o mesmo valor. Aparecem no Dia a dia.</CardDescription>
         </div>
         <Button size="sm" onClick={() => setForm({ aberto: true })}>
           <Plus className="h-4 w-4" /> Nova conta

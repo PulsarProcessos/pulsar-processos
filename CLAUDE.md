@@ -57,7 +57,14 @@ npx eslint <arquivos> --rule "prettier/prettier: off"
 ### Dados no front
 - Empreendedor: `src/lib/data-store.tsx` (Context, carrega todas as tabelas da empresa).
 - Pessoal: `src/lib/pessoal-store.tsx` (Context). `linhasDoMes()`/`rendaDoMes()` são a regra única
-  do mês (lançamentos + parcelas + contas fixas não pagas) usada por Movimentações e pelo Painel.
+  do mês (lançamentos + parcelas + contas fixas não pagas) usada por Dia a dia, Resultado do ano e
+  Meu caminho. `patrimonio()` (bens − o que falta das dívidas) e `divisaoDoMes()` (planejado = tudo
+  que entra no mês × percentual; usado = gastos cuja categoria aponta para o destino, o resto vai
+  para o destino `padrao`) são usadas por Bens, Divisão da renda, Metas e Meu caminho.
+- Parte 3 do Pessoal (migration `20261126120000`): `pessoal_destinos`, `pessoal_categorias.destino_id`,
+  `pessoal_bens`, `pessoal_metas` (sonho/renda/patrimônio) e `pessoal_meta_passos` (plano de ação).
+  A divisão sugerida é criada pela RPC `pessoal_usar_divisao_sugerida()` (security invoker), que
+  também cria e liga as categorias Investimentos, Guardado para sonhos, Lazer e Reserva.
 - Agenda, Administração e notificações usam React Query / chamadas diretas a Edge Functions
   (`src/lib/agenda.ts`, `src/lib/usuarios.ts`, `src/lib/notificacoes.ts`).
 - Tabelas que não estão em `src/integrations/supabase/types.ts` são acessadas com

@@ -224,8 +224,8 @@ function Painel() {
         </CardContent>
       </Card>
 
-      <ProximoPasso para="/pessoal" rotulo="Voltar ao caminho" titulo="Meu caminho"
-        texto="Veja o resumo das três partes e o que fazer agora." />
+      <ProximoPasso para="/pessoal/divisao" rotulo="Próximo passo · Para onde vou" titulo="Divisão da renda"
+        texto="Decida quanto do que entra vai para contas, investir, sonhos e lazer." />
     </div>
   );
 }

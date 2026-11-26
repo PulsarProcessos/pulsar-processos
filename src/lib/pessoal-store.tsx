@@ -8,7 +8,52 @@ import { toast } from "sonner";
 export type TipoMov = "Receita" | "Despesa";
 export type StatusPag = "Pago" | "Pendente";
 
-export type CategoriaPessoal = { id: string; nome: string; tipo: TipoMov };
+/** destinoId: para qual destino da divisão da renda os gastos desta categoria contam. */
+export type CategoriaPessoal = { id: string; nome: string; tipo: TipoMov; destinoId?: string };
+
+/** Parte da renda do mês reservada para um fim (ex.: Investir 15%). */
+export type Destino = {
+  id: string;
+  nome: string;
+  percentual: number;
+  /** Recebe os gastos cuja categoria não aponta para outro destino (contas e dia a dia). */
+  padrao: boolean;
+  ordem: number;
+};
+export type DestinoInput = Omit<Destino, "id"> & { id?: string };
+
+export type TipoBem = "investimento" | "rende" | "uso";
+export type Bem = {
+  id: string;
+  nome: string;
+  tipo: TipoBem;
+  valor: number;
+  rentabilidadeAnual?: number;
+  obs?: string;
+  /** Data (AAAA-MM-DD) da última alteração, para a pessoa saber se o valor está atualizado. */
+  atualizadoEm: string;
+};
+
+export type TipoMeta = "sonho" | "renda" | "patrimonio";
+export type MetaPessoal = {
+  id: string;
+  tipo: TipoMeta;
+  titulo: string;
+  valorAlvo: number;
+  prazo: string;
+  /** Quanto já foi juntado (só sonhos). */
+  guardado: number;
+  concluida: boolean;
+  obs?: string;
+};
+export type PassoMeta = {
+  id: string;
+  metaId: string;
+  descricao: string;
+  quando?: string;
+  feito: boolean;
+  ordem: number;
+};
 
 export type Renda = {
   id: string;
@@ -105,7 +150,52 @@ export function formatarMesAno(iso: string) {
 const num = (v: unknown) => Number(v ?? 0);
 const opt = <T,>(v: T | null | undefined) => (v === null ? undefined : v);
 
-const mapCategoria = (r: any): CategoriaPessoal => ({ id: r.id, nome: r.nome, tipo: r.tipo });
+const mapCategoria = (r: any): CategoriaPessoal => ({
+  id: r.id, nome: r.nome, tipo: r.tipo, destinoId: opt(r.destino_id),
+});
+const mapDestino = (r: any): Destino => ({
+  id: r.id, nome: r.nome, percentual: num(r.percentual), padrao: r.padrao, ordem: r.ordem,
+});
+const dataLocal = (ts: string) => {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+const mapBem = (r: any): Bem => ({
+  id: r.id, nome: r.nome, tipo: r.tipo, valor: num(r.valor),
+  rentabilidadeAnual: r.rentabilidade_anual === null ? undefined : num(r.rentabilidade_anual),
+  obs: opt(r.obs), atualizadoEm: dataLocal(r.updated_at),
+});
+const mapMeta = (r: any): MetaPessoal => ({
+  id: r.id, tipo: r.tipo, titulo: r.titulo, valorAlvo: num(r.valor_alvo), prazo: r.prazo,
+  guardado: num(r.guardado), concluida: r.concluida, obs: opt(r.obs),
+});
+const mapPasso = (r: any): PassoMeta => ({
+  id: r.id, metaId: r.meta_id, descricao: r.descricao, quando: opt(r.quando), feito: r.feito, ordem: r.ordem,
+});
+
+const bemToDb = (b: Partial<Bem>) => ({
+  ...(b.nome !== undefined && { nome: b.nome.trim() }),
+  ...(b.tipo !== undefined && { tipo: b.tipo }),
+  ...(b.valor !== undefined && { valor: b.valor }),
+  ...("rentabilidadeAnual" in b && { rentabilidade_anual: b.rentabilidadeAnual ?? null }),
+  ...(b.obs !== undefined && { obs: b.obs.trim() || null }),
+});
+const metaToDb = (m: Partial<MetaPessoal>) => ({
+  ...(m.tipo !== undefined && { tipo: m.tipo }),
+  ...(m.titulo !== undefined && { titulo: m.titulo.trim() }),
+  ...(m.valorAlvo !== undefined && { valor_alvo: m.valorAlvo }),
+  ...(m.prazo !== undefined && { prazo: m.prazo }),
+  ...(m.guardado !== undefined && { guardado: m.guardado }),
+  ...(m.concluida !== undefined && { concluida: m.concluida }),
+  ...(m.obs !== undefined && { obs: m.obs.trim() || null }),
+});
+const passoToDb = (p: Partial<PassoMeta>) => ({
+  ...(p.metaId !== undefined && { meta_id: p.metaId }),
+  ...(p.descricao !== undefined && { descricao: p.descricao.trim() }),
+  ...("quando" in p && { quando: p.quando || null }),
+  ...(p.feito !== undefined && { feito: p.feito }),
+  ...(p.ordem !== undefined && { ordem: p.ordem }),
+});
 const mapRenda = (r: any): Renda => ({
   id: r.id, descricao: r.descricao, valor: num(r.valor),
   diaRecebimento: opt(r.dia_recebimento), inicio: r.inicio, ativa: r.ativa,
@@ -160,6 +250,10 @@ type Estado = {
   contasFixas: ContaFixa[];
   dividas: Divida[];
   lancamentos: LancamentoPessoal[];
+  destinos: Destino[];
+  bens: Bem[];
+  metas: MetaPessoal[];
+  passos: PassoMeta[];
   carregando: boolean;
 };
 
@@ -179,10 +273,23 @@ type Ctx = Estado & {
   addLancamento: (l: Omit<LancamentoPessoal, "id">) => Promise<LancamentoPessoal | null>;
   updateLancamento: (id: string, l: Partial<LancamentoPessoal>) => Promise<boolean>;
   removeLancamento: (id: string) => Promise<void>;
+  usarDivisaoSugerida: () => Promise<boolean>;
+  salvarDestinos: (lista: DestinoInput[], removidos: string[]) => Promise<boolean>;
+  ligarCategoriaDestino: (categoriaId: string, destinoId: string | null) => Promise<boolean>;
+  addBem: (b: Omit<Bem, "id" | "atualizadoEm">) => Promise<boolean>;
+  updateBem: (id: string, b: Partial<Bem>) => Promise<boolean>;
+  removeBem: (id: string) => Promise<void>;
+  addMeta: (m: Omit<MetaPessoal, "id">) => Promise<MetaPessoal | null>;
+  updateMeta: (id: string, m: Partial<MetaPessoal>) => Promise<boolean>;
+  removeMeta: (id: string) => Promise<void>;
+  addPasso: (p: Omit<PassoMeta, "id">) => Promise<boolean>;
+  updatePasso: (id: string, p: Partial<PassoMeta>) => Promise<boolean>;
+  removePasso: (id: string) => Promise<void>;
 };
 
 const vazio: Estado = {
-  categorias: [], rendas: [], contasFixas: [], dividas: [], lancamentos: [], carregando: true,
+  categorias: [], rendas: [], contasFixas: [], dividas: [], lancamentos: [],
+  destinos: [], bens: [], metas: [], passos: [], carregando: true,
 };
 
 const PessoalContext = createContext<Ctx | null>(null);
@@ -214,20 +321,39 @@ export function PessoalProvider({ children }: { children: ReactNode }) {
     };
   };
 
+  // Destinos e categorias andam juntos: apagar um destino solta as categorias ligadas a ele.
+  const buscarDestinosECategorias = async () => {
+    const [des, cat] = await Promise.all([
+      (supabase.from as any)("pessoal_destinos").select("*").order("ordem").order("created_at"),
+      (supabase.from as any)("pessoal_categorias").select("*").order("nome"),
+    ]);
+    if (des.error || cat.error) showError("Erro ao carregar a divisão da renda", des.error ?? cat.error);
+    return {
+      destinos: (des.data ?? []).map(mapDestino),
+      categorias: (cat.data ?? []).map(mapCategoria),
+    };
+  };
+
   const recarregar = useCallback(async (logado: boolean) => {
     if (!logado) { setEstado({ ...vazio, carregando: false }); return; }
-    const [cat, ren, cf, resto] = await Promise.all([
-      (supabase.from as any)("pessoal_categorias").select("*").order("nome"),
+    const [ren, cf, ben, met, pas, desCat, resto] = await Promise.all([
       (supabase.from as any)("pessoal_rendas").select("*").order("created_at"),
       (supabase.from as any)("pessoal_contas_fixas").select("*").order("dia_vencimento"),
+      (supabase.from as any)("pessoal_bens").select("*").order("created_at"),
+      (supabase.from as any)("pessoal_metas").select("*").order("prazo"),
+      (supabase.from as any)("pessoal_meta_passos").select("*").order("ordem").order("created_at"),
+      buscarDestinosECategorias(),
       buscarDividasELancamentos(),
     ]);
-    const erro = cat.error ?? ren.error ?? cf.error;
+    const erro = ren.error ?? cf.error ?? ben.error ?? met.error ?? pas.error;
     if (erro) showError("Erro ao carregar dados pessoais", erro);
     setEstado({
-      categorias: (cat.data ?? []).map(mapCategoria),
       rendas: (ren.data ?? []).map(mapRenda),
       contasFixas: (cf.data ?? []).map(mapContaFixa),
+      bens: (ben.data ?? []).map(mapBem),
+      metas: (met.data ?? []).map(mapMeta),
+      passos: (pas.data ?? []).map(mapPasso),
+      ...desCat,
       ...resto,
       carregando: false,
     });
@@ -397,6 +523,85 @@ export function PessoalProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // ----- Divisão da renda -----
+  const usarDivisaoSugerida = useCallback(async () => {
+    // A função no banco cria os destinos e as categorias ligadas a eles numa transação só.
+    const { error } = await (supabase.rpc as any)("pessoal_usar_divisao_sugerida");
+    if (error) { showError("Erro ao criar a divisão", error); return false; }
+    const desCat = await buscarDestinosECategorias();
+    setEstado((p) => ({ ...p, ...desCat }));
+    return true;
+  }, []);
+  const salvarDestinos = useCallback(async (lista: DestinoInput[], removidos: string[]) => {
+    let ok = true;
+    for (const id of removidos) ok = (await excluir("pessoal_destinos", id)) && ok;
+    // O banco aceita um só destino padrão: quem deixa de ser padrão é gravado antes.
+    for (const d of [...lista].sort((a, b) => Number(a.padrao) - Number(b.padrao))) {
+      const dados = { nome: d.nome.trim(), percentual: d.percentual, padrao: d.padrao, ordem: d.ordem };
+      const { error } = d.id
+        ? await (supabase.from as any)("pessoal_destinos").update(dados).eq("id", d.id)
+        : await (supabase.from as any)("pessoal_destinos").insert(dados);
+      if (error) { showError(`Erro ao salvar "${dados.nome}"`, error); ok = false; }
+    }
+    // Recarrega tudo: apagar um destino solta as categorias que apontavam para ele.
+    const desCat = await buscarDestinosECategorias();
+    setEstado((p) => ({ ...p, ...desCat }));
+    return ok;
+  }, []);
+  const ligarCategoriaDestino = useCallback(async (categoriaId: string, destinoId: string | null) => {
+    const nova = await atualizar("pessoal_categorias", categoriaId, { destino_id: destinoId }, mapCategoria);
+    if (nova) setEstado((p) => ({ ...p, categorias: trocar(p.categorias, nova) }));
+    return !!nova;
+  }, []);
+
+  // ----- Bens -----
+  const addBem = useCallback(async (b: Omit<Bem, "id" | "atualizadoEm">) => {
+    const novo = await inserir("pessoal_bens", bemToDb(b), mapBem);
+    if (novo) setEstado((p) => ({ ...p, bens: [...p.bens, novo] }));
+    return !!novo;
+  }, []);
+  const updateBem = useCallback(async (id: string, b: Partial<Bem>) => {
+    const novo = await atualizar("pessoal_bens", id, bemToDb(b), mapBem);
+    if (novo) setEstado((p) => ({ ...p, bens: trocar(p.bens, novo) }));
+    return !!novo;
+  }, []);
+  const removeBem = useCallback(async (id: string) => {
+    if (await excluir("pessoal_bens", id)) setEstado((p) => ({ ...p, bens: p.bens.filter((b) => b.id !== id) }));
+  }, []);
+
+  // ----- Metas, sonhos e plano de ação -----
+  const ordenarMetas = (a: MetaPessoal, b: MetaPessoal) => a.prazo.localeCompare(b.prazo);
+  const addMeta = useCallback(async (m: Omit<MetaPessoal, "id">) => {
+    const nova = await inserir("pessoal_metas", metaToDb(m), mapMeta);
+    if (nova) setEstado((p) => ({ ...p, metas: [...p.metas, nova].sort(ordenarMetas) }));
+    return nova;
+  }, []);
+  const updateMeta = useCallback(async (id: string, m: Partial<MetaPessoal>) => {
+    const nova = await atualizar("pessoal_metas", id, metaToDb(m), mapMeta);
+    if (nova) setEstado((p) => ({ ...p, metas: trocar(p.metas, nova).sort(ordenarMetas) }));
+    return !!nova;
+  }, []);
+  const removeMeta = useCallback(async (id: string) => {
+    // Os passos são apagados junto (on delete cascade).
+    if (!(await excluir("pessoal_metas", id))) return;
+    setEstado((p) => ({
+      ...p, metas: p.metas.filter((m) => m.id !== id), passos: p.passos.filter((x) => x.metaId !== id),
+    }));
+  }, []);
+  const addPasso = useCallback(async (x: Omit<PassoMeta, "id">) => {
+    const novo = await inserir("pessoal_meta_passos", passoToDb(x), mapPasso);
+    if (novo) setEstado((p) => ({ ...p, passos: [...p.passos, novo] }));
+    return !!novo;
+  }, []);
+  const updatePasso = useCallback(async (id: string, x: Partial<PassoMeta>) => {
+    const novo = await atualizar("pessoal_meta_passos", id, passoToDb(x), mapPasso);
+    if (novo) setEstado((p) => ({ ...p, passos: trocar(p.passos, novo) }));
+    return !!novo;
+  }, []);
+  const removePasso = useCallback(async (id: string) => {
+    if (await excluir("pessoal_meta_passos", id)) setEstado((p) => ({ ...p, passos: p.passos.filter((x) => x.id !== id) }));
+  }, []);
+
   return (
     <PessoalContext.Provider
       value={{
@@ -406,6 +611,9 @@ export function PessoalProvider({ children }: { children: ReactNode }) {
         addContaFixa, updateContaFixa, removeContaFixa, pagarContaFixa,
         salvarDivida, removeDivida,
         addLancamento, updateLancamento, removeLancamento,
+        usarDivisaoSugerida, salvarDestinos, ligarCategoriaDestino,
+        addBem, updateBem, removeBem,
+        addMeta, updateMeta, removeMeta, addPasso, updatePasso, removePasso,
       }}
     >
       {children}
@@ -531,4 +739,77 @@ export function linhasDoMes(
 export function rendaDoMes(rendas: Renda[], ano: number, mes: number) {
   const competencia = competenciaDe(ano, mes);
   return rendas.filter((r) => r.ativa && r.inicio <= competencia).reduce((s, r) => s + r.valor, 0);
+}
+
+// ============ PATRIMÔNIO (Bens, Metas e Meu caminho) ============
+/** Tudo o que tenho (bens e investimentos) menos o que ainda falta pagar das dívidas. */
+export function patrimonio(dados: { bens: Bem[]; dividas: Divida[]; lancamentos: LancamentoPessoal[] }) {
+  const tenho = dados.bens.reduce((s, b) => s + b.valor, 0);
+  const devo = dados.dividas.reduce((s, d) => s + resumirDivida(d, dados.lancamentos).valorRestante, 0);
+  return { tenho, devo, liquido: tenho - devo };
+}
+
+/** Quanto um investimento rende por mês, a partir da rentabilidade ao ano. */
+export function rendimentoMensal(valor: number, rentabilidadeAnual?: number) {
+  if (!rentabilidadeAnual) return 0;
+  return valor * (Math.pow(1 + rentabilidadeAnual / 100, 1 / 12) - 1);
+}
+
+// ============ DIVISÃO DA RENDA ============
+export type ItemDivisao = { destino: Destino; planejado: number; usado: number };
+
+/**
+ * Planejado × usado de cada destino num mês. Planejado = tudo o que entra no mês × percentual.
+ * Usado = gastos do mês (pagos ou a pagar) cuja categoria aponta para o destino; o resto vai para
+ * o destino padrão (contas e dia a dia).
+ */
+export function divisaoDoMes(
+  dados: {
+    destinos: Destino[]; categorias: CategoriaPessoal[]; rendas: Renda[];
+    lancamentos: LancamentoPessoal[]; contasFixas: ContaFixa[]; dividas: Divida[];
+  },
+  ano: number,
+  mes: number,
+) {
+  const linhas = linhasDoMes(dados, ano, mes);
+  const entradas = rendaDoMes(dados.rendas, ano, mes)
+    + linhas.filter((l) => l.tipo === "Receita").reduce((s, l) => s + l.valor, 0);
+  const existe = new Set(dados.destinos.map((d) => d.id));
+  const destinoDaCategoria = new Map(dados.categorias.map((c) => [c.id, c.destinoId]));
+  const padrao = dados.destinos.find((d) => d.padrao);
+  const usado = new Map<string, number>();
+  let semDestino = 0;
+  for (const l of linhas) {
+    if (l.tipo !== "Despesa") continue;
+    const ligado = l.categoriaId ? destinoDaCategoria.get(l.categoriaId) : undefined;
+    const destinoId = ligado && existe.has(ligado) ? ligado : padrao?.id;
+    if (destinoId) usado.set(destinoId, (usado.get(destinoId) ?? 0) + l.valor);
+    else semDestino += l.valor;
+  }
+  const itens: ItemDivisao[] = [...dados.destinos]
+    .sort((a, b) => a.ordem - b.ordem)
+    .map((d) => ({ destino: d, planejado: (entradas * d.percentual) / 100, usado: usado.get(d.id) ?? 0 }));
+  return {
+    entradas,
+    itens,
+    semDestino,
+    totalPercentual: dados.destinos.reduce((s, d) => s + d.percentual, 0),
+  };
+}
+
+// ============ PRAZOS ============
+/** Meses inteiros de hoje até a data (negativo se já passou). */
+export function mesesAte(data: string, hoje = hojeISO()) {
+  const [y1, m1, d1] = hoje.split("-").map(Number);
+  const [y2, m2, d2] = data.split("-").map(Number);
+  let meses = (y2 - y1) * 12 + (m2 - m1);
+  if (d2 < d1) meses--;
+  return meses;
+}
+
+/** Data daqui a N meses (AAAA-MM-DD), para os atalhos de prazo. */
+export function daquiAMeses(n: number, hoje = hojeISO()) {
+  const [y, m, d] = hoje.split("-").map(Number);
+  const alvo = new Date(y, m - 1 + n, 1);
+  return dataNoMes(alvo.getFullYear(), alvo.getMonth() + 1, d);
 }
