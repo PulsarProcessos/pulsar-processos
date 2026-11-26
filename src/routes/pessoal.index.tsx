@@ -1,313 +1,285 @@
-import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
-import {
-  Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
-} from "recharts";
+import { useMemo, type ReactNode } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { AlertTriangle, ArrowRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MesNavegador } from "@/components/pessoal/mes-navegador";
 import {
-  usePessoal, brl, linhasDoMes, rendaDoMes, MESES, CategoriaPessoal, LinhaMes,
+  usePessoal, brl, hojeISO, linhasDoMes, rendaDoMes, resumirDivida, MESES,
 } from "@/lib/pessoal-store";
 
+// Tela de entrada do Pessoal: o caminho em 3 partes (Onde estou → Meu mês → Para onde vou),
+// a situação de cada uma e o que fazer agora. Tudo calculado dos cadastros da própria pessoa.
 export const Route = createFileRoute("/pessoal/")({
-  component: Painel,
+  component: MeuCaminho,
 });
 
-// Cores validadas (dataviz, modo claro): verde para entradas, vermelho para gastos — as mesmas
-// do resto do sistema.
-const COR_RECEITA = "#059669";
-const COR_GASTO = "#ef4444";
-const MESES_ABREV = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+/** Quanto da renda já está comprometido com contas fixas e parcelas. */
+const FAIXAS = [
+  { ate: 60, rotulo: "Folga boa", texto: "Sobra espaço para o dia a dia e para guardar.", cor: "text-emerald-600", barra: "bg-emerald-500" },
+  { ate: 80, rotulo: "Atenção", texto: "Fica pouco espaço para o dia a dia e para imprevistos.", cor: "text-amber-600", barra: "bg-amber-500" },
+  { ate: Infinity, rotulo: "Apertado", texto: "Contas fixas e parcelas levam quase toda a renda. Reduzir parcelas é a prioridade.", cor: "text-red-500", barra: "bg-red-500" },
+];
 
-const compacto = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", notation: "compact", maximumFractionDigits: 1 });
-const semCentavos = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 
-type Mes = {
-  mes: number;
-  rotulo: string;
-  receitas: number;
-  gastos: number;
-  resultado: number;
-  /** Receitas por linha do DRE (Rendas + categorias de entrada). */
-  porReceita: Map<string, number>;
-  /** Gastos por linha do DRE (categorias; sem categoria, pela origem). */
-  porGasto: Map<string, number>;
-  linhas: LinhaMes[];
-};
+type Passo = { titulo: string; texto: string; para: string; botao: string; alerta?: boolean };
 
-/** Linha do DRE onde um gasto entra: a categoria; sem categoria, a origem. */
-function grupoDoGasto(l: LinhaMes, cats: Map<string, CategoriaPessoal>) {
-  const cat = l.categoriaId ? cats.get(l.categoriaId) : undefined;
-  if (cat) return cat.nome;
-  if (l.origem === "parcela") return "Dívidas (parcelas)";
-  if (l.origem === "conta_fixa") return "Contas fixas";
-  return "Sem categoria";
-}
-
-function Painel() {
-  const { lancamentos, contasFixas, dividas, rendas, categorias, carregando } = usePessoal();
+function MeuCaminho() {
+  const { rendas, contasFixas, dividas, lancamentos, carregando } = usePessoal();
   const hoje = new Date();
-  const [ano, setAno] = useState(hoje.getFullYear());
-  const [mes, setMes] = useState(hoje.getMonth() + 1);
-  const mesAtual = ano === hoje.getFullYear() ? hoje.getMonth() + 1 : null;
+  const ano = hoje.getFullYear();
+  const mes = hoje.getMonth() + 1;
+  const hojeStr = hojeISO();
 
-  const cats = useMemo(() => new Map(categorias.map((c) => [c.id, c])), [categorias]);
-
-  const meses = useMemo<Mes[]>(() => {
-    return Array.from({ length: 12 }, (_, i) => {
-      const m = i + 1;
-      const linhas = linhasDoMes({ lancamentos, contasFixas, dividas }, ano, m);
-      const renda = rendaDoMes(rendas, ano, m);
-      const porReceita = new Map<string, number>();
-      const porGasto = new Map<string, number>();
-      if (renda > 0) porReceita.set("Rendas", renda);
-      for (const l of linhas) {
-        if (l.tipo === "Receita") {
-          const nome = (l.categoriaId && cats.get(l.categoriaId)?.nome) || "Outras entradas";
-          porReceita.set(nome, (porReceita.get(nome) ?? 0) + l.valor);
-        } else {
-          const nome = grupoDoGasto(l, cats);
-          porGasto.set(nome, (porGasto.get(nome) ?? 0) + l.valor);
-        }
-      }
-      const receitas = [...porReceita.values()].reduce((s, v) => s + v, 0);
-      const gastos = [...porGasto.values()].reduce((s, v) => s + v, 0);
-      return { mes: m, rotulo: MESES_ABREV[i], receitas, gastos, resultado: receitas - gastos, porReceita, porGasto, linhas };
-    });
-  }, [lancamentos, contasFixas, dividas, rendas, cats, ano]);
-
-  const totalAno = useMemo(() => meses.reduce(
-    (t, m) => ({ receitas: t.receitas + m.receitas, gastos: t.gastos + m.gastos }),
-    { receitas: 0, gastos: 0 },
-  ), [meses]);
-
-  // Linhas do DRE, ordenadas pelo total do ano (as maiores primeiro).
-  const linhasDre = useMemo(() => {
-    const somar = (chave: "porReceita" | "porGasto") => {
-      const total = new Map<string, number>();
-      for (const m of meses) for (const [k, v] of m[chave]) total.set(k, (total.get(k) ?? 0) + v);
-      return [...total.entries()].sort((a, b) => (a[0] === "Rendas" ? -1 : b[0] === "Rendas" ? 1 : b[1] - a[1]));
-    };
-    return { receitas: somar("porReceita"), gastos: somar("porGasto") };
-  }, [meses]);
-
-  // 5 maiores gastos do mês escolhido: por categoria; o que não tem categoria, pela descrição.
-  const top5 = useMemo(() => {
-    const doMes = meses[mes - 1];
-    const soma = new Map<string, number>();
-    for (const l of doMes.linhas) {
-      if (l.tipo !== "Despesa") continue;
-      const nome = (l.categoriaId && cats.get(l.categoriaId)?.nome) || l.descricao;
-      soma.set(nome, (soma.get(nome) ?? 0) + l.valor);
+  const d = useMemo(() => {
+    const linhas = linhasDoMes({ lancamentos, contasFixas, dividas }, ano, mes);
+    const renda = rendaDoMes(rendas, ano, mes);
+    let entradas = 0, pago = 0, aPagar = 0, fixas = 0, parcelas = 0;
+    for (const l of linhas) {
+      if (l.tipo === "Receita") { entradas += l.valor; continue; }
+      if (l.status === "Pago") pago += l.valor; else aPagar += l.valor;
+      if (l.origem === "conta_fixa") fixas += l.valor;
+      if (l.origem === "parcela") parcelas += l.valor;
     }
-    const lista = [...soma.entries()].sort((a, b) => b[1] - a[1]);
-    return { itens: lista.slice(0, 5), total: doMes.gastos, outros: lista.slice(5).reduce((s, [, v]) => s + v, 0) };
-  }, [meses, mes, cats]);
 
-  const resultadoAno = totalAno.receitas - totalAno.gastos;
-  const cards = [
-    { titulo: `Entradas em ${ano}`, valor: totalAno.receitas, cor: "text-emerald-600" },
-    { titulo: `Gastos em ${ano}`, valor: totalAno.gastos, cor: "text-red-500" },
-    { titulo: `Sobra em ${ano}`, valor: resultadoAno, cor: resultadoAno >= 0 ? "text-primary" : "text-red-500" },
-  ];
+    // Vencidas: a mesma regra do Dia a dia — lançamentos a pagar com data passada e as contas
+    // fixas deste mês ainda não pagas cujo dia já passou.
+    const vencidasLanc = lancamentos.filter((l) => l.tipo === "Despesa" && l.status === "Pendente" && l.data < hojeStr);
+    const vencidasFixas = linhas.filter((l) => l.contaFixa && l.data < hojeStr);
+    const vencidas = {
+      qtd: vencidasLanc.length + vencidasFixas.length,
+      total: [...vencidasLanc, ...vencidasFixas].reduce((s, l) => s + l.valor, 0),
+    };
+
+    let dividasAtivas = 0, devendo = 0;
+    for (const div of dividas) {
+      const r = resumirDivida(div, lancamentos);
+      if (!r.quitada) dividasAtivas++;
+      devendo += r.valorRestante;
+    }
+
+    // Sobra média dos 3 meses anteriores que tiveram algum movimento.
+    const sobras: number[] = [];
+    for (let k = 1; k <= 3; k++) {
+      const ref = new Date(ano, mes - 1 - k, 1);
+      const a = ref.getFullYear(), m = ref.getMonth() + 1;
+      const ls = linhasDoMes({ lancamentos, contasFixas, dividas }, a, m);
+      const r = rendaDoMes(rendas, a, m);
+      if (r === 0 && ls.length === 0) continue;
+      sobras.push(ls.reduce((s, l) => s + (l.tipo === "Receita" ? l.valor : -l.valor), r));
+    }
+    const sobraMedia = sobras.length ? sobras.reduce((s, v) => s + v, 0) / sobras.length : null;
+
+    return {
+      renda, entradas, pago, aPagar, fixas, parcelas, vencidas, dividasAtivas, devendo, sobraMedia,
+      mesesNaMedia: sobras.length,
+      sobraPrevista: renda + entradas - pago - aPagar,
+      comprometido: renda > 0 ? Math.round(((fixas + parcelas) / renda) * 100) : null,
+      rendasAtivas: rendas.filter((r) => r.ativa).length,
+      fixasAtivas: contasFixas.filter((c) => c.ativa).length,
+    };
+  }, [rendas, contasFixas, dividas, lancamentos, ano, mes, hojeStr]);
 
   if (carregando) return <p className="py-10 text-center text-sm text-muted-foreground">Carregando...</p>;
 
+  const nomeMes = MESES[mes - 1].toLowerCase();
+  const parte1Completa = d.rendasAtivas > 0 && d.fixasAtivas > 0;
+
+  const proximo: Passo = !d.rendasAtivas
+    ? { titulo: "Comece pelo que entra", texto: "Cadastre sua renda (salário, pró-labore, aluguel...). Ela é a base de todas as contas.",
+        para: "/pessoal/dinheiro-e-contas", botao: "Cadastrar renda" }
+    : !d.fixasAtivas
+      ? { titulo: "Agora, o que se repete todo mês", texto: "Cadastre as contas fixas (aluguel, luz, internet, escola...) para ver quanto da renda já tem destino certo.",
+          para: "/pessoal/dinheiro-e-contas", botao: "Cadastrar contas fixas" }
+      : d.vencidas.qtd > 0
+        ? { titulo: `${plural(d.vencidas.qtd, "conta vencida", "contas vencidas")}`, texto: `Somam ${brl(d.vencidas.total)}. Pague e marque como paga no Dia a dia.`,
+            para: "/pessoal/movimentacoes", botao: "Ver o dia a dia", alerta: true }
+        : d.aPagar > 0
+          ? { titulo: `Faltam ${brl(d.aPagar)} para pagar em ${nomeMes}`, texto: "Marque o que já pagou e lance os gastos do dia a dia, para a sobra do mês ficar certa.",
+              para: "/pessoal/movimentacoes", botao: "Abrir o dia a dia" }
+          : { titulo: "Tudo em dia neste mês", texto: "Veja como o seu ano está indo, mês a mês.",
+              para: "/pessoal/resultado", botao: "Ver resultado do ano" };
+
+  const faixa = d.comprometido === null ? null : FAIXAS.find((f) => d.comprometido! <= f.ate)!;
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <MesNavegador ano={ano} mes={mes} onChange={(y, m) => { setAno(y); setMes(m); }} />
-        <p className="text-xs text-muted-foreground">
-          Inclui contas fixas e parcelas de dívidas, pagas ou a pagar.
-        </p>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-3">
-        {cards.map((c) => (
-          <Card key={c.titulo} className="border-border/60">
-            <CardHeader className="pb-2">
-              <CardDescription>{c.titulo}</CardDescription>
-              <CardTitle className={`text-2xl tabular-nums ${c.cor}`}>{brl(c.valor)}</CardTitle>
-            </CardHeader>
-          </Card>
-        ))}
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Evolucao titulo="Evolução das entradas" descricao={`Rendas e outras entradas, mês a mês, em ${ano}`}
-          dados={meses} campo="receitas" cor={COR_RECEITA} mesEscolhido={mes} />
-        <Evolucao titulo="Evolução dos gastos" descricao={`Tudo o que saiu ou vai sair, mês a mês, em ${ano}`}
-          dados={meses} campo="gastos" cor={COR_GASTO} mesEscolhido={mes} />
-      </div>
-
-      <Card className="border-border/60">
-        <CardHeader>
-          <CardTitle>5 maiores gastos de {MESES[mes - 1].toLowerCase()} de {ano}</CardTitle>
-          <CardDescription>Por categoria; o que não tem categoria aparece pela descrição.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {top5.itens.length === 0 ? (
-            <p className="py-4 text-center text-sm text-muted-foreground">Nenhum gasto neste mês.</p>
-          ) : (
-            <ol className="space-y-3">
-              {top5.itens.map(([nome, valor], i) => {
-                const pct = top5.total > 0 ? (valor / top5.total) * 100 : 0;
-                return (
-                  <li key={nome}>
-                    <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
-                      <span className="truncate"><span className="mr-2 text-muted-foreground">{i + 1}.</span>{nome}</span>
-                      <span className="shrink-0 tabular-nums">
-                        <span className="font-semibold">{brl(valor)}</span>
-                        <span className="ml-2 text-xs text-muted-foreground">{pct.toFixed(0)}%</span>
-                      </span>
-                    </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-muted" title={`${nome}: ${brl(valor)} (${pct.toFixed(1)}% dos gastos do mês)`}>
-                      <div className="h-full rounded-full" style={{ width: `${Math.max(pct, 1)}%`, background: COR_GASTO }} />
-                    </div>
-                  </li>
-                );
-              })}
-              {top5.outros > 0 && (
-                <li className="pt-1 text-xs text-muted-foreground">
-                  Outros gastos do mês: {brl(top5.outros)} · total do mês {brl(top5.total)}
-                </li>
-              )}
-            </ol>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="border-border/60">
-        <CardHeader>
-          <CardTitle>Demonstrativo de {ano}</CardTitle>
-          <CardDescription>Entradas, gastos e sobra de cada mês. Clique num mês para ver os 5 maiores gastos dele.</CardDescription>
-        </CardHeader>
-        <CardContent className="px-0 pb-2">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1100px] border-collapse text-sm tabular-nums">
-              <thead>
-                <tr className="border-b text-xs text-muted-foreground">
-                  <th className="sticky left-0 z-10 bg-card px-4 py-2 text-left font-medium">Conta</th>
-                  {meses.map((m) => (
-                    <th key={m.mes} className={`px-2 py-2 text-right font-medium ${m.mes === mes ? "bg-muted/60 text-foreground" : ""}`}>
-                      <button type="button" onClick={() => setMes(m.mes)} className="hover:underline">
-                        {m.rotulo}{m.mes === mesAtual ? " •" : ""}
-                      </button>
-                    </th>
-                  ))}
-                  <th className="px-4 py-2 text-right font-medium">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                <LinhaTotal nome="Entradas" valores={meses.map((m) => m.receitas)} total={totalAno.receitas} mesEscolhido={mes} cor="text-emerald-600" />
-                {linhasDre.receitas.map(([nome, total]) => (
-                  <LinhaDetalhe key={`r-${nome}`} nome={nome} valores={meses.map((m) => m.porReceita.get(nome) ?? 0)} total={total} mesEscolhido={mes} />
-                ))}
-                <LinhaTotal nome="Gastos" valores={meses.map((m) => m.gastos)} total={totalAno.gastos} mesEscolhido={mes} cor="text-red-500" />
-                {linhasDre.gastos.map(([nome, total]) => (
-                  <LinhaDetalhe key={`g-${nome}`} nome={nome} valores={meses.map((m) => m.porGasto.get(nome) ?? 0)} total={total} mesEscolhido={mes} />
-                ))}
-                <tr className="border-t-2 font-semibold">
-                  <td className="sticky left-0 z-10 bg-card px-4 py-2">Sobra</td>
-                  {meses.map((m) => (
-                    <td key={m.mes} className={`px-2 py-2 text-right ${m.resultado < 0 ? "text-red-500" : ""} ${m.mes === mes ? "bg-muted/60" : ""}`}>
-                      {m.receitas === 0 && m.gastos === 0 ? "—" : semCentavos(m.resultado)}
-                    </td>
-                  ))}
-                  <td className={`px-4 py-2 text-right ${resultadoAno < 0 ? "text-red-500" : ""}`}>{semCentavos(resultadoAno)}</td>
-                </tr>
-              </tbody>
-            </table>
+    <div className="mx-auto max-w-4xl space-y-5">
+      <Card className={proximo.alerta
+        ? "border-red-300 bg-red-50 dark:border-red-900 dark:bg-red-950/40"
+        : "border-primary/40 bg-linear-to-r from-primary/10 to-transparent"}>
+        <CardContent className="flex flex-col gap-4 pt-(--card-pad) sm:flex-row sm:items-center">
+          <div className="min-w-0 flex-1">
+            <p className={`flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide ${proximo.alerta ? "text-red-600 dark:text-red-400" : "text-primary"}`}>
+              {proximo.alerta && <AlertTriangle className="h-3.5 w-3.5" />} O que fazer agora
+            </p>
+            <p className="mt-1 text-lg font-semibold">{proximo.titulo}</p>
+            <p className="text-sm text-muted-foreground">{proximo.texto}</p>
           </div>
+          <Button asChild className="w-full sm:w-auto">
+            <Link to={proximo.para}>{proximo.botao} <ArrowRight className="h-4 w-4" /></Link>
+          </Button>
         </CardContent>
       </Card>
+
+      <p className="text-sm text-muted-foreground">
+        Seu dinheiro em 3 partes: primeiro entender <strong className="text-foreground">onde você está</strong>,
+        depois cuidar do <strong className="text-foreground">mês</strong> e, por fim, decidir{" "}
+        <strong className="text-foreground">para onde vai o que sobra</strong>.
+      </p>
+
+      <ol className="space-y-4">
+        <Parte numero={1} titulo="Onde estou" dica="O que entra, o que é fixo e o que devo"
+          situacao={parte1Completa
+            ? <Badge className="bg-emerald-600 hover:bg-emerald-600">Preenchido</Badge>
+            : <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">Falta preencher</Badge>}>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Dado rotulo="Entra por mês" valor={brl(d.renda)} cor="text-emerald-600"
+              detalhe={d.rendasAtivas ? plural(d.rendasAtivas, "renda", "rendas") : "nenhuma renda cadastrada"} />
+            <Dado rotulo="Contas fixas" valor={brl(d.fixas)}
+              detalhe={d.fixasAtivas ? plural(d.fixasAtivas, "conta", "contas") : "nenhuma conta cadastrada"} />
+            <Dado rotulo={`Parcelas em ${nomeMes}`} valor={brl(d.parcelas)}
+              detalhe={d.dividasAtivas ? `${plural(d.dividasAtivas, "dívida", "dívidas")} · faltam ${brl(d.devendo)}` : "nenhuma dívida em andamento"} />
+          </div>
+
+          {faixa && d.comprometido !== null ? (
+            <div>
+              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-sm">
+                <span>
+                  <strong className="tabular-nums">{d.comprometido}%</strong> da sua renda já tem destino certo
+                  <span className="text-muted-foreground"> (contas fixas e parcelas)</span>
+                </span>
+                <span className={`font-semibold ${faixa.cor}`}>{faixa.rotulo}</span>
+              </div>
+              <div className="relative mt-2 h-3 rounded-full bg-muted">
+                <div className={`h-full rounded-full ${faixa.barra}`} style={{ width: `${Math.min(d.comprometido, 100)}%` }} />
+                {[60, 80].map((m) => (
+                  <span key={m} aria-hidden className="absolute top-0 h-3 w-0.5 bg-background" style={{ left: `${m}%` }} />
+                ))}
+              </div>
+              <div className="relative mt-1 h-4 text-[10px] text-muted-foreground">
+                {[60, 80].map((m) => (
+                  <span key={m} className="absolute -translate-x-1/2" style={{ left: `${m}%` }}>{m}%</span>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">{faixa.texto} O ideal é ficar abaixo de 60%.</p>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Cadastre sua renda para ver quanto dela já está comprometido.</p>
+          )}
+
+          {d.dividasAtivas === 0 && dividas.length === 0 && (
+            <p className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+              Tem cartão parcelado, empréstimo ou financiamento? Cadastre em Dívidas para as parcelas entrarem na conta de cada mês.
+            </p>
+          )}
+
+          <Atalhos itens={[
+            { para: "/pessoal/dinheiro-e-contas", rotulo: "Rendas e contas fixas" },
+            { para: "/pessoal/dividas", rotulo: "Dívidas" },
+          ]} />
+        </Parte>
+
+        <Parte numero={2} titulo="Meu mês" dica={`Como está ${nomeMes}: o que entrou, o que já paguei e o que falta`}
+          situacao={d.vencidas.qtd > 0
+            ? <Badge variant="destructive">{plural(d.vencidas.qtd, "vencida", "vencidas")}</Badge>
+            : d.aPagar > 0
+              ? <Badge variant="secondary">Em andamento</Badge>
+              : d.pago > 0
+                ? <Badge className="bg-emerald-600 hover:bg-emerald-600">Em dia</Badge>
+                : <Badge variant="outline">Sem movimento</Badge>}>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Dado rotulo="Entra no mês" valor={brl(d.renda + d.entradas)} cor="text-emerald-600" />
+            <Dado rotulo="Já paguei" valor={brl(d.pago)} cor="text-red-500" />
+            <Dado rotulo="Falta pagar" valor={brl(d.aPagar)} cor="text-amber-600" />
+            <Dado rotulo="Sobra prevista" valor={brl(d.sobraPrevista)} cor={d.sobraPrevista >= 0 ? "text-primary" : "text-red-500"} />
+          </div>
+          {d.vencidas.qtd > 0 && (
+            <p className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              {plural(d.vencidas.qtd, "conta vencida", "contas vencidas")} somando {brl(d.vencidas.total)}.
+            </p>
+          )}
+          <Atalhos itens={[
+            { para: "/pessoal/movimentacoes", rotulo: "Dia a dia" },
+            { para: "/pessoal/resultado", rotulo: "Resultado do ano" },
+          ]} />
+        </Parte>
+
+        <Parte numero={3} titulo="Para onde vou" dica="O que fazer com o que sobra" ultima
+          situacao={<Badge variant="outline">Em breve</Badge>}>
+          {d.sobraMedia === null ? (
+            <p className="text-sm text-muted-foreground">
+              Quando houver alguns meses registrados, aqui aparece quanto costuma sobrar por mês.
+            </p>
+          ) : (
+            <p className="text-sm">
+              Nos últimos {d.mesesNaMedia === 1 ? "mês" : `${d.mesesNaMedia} meses`}{" "}
+              {d.sobraMedia >= 0 ? "sobrou" : "faltou"}, em média,{" "}
+              <strong className={`tabular-nums ${d.sobraMedia >= 0 ? "text-primary" : "text-red-500"}`}>{brl(Math.abs(d.sobraMedia))}</strong> por mês.
+              {d.sobraMedia >= 0
+                ? " É esse dinheiro que constrói o seu futuro."
+                : " Antes de pensar no futuro, a parte 2 precisa fechar no azul."}
+            </p>
+          )}
+          <ul className="space-y-1.5 text-sm text-muted-foreground">
+            <li>• Dividir a sobra em destinos: guardar, investir, sonhos e lazer</li>
+            <li>• Metas e sonhos, com prazo e quanto guardar por mês</li>
+            <li>• Bens e investimentos: quanto você tem de verdade</li>
+          </ul>
+        </Parte>
+      </ol>
     </div>
   );
 }
 
-function LinhaTotal({ nome, valores, total, mesEscolhido, cor }: {
-  nome: string; valores: number[]; total: number; mesEscolhido: number; cor: string;
-}) {
-  return (
-    <tr className="border-t bg-muted/30 font-semibold">
-      <td className={`sticky left-0 z-10 bg-muted/30 px-4 py-2 backdrop-blur ${cor}`}>{nome}</td>
-      {valores.map((v, i) => (
-        <td key={i} className={`px-2 py-2 text-right ${i + 1 === mesEscolhido ? "bg-muted/60" : ""}`}>
-          {v === 0 ? "—" : semCentavos(v)}
-        </td>
-      ))}
-      <td className="px-4 py-2 text-right">{semCentavos(total)}</td>
-    </tr>
-  );
-}
-
-function LinhaDetalhe({ nome, valores, total, mesEscolhido }: {
-  nome: string; valores: number[]; total: number; mesEscolhido: number;
-}) {
-  return (
-    <tr className="text-muted-foreground">
-      <td className="sticky left-0 z-10 max-w-[220px] truncate bg-card px-4 py-1.5 pl-8" title={nome}>{nome}</td>
-      {valores.map((v, i) => (
-        <td key={i} className={`px-2 py-1.5 text-right ${i + 1 === mesEscolhido ? "bg-muted/60 text-foreground" : ""}`}>
-          {v === 0 ? "—" : semCentavos(v)}
-        </td>
-      ))}
-      <td className="px-4 py-1.5 text-right">{semCentavos(total)}</td>
-    </tr>
-  );
-}
-
-function Evolucao({ titulo, descricao, dados, campo, cor, mesEscolhido }: {
+function Parte({ numero, titulo, dica, situacao, ultima, children }: {
+  numero: number;
   titulo: string;
-  descricao: string;
-  dados: Mes[];
-  campo: "receitas" | "gastos";
-  cor: string;
-  mesEscolhido: number;
+  dica: string;
+  situacao: ReactNode;
+  ultima?: boolean;
+  children: ReactNode;
 }) {
-  const media = dados.reduce((s, m) => s + m[campo], 0) / 12;
-  const vazio = dados.every((m) => m[campo] === 0);
-  const id = `grad-${campo}`;
   return (
-    <Card className="border-border/60">
-      <CardHeader className="pb-2">
-        <CardTitle>{titulo}</CardTitle>
-        <CardDescription>{descricao}{vazio ? "" : ` · média ${semCentavos(media)}/mês`}</CardDescription>
-      </CardHeader>
-      <CardContent className="h-64 pl-0">
-        {vazio ? (
-          <p className="flex h-full items-center justify-center pl-6 text-sm text-muted-foreground">
-            Nada registrado neste ano.
-          </p>
-        ) : (
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={dados} margin={{ top: 8, right: 16, bottom: 0, left: 8 }}>
-            <defs>
-              <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={cor} stopOpacity={0.22} />
-                <stop offset="100%" stopColor={cor} stopOpacity={0.02} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
-            <XAxis dataKey="rotulo" tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
-            <YAxis tickLine={false} axisLine={false} width={72} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-              tickFormatter={(v: number) => compacto.format(v)} />
-            <ReferenceLine x={dados[mesEscolhido - 1]?.rotulo} stroke="var(--muted-foreground)" strokeDasharray="4 4" strokeOpacity={0.5} />
-            <Tooltip
-              cursor={{ stroke: "var(--muted-foreground)", strokeWidth: 1, strokeDasharray: "3 3" }}
-              formatter={(v: number) => [brl(v), campo === "receitas" ? "Entradas" : "Gastos"]}
-              labelFormatter={(rotulo: string) => {
-                const m = dados.find((d) => d.rotulo === rotulo);
-                return m ? MESES[m.mes - 1] : rotulo;
-              }}
-              contentStyle={{ borderRadius: 8, border: "1px solid var(--border)", fontSize: 12 }}
-            />
-            <Area type="monotone" dataKey={campo} stroke={cor} strokeWidth={2} fill={`url(#${id})`}
-              dot={false} activeDot={{ r: 5, stroke: "var(--card)", strokeWidth: 2 }} />
-          </AreaChart>
-        </ResponsiveContainer>
-        )}
-      </CardContent>
-    </Card>
+    <li className="relative flex gap-3 sm:gap-4">
+      {/* Linha que liga uma parte à seguinte. */}
+      {!ultima && <span aria-hidden className="absolute -bottom-4 left-4 top-9 w-px bg-border sm:left-5 sm:top-11" />}
+      <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground sm:h-10 sm:w-10 sm:text-base">
+        {numero}
+      </span>
+      <Card className="min-w-0 flex-1 border-border/60">
+        <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-2 space-y-0 pb-3">
+          <div className="min-w-0">
+            <CardTitle className="text-lg">{titulo}</CardTitle>
+            <CardDescription>{dica}</CardDescription>
+          </div>
+          {situacao}
+        </CardHeader>
+        <CardContent className="space-y-4">{children}</CardContent>
+      </Card>
+    </li>
+  );
+}
+
+function Dado({ rotulo, valor, detalhe, cor = "" }: { rotulo: string; valor: string; detalhe?: string; cor?: string }) {
+  return (
+    <div className="min-w-0 rounded-lg bg-muted/40 px-3 py-2">
+      <p className="text-xs text-muted-foreground">{rotulo}</p>
+      <p className={`text-base font-semibold tabular-nums sm:text-lg ${cor}`}>{valor}</p>
+      {detalhe && <p className="text-xs text-muted-foreground">{detalhe}</p>}
+    </div>
+  );
+}
+
+function Atalhos({ itens }: { itens: { para: string; rotulo: string }[] }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {itens.map((i) => (
+        <Button key={i.para} asChild variant="outline" size="sm">
+          <Link to={i.para}>{i.rotulo} <ArrowRight className="h-3.5 w-3.5" /></Link>
+        </Button>
+      ))}
+    </div>
   );
 }

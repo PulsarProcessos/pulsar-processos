@@ -259,6 +259,11 @@ const DEFAULT_ETAPAS: DealStage[] = [
   "Perdido",
 ];
 
+// As etapas do funil podem ser renomeadas; estas regras reconhecem as de venda fechada e perdida
+// pelo começo do nome ("Ganho", "Fechado", "Vendido" / "Perdido").
+export const ehEtapaGanha = (etapa: string) => /^(ganh|fechad|vendid)/i.test(etapa.trim());
+export const ehEtapaPerdida = (etapa: string) => /^perd/i.test(etapa.trim());
+
 const emptyState: State = {
   contatos: [],
   categorias: [],

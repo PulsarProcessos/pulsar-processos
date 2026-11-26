@@ -21,6 +21,7 @@ import {
 import { ArrowRight, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useData, Lead, LeadStatus, LEAD_STATUS } from "@/lib/data-store";
+import { ProximoPasso } from "@/components/proximo-passo";
 import { hojeISO } from "@/lib/pessoal-store";
 
 export const Route = createFileRoute("/empreendedor/marketing/")({
@@ -65,7 +66,7 @@ function Leads() {
     if (lead.status === "Convertido" || lead.status === "Perdido") return;
     advanceLeadStatus(lead.id);
     if (next === "Convertido") {
-      toast.success(`${lead.nome} convertido — oportunidade criada no Pipeline.`);
+      toast.success(`${lead.nome} convertido — oportunidade criada no Funil de vendas.`);
     } else {
       toast(`${lead.nome}: ${lead.status} → ${next}`);
     }
@@ -147,7 +148,7 @@ function Leads() {
             </TableBody>
           </Table>
           <p className="mt-3 text-xs text-muted-foreground">
-            Clique no nome para visualizar / editar. Avançar move: Novo → Contatado → Qualificado → Convertido (cria oportunidade no Pipeline).
+            Clique no nome para visualizar / editar. Avançar move: Novo → Contatado → Qualificado → Convertido (cria oportunidade no Funil de vendas).
           </p>
         </CardContent>
       </Card>
@@ -178,6 +179,11 @@ function Leads() {
           )}
         </CardContent>
       </Card>
+
+      <div className="lg:col-span-3">
+        <ProximoPasso para="/empreendedor/comercial" rotulo="Próximo passo · Comercial" titulo="Funil de vendas"
+          texto="Cada lead convertido vira uma oportunidade no funil. Lá você acompanha a negociação até fechar a venda." />
+      </div>
 
       <Dialog open={!!selected} onOpenChange={(v) => { if (!v) setSelected(null); }}>
         {selected && (

@@ -15,6 +15,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { ProximoPasso } from "@/components/proximo-passo";
 import {
   usePessoal, brl, formatarData, formatarMesAno, hojeISO, resumirDivida, Divida, ResumoDivida,
 } from "@/lib/pessoal-store";
@@ -87,6 +88,9 @@ function Dividas() {
           ))}
         </div>
       )}
+
+      <ProximoPasso para="/pessoal/movimentacoes" rotulo="Próximo passo · parte 2" titulo="Dia a dia"
+        texto="Com o que entra, o que é fixo e o que você deve no lugar, acompanhe o mês: pague e lance os gastos." />
 
       <Dialog open={form.aberto} onOpenChange={(v) => { if (!v) setForm({ aberto: false }); }}>
         {form.aberto && <DividaForm editando={form.editando} onConcluir={() => setForm({ aberto: false })} />}

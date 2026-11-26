@@ -73,12 +73,14 @@ export function AppSidebar({ modulo }: { modulo: Modulo }) {
           </SidebarGroupContent>
         </SidebarGroup>
         <SidebarSeparator />
+        {/* Partes na ordem do raciocínio do módulo. Parte com ícone vira um grupo que abre e fecha
+            (abre sozinho quando a tela atual está nele); sem ícone, os itens ficam soltos. */}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {modulo.menu.map((item) => {
-                if (!item.filhos) {
-                  return (
+              {modulo.menu.map((secao) => {
+                if (!secao.icone || !secao.nome) {
+                  return secao.itens.map((item) => (
                     <SidebarMenuItem key={item.url}>
                       <SidebarMenuButton asChild isActive={atual === item.url}>
                         <Link to={item.url} onClick={fechar}>
@@ -87,27 +89,27 @@ export function AppSidebar({ modulo }: { modulo: Modulo }) {
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                  );
+                  ));
                 }
 
-                const grupoAtivo = item.filhos.some((f) => f.url === atual);
+                const grupoAtivo = secao.itens.some((i) => i.url === atual);
                 return (
-                  <Collapsible key={item.url} defaultOpen={grupoAtivo} className="group/collapsible">
+                  <Collapsible key={secao.nome} defaultOpen={grupoAtivo} className="group/collapsible">
                     <SidebarMenuItem>
                       <CollapsibleTrigger asChild>
                         <SidebarMenuButton isActive={grupoAtivo}>
-                          <item.icone className="h-4 w-4" />
-                          <span>{item.titulo}</span>
+                          <secao.icone className="h-4 w-4" />
+                          <span>{secao.nome}</span>
                           <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90 group-data-[collapsible=icon]:hidden" />
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <SidebarMenuSub>
-                          {item.filhos.map((filho) => (
-                            <SidebarMenuSubItem key={filho.url}>
-                              <SidebarMenuSubButton asChild isActive={atual === filho.url}>
-                                <Link to={filho.url} onClick={fechar}>
-                                  <span>{filho.titulo}</span>
+                          {secao.itens.map((item) => (
+                            <SidebarMenuSubItem key={item.url}>
+                              <SidebarMenuSubButton asChild isActive={atual === item.url}>
+                                <Link to={item.url} onClick={fechar}>
+                                  <span>{item.titulo}</span>
                                 </Link>
                               </SidebarMenuSubButton>
                             </SidebarMenuSubItem>

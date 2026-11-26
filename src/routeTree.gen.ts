@@ -22,6 +22,7 @@ import { Route as PessoalDinheiroEContasRouteImport } from './routes/pessoal.din
 import { Route as PessoalDividasRouteImport } from './routes/pessoal.dividas'
 import { Route as PessoalLancamentosRouteImport } from './routes/pessoal.lancamentos'
 import { Route as PessoalMovimentacoesRouteImport } from './routes/pessoal.movimentacoes'
+import { Route as PessoalResultadoRouteImport } from './routes/pessoal.resultado'
 import { Route as EmpreendedorComercialIndexRouteImport } from './routes/empreendedor.comercial.index'
 import { Route as EmpreendedorComercialCadastrosRouteImport } from './routes/empreendedor.comercial.cadastros'
 import { Route as EmpreendedorFinanceiroIndexRouteImport } from './routes/empreendedor.financeiro.index'
@@ -98,6 +99,11 @@ const PessoalMovimentacoesRoute = PessoalMovimentacoesRouteImport.update({
   path: '/movimentacoes',
   getParentRoute: () => PessoalRoute,
 } as any)
+const PessoalResultadoRoute = PessoalResultadoRouteImport.update({
+  id: '/resultado',
+  path: '/resultado',
+  getParentRoute: () => PessoalRoute,
+} as any)
 const EmpreendedorComercialIndexRoute =
   EmpreendedorComercialIndexRouteImport.update({
     id: '/comercial/',
@@ -170,6 +176,7 @@ export interface FileRoutesByFullPath {
   '/pessoal/dividas': typeof PessoalDividasRoute
   '/pessoal/lancamentos': typeof PessoalLancamentosRoute
   '/pessoal/movimentacoes': typeof PessoalMovimentacoesRoute
+  '/pessoal/resultado': typeof PessoalResultadoRoute
   '/admin/': typeof AdminIndexRoute
   '/empreendedor/': typeof EmpreendedorIndexRoute
   '/pessoal/': typeof PessoalIndexRoute
@@ -192,6 +199,7 @@ export interface FileRoutesByTo {
   '/pessoal/dividas': typeof PessoalDividasRoute
   '/pessoal/lancamentos': typeof PessoalLancamentosRoute
   '/pessoal/movimentacoes': typeof PessoalMovimentacoesRoute
+  '/pessoal/resultado': typeof PessoalResultadoRoute
   '/admin': typeof AdminIndexRoute
   '/empreendedor': typeof EmpreendedorIndexRoute
   '/pessoal': typeof PessoalIndexRoute
@@ -218,6 +226,7 @@ export interface FileRoutesById {
   '/pessoal/dividas': typeof PessoalDividasRoute
   '/pessoal/lancamentos': typeof PessoalLancamentosRoute
   '/pessoal/movimentacoes': typeof PessoalMovimentacoesRoute
+  '/pessoal/resultado': typeof PessoalResultadoRoute
   '/admin/': typeof AdminIndexRoute
   '/empreendedor/': typeof EmpreendedorIndexRoute
   '/pessoal/': typeof PessoalIndexRoute
@@ -245,6 +254,7 @@ export interface FileRouteTypes {
     | '/pessoal/dividas'
     | '/pessoal/lancamentos'
     | '/pessoal/movimentacoes'
+    | '/pessoal/resultado'
     | '/admin/'
     | '/empreendedor/'
     | '/pessoal/'
@@ -267,6 +277,7 @@ export interface FileRouteTypes {
     | '/pessoal/dividas'
     | '/pessoal/lancamentos'
     | '/pessoal/movimentacoes'
+    | '/pessoal/resultado'
     | '/admin'
     | '/empreendedor'
     | '/pessoal'
@@ -292,6 +303,7 @@ export interface FileRouteTypes {
     | '/pessoal/dividas'
     | '/pessoal/lancamentos'
     | '/pessoal/movimentacoes'
+    | '/pessoal/resultado'
     | '/admin/'
     | '/empreendedor/'
     | '/pessoal/'
@@ -405,6 +417,13 @@ declare module '@tanstack/react-router' {
       path: '/movimentacoes'
       fullPath: '/pessoal/movimentacoes'
       preLoaderRoute: typeof PessoalMovimentacoesRouteImport
+      parentRoute: typeof PessoalRoute
+    }
+    '/pessoal/resultado': {
+      id: '/pessoal/resultado'
+      path: '/resultado'
+      fullPath: '/pessoal/resultado'
+      preLoaderRoute: typeof PessoalResultadoRouteImport
       parentRoute: typeof PessoalRoute
     }
     '/empreendedor/comercial/': {
@@ -532,6 +551,7 @@ interface PessoalRouteChildren {
   PessoalDividasRoute: typeof PessoalDividasRoute
   PessoalLancamentosRoute: typeof PessoalLancamentosRoute
   PessoalMovimentacoesRoute: typeof PessoalMovimentacoesRoute
+  PessoalResultadoRoute: typeof PessoalResultadoRoute
   PessoalIndexRoute: typeof PessoalIndexRoute
 }
 
@@ -541,6 +561,7 @@ const PessoalRouteChildren: PessoalRouteChildren = {
   PessoalDividasRoute: PessoalDividasRoute,
   PessoalLancamentosRoute: PessoalLancamentosRoute,
   PessoalMovimentacoesRoute: PessoalMovimentacoesRoute,
+  PessoalResultadoRoute: PessoalResultadoRoute,
   PessoalIndexRoute: PessoalIndexRoute,
 }
 

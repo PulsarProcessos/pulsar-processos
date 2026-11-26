@@ -14,6 +14,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { ProximoPasso } from "@/components/proximo-passo";
 import {
   usePessoal, brl, formatarMesAno, hojeISO, ContaFixa, Renda,
 } from "@/lib/pessoal-store";
@@ -52,6 +53,9 @@ function DinheiroEContas() {
         <RendasCard />
         <ContasFixasCard />
       </div>
+
+      <ProximoPasso para="/pessoal/dividas" titulo="Dívidas"
+        texto="Cartão parcelado, empréstimo, financiamento: as parcelas entram na conta de cada mês." />
     </div>
   );
 }

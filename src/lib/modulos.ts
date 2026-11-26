@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import {
-  ArrowLeftRight, Briefcase, CalendarDays, Handshake, HandCoins, LayoutDashboard, ListPlus,
-  Megaphone, PiggyBank, ShieldCheck, Tags, TrendingUp, Users, Wallet, type LucideIcon,
+  ArrowLeftRight, BarChart3, Briefcase, CalendarDays, Compass, CreditCard, FileSpreadsheet,
+  Handshake, HandCoins, LayoutDashboard, Megaphone, Package, PiggyBank, Receipt, Settings2,
+  ShieldCheck, Tags, Target, TrendingUp, UserPlus, Users, Wallet, type LucideIcon,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSessao } from "@/components/auth-gate";
@@ -15,7 +16,18 @@ export type ItemMenu = {
   titulo: string;
   url: string;
   icone: LucideIcon;
-  filhos?: { titulo: string; url: string }[];
+};
+
+/**
+ * Parte do menu, na ordem do raciocínio do módulo (ex.: Marketing atrai → Comercial vende →
+ * Financeiro recebe), para a pessoa saber o que vem antes.
+ */
+export type SecaoMenu = {
+  /** Nome da parte; também aparece no título da tela ("Comercial · Funil de vendas"). */
+  nome?: string;
+  /** Com ícone, a parte vira um grupo que abre e fecha no menu; sem ícone, os itens ficam soltos. */
+  icone?: LucideIcon;
+  itens: ItemMenu[];
 };
 
 export type Modulo = {
@@ -26,49 +38,47 @@ export type Modulo = {
   rota: string;
   /** Classes do cartão na tela Início e do destaque do módulo. */
   cor: { fundo: string; icone: string };
-  menu: ItemMenu[];
+  menu: SecaoMenu[];
 };
 
 export const MODULOS: Record<ModuloId, Modulo> = {
   empreendedor: {
     id: "empreendedor",
     nome: "Empreendedor",
-    descricao: "Financeiro, comercial, marketing e agenda da empresa",
+    descricao: "Marketing, comercial, financeiro e agenda da empresa",
     icone: Briefcase,
     rota: "/empreendedor",
     cor: { fundo: "from-orange-500/15 to-orange-500/5 border-orange-500/30", icone: "bg-orange-500 text-white" },
     menu: [
-      { titulo: "Visão geral", url: "/empreendedor", icone: LayoutDashboard },
-      { titulo: "Agenda", url: "/empreendedor/agenda", icone: CalendarDays },
       {
-        titulo: "Financeiro",
-        url: "/empreendedor/financeiro",
-        icone: TrendingUp,
-        filhos: [
-          { titulo: "Visão Geral", url: "/empreendedor/financeiro" },
-          { titulo: "Extrato", url: "/empreendedor/financeiro/lancamentos" },
-          { titulo: "Cartões", url: "/empreendedor/financeiro/cartoes" },
-          { titulo: "Demonstrativo", url: "/empreendedor/financeiro/demonstrativo" },
-          { titulo: "Cadastros", url: "/empreendedor/financeiro/cadastros" },
-          { titulo: "Metas", url: "/empreendedor/financeiro/metas" },
+        itens: [
+          { titulo: "Visão geral", url: "/empreendedor", icone: LayoutDashboard },
+          { titulo: "Agenda", url: "/empreendedor/agenda", icone: CalendarDays },
         ],
       },
       {
-        titulo: "Comercial",
-        url: "/empreendedor/comercial",
-        icone: Handshake,
-        filhos: [
-          { titulo: "Pipeline", url: "/empreendedor/comercial" },
-          { titulo: "Cadastros", url: "/empreendedor/comercial/cadastros" },
+        nome: "Marketing", icone: Megaphone,
+        itens: [
+          { titulo: "Leads", url: "/empreendedor/marketing", icone: UserPlus },
+          { titulo: "Campanhas", url: "/empreendedor/marketing/campanhas", icone: Megaphone },
         ],
       },
       {
-        titulo: "Marketing",
-        url: "/empreendedor/marketing",
-        icone: Megaphone,
-        filhos: [
-          { titulo: "Leads", url: "/empreendedor/marketing" },
-          { titulo: "Campanhas", url: "/empreendedor/marketing/campanhas" },
+        nome: "Comercial", icone: Handshake,
+        itens: [
+          { titulo: "Funil de vendas", url: "/empreendedor/comercial", icone: Handshake },
+          { titulo: "Produtos e etapas", url: "/empreendedor/comercial/cadastros", icone: Package },
+        ],
+      },
+      {
+        nome: "Financeiro", icone: TrendingUp,
+        itens: [
+          { titulo: "Resumo", url: "/empreendedor/financeiro", icone: TrendingUp },
+          { titulo: "Extrato", url: "/empreendedor/financeiro/lancamentos", icone: Receipt },
+          { titulo: "Cartões", url: "/empreendedor/financeiro/cartoes", icone: CreditCard },
+          { titulo: "Demonstrativo", url: "/empreendedor/financeiro/demonstrativo", icone: FileSpreadsheet },
+          { titulo: "Metas", url: "/empreendedor/financeiro/metas", icone: Target },
+          { titulo: "Cadastros", url: "/empreendedor/financeiro/cadastros", icone: Settings2 },
         ],
       },
     ],
@@ -76,17 +86,28 @@ export const MODULOS: Record<ModuloId, Modulo> = {
   pessoal: {
     id: "pessoal",
     nome: "Pessoal",
-    descricao: "Suas finanças pessoais: gastos, contas fixas e dívidas",
+    descricao: "Suas finanças pessoais: o que entra, o que sai e o que sobra",
     icone: Wallet,
     rota: "/pessoal",
     cor: { fundo: "from-blue-500/15 to-blue-500/5 border-blue-500/30", icone: "bg-blue-500 text-white" },
     menu: [
-      { titulo: "Painel", url: "/pessoal", icone: LayoutDashboard },
-      { titulo: "Movimentações", url: "/pessoal/movimentacoes", icone: ArrowLeftRight },
-      { titulo: "Lançamentos", url: "/pessoal/lancamentos", icone: ListPlus },
-      { titulo: "Dinheiro e Contas", url: "/pessoal/dinheiro-e-contas", icone: PiggyBank },
-      { titulo: "Dívidas", url: "/pessoal/dividas", icone: HandCoins },
-      { titulo: "Categorias", url: "/pessoal/categorias", icone: Tags },
+      { itens: [{ titulo: "Meu caminho", url: "/pessoal", icone: Compass }] },
+      // Poucas telas: ficam soltas, na ordem do caminho (as partes aparecem no título da tela).
+      {
+        nome: "Onde estou",
+        itens: [
+          { titulo: "Rendas e contas fixas", url: "/pessoal/dinheiro-e-contas", icone: PiggyBank },
+          { titulo: "Dívidas", url: "/pessoal/dividas", icone: HandCoins },
+        ],
+      },
+      {
+        nome: "Meu mês",
+        itens: [
+          { titulo: "Dia a dia", url: "/pessoal/movimentacoes", icone: ArrowLeftRight },
+          { titulo: "Resultado do ano", url: "/pessoal/resultado", icone: BarChart3 },
+        ],
+      },
+      { itens: [{ titulo: "Categorias", url: "/pessoal/categorias", icone: Tags }] },
     ],
   },
   admin: {
@@ -96,19 +117,18 @@ export const MODULOS: Record<ModuloId, Modulo> = {
     icone: ShieldCheck,
     rota: "/admin",
     cor: { fundo: "from-zinc-500/15 to-zinc-500/5 border-zinc-500/30", icone: "bg-zinc-700 text-white" },
-    menu: [{ titulo: "Usuários", url: "/admin", icone: Users }],
+    menu: [{ itens: [{ titulo: "Usuários", url: "/admin", icone: Users }] }],
   },
 };
 
 export const ORDEM_MODULOS: ModuloId[] = ["empreendedor", "pessoal", "admin"];
 
-/** Título da tela atual dentro do módulo, a partir do menu. */
+/** Título da tela atual dentro do módulo, a partir do menu ("Comercial · Funil de vendas"). */
 export function tituloDaTela(modulo: Modulo, caminho: string) {
   const atual = caminho.length > 1 ? caminho.replace(/\/$/, "") : caminho;
-  for (const item of modulo.menu) {
-    const filho = item.filhos?.find((f) => f.url === atual);
-    if (filho) return `${item.titulo} · ${filho.titulo}`;
-    if (item.url === atual) return item.titulo;
+  for (const secao of modulo.menu) {
+    const item = secao.itens.find((i) => i.url === atual);
+    if (item) return secao.nome ? `${secao.nome} · ${item.titulo}` : item.titulo;
   }
   return modulo.nome;
 }

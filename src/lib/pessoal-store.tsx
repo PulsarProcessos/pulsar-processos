@@ -459,7 +459,7 @@ export function resumirDivida(d: Divida, lancamentos: LancamentoPessoal[]): Resu
   };
 }
 
-// ============ O MÊS (Movimentações e Painel usam a mesma regra) ============
+// ============ O MÊS (Dia a dia, Resultado do ano e Meu caminho usam a mesma regra) ============
 export type LinhaMes = {
   chave: string;
   data: string;

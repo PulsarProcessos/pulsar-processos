@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { AlertTriangle, Check, Pencil, Plus, Undo2 } from "lucide-react";
+import { AlertTriangle, Check, Pencil, Plus, Search, Trash2, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Dialog } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -12,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { MesNavegador } from "@/components/pessoal/mes-navegador";
 import { LancamentoForm } from "@/components/pessoal/lancamento-form";
+import { ProximoPasso } from "@/components/proximo-passo";
 import {
   usePessoal, brl, chaveMes, formatarData, hojeISO, linhasDoMes, rendaDoMes,
   LancamentoPessoal, LinhaMes as Linha,
@@ -32,6 +34,7 @@ function Movimentacoes() {
   const [ano, setAno] = useState(hoje.getFullYear());
   const [mes, setMes] = useState(hoje.getMonth() + 1);
   const [filtro, setFiltro] = useState<Filtro>("todos");
+  const [busca, setBusca] = useState("");
   const [form, setForm] = useState<{ aberto: boolean; editando?: LancamentoPessoal }>({ aberto: false });
 
   const chave = chaveMes(ano, mes);
@@ -62,7 +65,9 @@ function Movimentacoes() {
     return { qtd: lista.length, total: lista.reduce((s, l) => s + l.valor, 0) };
   }, [lancamentos, chave, hojeStr]);
 
+  const termo = busca.trim().toLowerCase();
   const visiveis = linhas.filter((l) => {
+    if (termo && !l.descricao.toLowerCase().includes(termo)) return false;
     if (filtro === "a-pagar") return l.tipo === "Despesa" && l.status === "Pendente";
     if (filtro === "pagos") return l.tipo === "Despesa" && l.status === "Pago";
     if (filtro === "entradas") return l.tipo === "Receita";
@@ -83,6 +88,13 @@ function Movimentacoes() {
     // Conta fixa paga é um lançamento criado ao pagar; desfazer apaga e ela volta a "a pagar".
     if (l.lancamento.contaFixaId) await removeLancamento(l.lancamento.id);
     else await updateLancamento(l.lancamento.id, { status: "Pendente" });
+  };
+
+  // Só lançamentos avulsos são excluídos aqui: parcelas saem junto com a dívida e conta fixa paga
+  // volta a "a pagar" pelo Desfazer.
+  const excluir = async (l: LancamentoPessoal) => {
+    if (!confirm(`Excluir o lançamento "${l.descricao}"?`)) return;
+    await removeLancamento(l.id);
   };
 
   const dataPadrao = chave === hojeStr.slice(0, 7) ? hojeStr : `${chave}-01`;
@@ -106,6 +118,12 @@ function Movimentacoes() {
           <Pencil className="h-4 w-4" />
         </Button>
       )}
+      {l.origem === "lancamento" && l.lancamento && (
+        <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500" title="Excluir" aria-label="Excluir"
+          onClick={() => excluir(l.lancamento!)}>
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      )}
     </div>
   );
 
@@ -122,7 +140,7 @@ function Movimentacoes() {
 
   const cards = [
     { titulo: "Renda do mês", valor: resumo.renda + resumo.entradas, cor: "text-emerald-600",
-      dica: resumo.entradas > 0 ? `${brl(resumo.renda)} de rendas + ${brl(resumo.entradas)} de outras entradas` : "Rendas cadastradas em Dinheiro e Contas" },
+      dica: resumo.entradas > 0 ? `${brl(resumo.renda)} de rendas + ${brl(resumo.entradas)} de outras entradas` : "Rendas cadastradas em Rendas e contas fixas" },
     { titulo: "Já gastei", valor: resumo.gasto, cor: "text-red-500", dica: "Saídas marcadas como pagas" },
     { titulo: "Falta pagar", valor: resumo.aPagar, cor: "text-amber-600", dica: "Contas, parcelas e lançamentos a pagar" },
     { titulo: "Sobra prevista", valor: resumo.saldo, cor: resumo.saldo >= 0 ? "text-primary" : "text-red-500",
@@ -161,23 +179,31 @@ function Movimentacoes() {
       <Card className="border-border/60">
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
           <div>
-            <CardTitle>Movimentações</CardTitle>
+            <CardTitle>Movimentações do mês</CardTitle>
             <CardDescription>Tudo o que entra e sai no mês, incluindo contas fixas e parcelas de dívidas</CardDescription>
           </div>
-          <Tabs value={filtro} onValueChange={(v) => setFiltro(v as Filtro)}>
-            <TabsList>
-              <TabsTrigger value="todos">Todos</TabsTrigger>
-              <TabsTrigger value="a-pagar">A pagar</TabsTrigger>
-              <TabsTrigger value="pagos">Pagos</TabsTrigger>
-              <TabsTrigger value="entradas">Entradas</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+            <div className="relative sm:w-52">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar..." className="h-9 pl-9" />
+            </div>
+            <Tabs value={filtro} onValueChange={(v) => setFiltro(v as Filtro)}>
+              <TabsList className="grid w-full grid-cols-4 sm:inline-flex sm:w-auto">
+                <TabsTrigger value="todos">Todos</TabsTrigger>
+                <TabsTrigger value="a-pagar">A pagar</TabsTrigger>
+                <TabsTrigger value="pagos">Pagos</TabsTrigger>
+                <TabsTrigger value="entradas">Entradas</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
         </CardHeader>
         <CardContent>
           {carregando ? (
             <p className="py-6 text-center text-sm text-muted-foreground">Carregando...</p>
           ) : visiveis.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">Nada por aqui neste mês.</p>
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              {termo ? "Nada encontrado com essa busca." : "Nada por aqui neste mês. Clique em \"Novo lançamento\" para registrar um gasto ou uma entrada."}
+            </p>
           ) : (
             <>
               {/* Celular: um cartão por linha, com a situação e os botões sempre à vista. */}
@@ -238,6 +264,9 @@ function Movimentacoes() {
           )}
         </CardContent>
       </Card>
+
+      <ProximoPasso para="/pessoal/resultado" titulo="Resultado do ano"
+        texto="Veja quanto entrou, quanto saiu e quanto sobrou em cada mês." />
 
       <Dialog open={form.aberto} onOpenChange={(v) => { if (!v) setForm({ aberto: false }); }}>
         {form.aberto && (

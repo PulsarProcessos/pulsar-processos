@@ -17,11 +17,15 @@ import {
   DndContext, DragEndEvent, DragOverlay, DragStartEvent,
   PointerSensor, useDraggable, useDroppable, useSensor, useSensors,
 } from "@dnd-kit/core";
-import { useData, Deal, DealStage } from "@/lib/data-store";
+import { useData, Deal, DealStage, ehEtapaGanha } from "@/lib/data-store";
+import { ReceitaDoNegocio } from "@/components/empreendedor/receita-do-negocio";
+import { ProximoPasso } from "@/components/proximo-passo";
 
 export const Route = createFileRoute("/empreendedor/comercial/")({
   component: Pipeline,
 });
+
+type NegocioGanho = { cliente: string; titulo: string; valor: number };
 
 const STAGE_COLORS = [
   "bg-slate-400", "bg-blue-500", "bg-violet-500",
@@ -34,6 +38,8 @@ function Pipeline() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [openNew, setOpenNew] = useState(false);
   const [selected, setSelected] = useState<Deal | null>(null);
+  // Negócio que acabou de ir para "Ganho": oferece lançar a receita no Financeiro.
+  const [ganho, setGanho] = useState<NegocioGanho | null>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
@@ -51,7 +57,10 @@ function Pipeline() {
     setActiveId(null);
     const overId = e.over?.id as DealStage | undefined;
     if (!overId) return;
-    updateDeal(e.active.id as string, { stage: overId });
+    const deal = deals.find((d) => d.id === e.active.id);
+    if (!deal || deal.stage === overId) return;
+    updateDeal(deal.id, { stage: overId });
+    if (ehEtapaGanha(overId) && !ehEtapaGanha(deal.stage)) setGanho(deal);
   };
 
   const active = deals.find((d) => d.id === activeId);
@@ -67,7 +76,7 @@ function Pipeline() {
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4" /> Nova Oportunidade</Button>
           </DialogTrigger>
-          <DealForm key="novo" editando={null} onClose={() => setOpenNew(false)} />
+          <DealForm key="novo" editando={null} onClose={() => setOpenNew(false)} onGanho={setGanho} />
         </Dialog>
       </div>
       <DndContext
@@ -87,9 +96,16 @@ function Pipeline() {
 
       <Dialog open={!!selected} onOpenChange={(v) => { if (!v) setSelected(null); }}>
         {selected && (
-          <DealForm key={selected.id} editando={selected} onClose={() => setSelected(null)} />
+          <DealForm key={selected.id} editando={selected} onClose={() => setSelected(null)} onGanho={setGanho} />
         )}
       </Dialog>
+
+      <Dialog open={!!ganho} onOpenChange={(v) => { if (!v) setGanho(null); }}>
+        {ganho && <ReceitaDoNegocio negocio={ganho} onConcluir={() => setGanho(null)} />}
+      </Dialog>
+
+      <ProximoPasso para="/empreendedor/financeiro/lancamentos" rotulo="Próximo passo · Financeiro" titulo="Extrato"
+        texto="Venda fechada vira receita no Extrato. Ao arrastar um negócio para Ganho, o sistema oferece lançar a receita." />
     </div>
   );
 }
@@ -158,8 +174,8 @@ function DealCard({
 }
 
 function DealForm({
-  editando, onClose,
-}: { editando: Deal | null; onClose: () => void }) {
+  editando, onClose, onGanho,
+}: { editando: Deal | null; onClose: () => void; onGanho: (n: NegocioGanho) => void }) {
   const { addDeal, updateDeal, removeDeal, etapas, produtos } = useData();
   const [cliente, setCliente] = useState(editando?.cliente ?? "");
   const [titulo, setTitulo] = useState(editando?.titulo ?? "");
@@ -197,6 +213,7 @@ function DealForm({
     if (editando) updateDeal(editando.id, payload);
     else addDeal({ ...payload, dias: 0 });
     onClose();
+    if (ehEtapaGanha(stage) && !(editando && ehEtapaGanha(editando.stage))) onGanho(payload);
   };
 
   return (

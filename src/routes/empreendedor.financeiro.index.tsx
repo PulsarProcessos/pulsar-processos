@@ -10,6 +10,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { useData } from "@/lib/data-store";
 import { brl } from "@/lib/pessoal-store";
+import { ProximoPasso } from "@/components/proximo-passo";
 
 export const Route = createFileRoute("/empreendedor/financeiro/")({
   component: FinanceiroOverview,
@@ -164,6 +165,9 @@ function FinanceiroOverview() {
           )}
         </CardContent>
       </Card>
+
+      <ProximoPasso para="/empreendedor/financeiro/demonstrativo" titulo="Demonstrativo"
+        texto="O resultado da empresa mês a mês: quanto entrou, quanto saiu e quanto sobrou." />
     </div>
   );
 }

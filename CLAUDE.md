@@ -40,6 +40,17 @@ npx eslint <arquivos> --rule "prettier/prettier: off"
 - `src/components/modulo-layout.tsx` confere o acesso **antes** de montar o provider de dados do
   módulo, desenha menu lateral + cabeçalho e manda quem não é admin de volta ao Início sem mencionar
   a Administração. Menus, cores e títulos de tela vêm de `src/lib/modulos.ts`.
+- Cada módulo segue uma **linha de raciocínio** (pedido do Alan: o sistema precisa dizer o que vem
+  primeiro). O menu é feito de partes (`SecaoMenu`) nessa ordem: Empreendedor = Marketing (atrair) →
+  Comercial (vender) → Financeiro (receber e ver o lucro), como grupos que abrem e fecham; Pessoal =
+  Onde estou → Meu mês → Para onde vou, com os itens soltos. Sem números nem subtítulos no menu
+  lateral (o Alan achou feio o menu todo aberto com "1, 2"); o caminho numerado aparece só nas telas
+  de entrada (Visão geral e Meu caminho), com "O que fazer agora". As telas terminam com
+  `<ProximoPasso>` apontando a seguinte. Tela nova entra na parte certa e ganha o seu próximo passo.
+- Pontes entre as partes: lead "Convertido" cria oportunidade no funil; negócio que vai para uma etapa
+  de venda ganha (`ehEtapaGanha`, em `data-store.tsx`) abre `ReceitaDoNegocio` para lançar a receita
+  no Extrato. No Pessoal, a antiga tela Lançamentos foi juntada ao Dia a dia (`/pessoal/lancamentos`
+  só redireciona).
 - `src/components/auth-gate.tsx`: login, `useSessao()`, limpa o cache do React Query e volta ao
   Início quando muda a pessoa no aparelho, e descarta assinatura de push de outra pessoa.
 
