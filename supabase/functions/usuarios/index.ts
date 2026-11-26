@@ -1,4 +1,5 @@
 import { withSupabase } from "npm:@supabase/server@1.9.2";
+import nodemailer from "npm:nodemailer@6.9.16";
 
 // Módulo Administração: criar pessoas (login e senha), liberar módulos, trocar senha, bloquear
 // e excluir. Só administradores (app_metadata.role = "admin") fazem isso; quem não é
@@ -7,6 +8,11 @@ import { withSupabase } from "npm:@supabase/server@1.9.2";
 // encerraria também a sessão de quem está trocando.
 // O administrador não vê os dados das pessoas (lançamentos etc.): as regras do banco valem para
 // ele também. Aqui ele só enxerga e-mail, nome, módulos e situação da conta.
+//
+// Senha definida pelo administrador é provisória: user_metadata.trocar_senha = true faz o app
+// pedir uma senha nova no próximo acesso. Ela pode ir por e-mail (login, senha e link), pelo
+// SMTP dos segredos SMTP_HOST, SMTP_PORT (465: as Edge Functions não saem pelas portas 25 e
+// 587), SMTP_USER, SMTP_PASS e SMTP_REMETENTE.
 
 const SENHA_MIN = 8;
 // Limite do bcrypt usado pelo Supabase Auth.
@@ -14,6 +20,8 @@ const SENHA_MAX = 72;
 const MODULOS = ["empreendedor", "pessoal"] as const;
 type Modulo = (typeof MODULOS)[number];
 const BLOQUEIO = "876000h"; // ~100 anos: bloqueado até ser desbloqueado.
+// O link do e-mail aponta sempre para o site publicado (nunca para a prévia de quem cadastrou).
+const SITE = Deno.env.get("SITE_URL") ?? "https://pulsar.devalorepulsar.com.br";
 
 type Corpo = {
   acao?: string;
@@ -23,10 +31,76 @@ type Corpo = {
   nome?: string;
   modulos?: unknown;
   bloquear?: boolean;
+  enviar_email?: boolean;
 };
 
 function erro(status: number, mensagem: string) {
   return Response.json({ erro: mensagem }, { status });
+}
+
+// ============ E-MAIL DE ACESSO ============
+const smtpConfigurado = () =>
+  !!(Deno.env.get("SMTP_HOST") && Deno.env.get("SMTP_USER") && Deno.env.get("SMTP_PASS"));
+
+const escapar = (s: string) =>
+  s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+
+/** Envia login, senha provisória e o link do sistema. Devolve a mensagem de erro, ou null se foi. */
+async function enviarAcesso(p: { email: string; nome: string; senha: string; novo: boolean }): Promise<string | null> {
+  if (!smtpConfigurado()) return "O envio de e-mail ainda não foi configurado.";
+  const porta = Number(Deno.env.get("SMTP_PORT") ?? "465");
+  const usuario = Deno.env.get("SMTP_USER")!;
+  const transporte = nodemailer.createTransport({
+    host: Deno.env.get("SMTP_HOST"),
+    port: porta,
+    secure: porta === 465,
+    auth: { user: usuario, pass: Deno.env.get("SMTP_PASS") },
+  });
+  const primeiroNome = p.nome.trim().split(/\s+/)[0] || "";
+  const assunto = p.novo ? "Seu acesso ao Pulsar" : "Sua nova senha do Pulsar";
+  const abertura = p.novo ? "Seu acesso ao Pulsar está pronto." : "Sua senha do Pulsar foi trocada.";
+  const texto = [
+    `Olá${primeiroNome ? `, ${primeiroNome}` : ""}!`,
+    "",
+    abertura,
+    "",
+    `Login: ${p.email}`,
+    `Senha provisória: ${p.senha}`,
+    "",
+    `Acesse: ${SITE}`,
+    "",
+    "No primeiro acesso, o Pulsar vai pedir para você criar a sua própria senha.",
+    "Se você não esperava este e-mail, pode ignorá-lo.",
+  ].join("\n");
+  const html = `<!doctype html><html lang="pt-BR"><body style="margin:0;background:#f4f4f2;font-family:Arial,Helvetica,sans-serif;color:#1a1a19">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f2;padding:24px 12px"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:12px;padding:28px">
+<tr><td style="font-size:22px;font-weight:bold;letter-spacing:3px;padding-bottom:16px">PULS<span style="color:#F57C00">AR</span></td></tr>
+<tr><td style="font-size:16px;line-height:1.5;padding-bottom:8px">Olá${primeiroNome ? `, ${escapar(primeiroNome)}` : ""}!</td></tr>
+<tr><td style="font-size:16px;line-height:1.5;padding-bottom:20px">${abertura}</td></tr>
+<tr><td style="background:#f4f4f2;border-radius:8px;padding:16px;font-size:15px;line-height:1.8">
+<div><span style="color:#6b6b66">Login:</span> <strong>${escapar(p.email)}</strong></div>
+<div><span style="color:#6b6b66">Senha provisória:</span> <strong style="font-family:Consolas,monospace;font-size:16px">${escapar(p.senha)}</strong></div>
+</td></tr>
+<tr><td align="center" style="padding:24px 0">
+<a href="${SITE}" style="display:inline-block;background:#F57C00;color:#ffffff;text-decoration:none;font-weight:bold;font-size:16px;padding:14px 28px;border-radius:8px">Acessar o Pulsar</a>
+</td></tr>
+<tr><td style="font-size:14px;line-height:1.5;color:#52514e">No primeiro acesso, o Pulsar vai pedir para você criar a sua própria senha.</td></tr>
+<tr><td style="font-size:12px;line-height:1.5;color:#8a8a84;padding-top:16px">Se o botão não abrir, copie este endereço no navegador: ${SITE}<br>Se você não esperava este e-mail, pode ignorá-lo.</td></tr>
+</table></td></tr></table></body></html>`;
+  try {
+    await transporte.sendMail({
+      from: { name: "Pulsar", address: Deno.env.get("SMTP_REMETENTE") ?? usuario },
+      to: p.email,
+      subject: assunto,
+      text: texto,
+      html,
+    });
+    return null;
+  } catch (e) {
+    console.error("envio de e-mail falhou", e);
+    return "O servidor de e-mail recusou o envio.";
+  }
 }
 
 function validarSenha(senha: unknown): string | null {
@@ -76,6 +150,7 @@ export default {
       const agora = Date.now();
       return Response.json({
         admin: ehAdmin,
+        email_configurado: ehAdmin && smtpConfigurado(),
         usuarios: usuarios
           .map((u) => ({
             id: u.id,
@@ -108,7 +183,7 @@ export default {
         email,
         password: corpo.senha as string,
         email_confirm: true,
-        user_metadata: { full_name: nome },
+        user_metadata: { full_name: nome, trocar_senha: true },
       });
       if (error || !data.user) {
         if (error?.code === "email_exists") return erro(409, "Já existe um usuário com esse e-mail.");
@@ -124,7 +199,13 @@ export default {
           return erro(500, "Não foi possível liberar os módulos. O usuário não foi criado.");
         }
       }
-      return Response.json({ ok: true, id: data.user.id });
+      // A conta fica criada mesmo se o e-mail falhar: o administrador ainda pode copiar os dados.
+      const emailErro = corpo.enviar_email
+        ? await enviarAcesso({ email, nome, senha: corpo.senha as string, novo: true })
+        : null;
+      return Response.json({
+        ok: true, id: data.user.id, email_enviado: !!corpo.enviar_email && !emailErro, email_erro: emailErro,
+      });
     }
 
     // As ações abaixo agem sobre uma conta existente.
@@ -155,12 +236,24 @@ export default {
       }
       const senhaErr = validarSenha(corpo.senha);
       if (senhaErr) return erro(400, senhaErr);
-      const { error } = await admin.updateUserById(alvo, { password: corpo.senha as string });
+      // Senha dada pelo administrador é provisória: a pessoa cria a dela no próximo acesso.
+      const { error } = await admin.updateUserById(alvo, {
+        password: corpo.senha as string,
+        user_metadata: { trocar_senha: true },
+      });
       if (error) {
         if (error.code === "weak_password") return erro(400, "Senha fraca. Use letras, números e símbolos.");
         return erro(400, "Não foi possível alterar a senha.");
       }
-      return Response.json({ ok: true });
+      const emailErro = corpo.enviar_email
+        ? await enviarAcesso({
+          email: alvoDados.user.email ?? "",
+          nome: (alvoDados.user.user_metadata?.full_name as string | undefined) ?? "",
+          senha: corpo.senha as string,
+          novo: false,
+        })
+        : null;
+      return Response.json({ ok: true, email_enviado: !!corpo.enviar_email && !emailErro, email_erro: emailErro });
     }
 
     if (corpo.acao === "bloquear") {

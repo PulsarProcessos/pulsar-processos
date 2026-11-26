@@ -107,6 +107,19 @@ npx eslint <arquivos> --rule "prettier/prettier: off"
 ### Edge Functions (`supabase/functions/`, usam `npm:@supabase/server@1.9.2`)
 - `usuarios` (verify_jwt true): módulo Administração. Trocar a **própria** senha é no front com
   `auth.updateUser` — pela rota de admin o Supabase derruba também a sessão de quem troca.
+  Senha dada pelo administrador (criar ou "Nova senha provisória") grava `user_metadata.trocar_senha
+  = true`; o `AuthGate` mostra "Crie a sua senha" até a pessoa trocar (`salvarMinhaSenha` grava
+  `trocar_senha: false`). Pode enviar login, senha provisória e o link do site publicado por e-mail
+  (nodemailer, segredos `SMTP_HOST/PORT/USER/PASS/REMETENTE`; use a porta 465 — as Edge Functions
+  não saem pelas portas 25 e 587). Sem SMTP, a resposta traz `email_erro` e o admin copia os dados.
+- "Esqueci minha senha": `resetPasswordForEmail` com volta para o site; o evento `PASSWORD_RECOVERY`
+  (ou `type=recovery` na URL) abre "Crie uma nova senha". O e-mail sai pelo SMTP do Supabase Auth; no
+  plano grátis o modelo (`supabase/templates/recuperar-senha.html`) só pode ser trocado com SMTP próprio.
+- E-mails saem pelo **Resend** (`smtp.resend.com:465`, usuário `resend`, senha = chave da API só de
+  envio) como `naoresponda@pulsarprocessos.com.br`, tanto na função `usuarios` quanto no SMTP do
+  Supabase Auth. O DNS de pulsarprocessos.com.br fica no Registro.br e o e-mail do Alan nesse domínio é
+  Google Workspace (MX `smtp.google.com`): não troque servidores DNS nem crie caixa em outro provedor.
+  Para testar envio sem criar conta real, use `alansilveira+algo@pulsarprocessos.com.br`.
 - `agenda` (verify_jwt false; GET é o retorno OAuth com `state` assinado): Google Agenda com escopo
   `calendar.app.created`; os compromissos ficam só no Google; exige o módulo Empreendedor.
 - `notificacoes` (verify_jwt false): Web Push (`web-push@3.6.7`); `{acao:"teste"}` com login e

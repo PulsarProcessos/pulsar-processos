@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Ban, Copy, KeyRound, MoreVertical, RotateCcw, ShieldCheck, Trash2, UserPlus, Wand2 } from "lucide-react";
+import {
+  AlertTriangle, Ban, CheckCircle2, Copy, KeyRound, MoreVertical, RotateCcw, ShieldCheck, Trash2, UserPlus, Wand2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,11 +17,11 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useSessao } from "@/components/auth-gate";
-import { TrocarSenhaForm } from "@/components/trocar-senha-form";
 import { MODULOS } from "@/lib/modulos";
 import {
   MODULOS_LIBERAVEIS, SENHA_MIN, gerarSenha, useAlterarModulos, useBloquearUsuario,
-  useCriarUsuario, useExcluirUsuario, useUsuarios, type ModuloLiberavel, type Usuario,
+  useCriarUsuario, useExcluirUsuario, useSenhaProvisoria, useUsuarios,
+  type ModuloLiberavel, type ResultadoAcesso, type Usuario,
 } from "@/lib/usuarios";
 
 export const Route = createFileRoute("/admin/")({
@@ -89,7 +91,7 @@ function Usuarios() {
 
       <Dialog open={!!janela} onOpenChange={(v) => { if (!v) fechar(); }}>
         {janela?.tipo === "novo" && <NovoUsuarioForm onConcluir={fechar} />}
-        {janela?.tipo === "senha" && <TrocarSenhaForm alvo={janela.usuario} onConcluir={fechar} />}
+        {janela?.tipo === "senha" && <SenhaProvisoriaForm usuario={janela.usuario} onConcluir={fechar} />}
         {janela?.tipo === "excluir" && <ExcluirUsuarioForm usuario={janela.usuario} onConcluir={fechar} />}
       </Dialog>
     </div>
@@ -164,7 +166,7 @@ function LinhaUsuario({ usuario: u, souEu, onSenha, onExcluir }: {
             ) : (
               <>
                 <DropdownMenuItem onClick={onSenha}>
-                  <KeyRound className="mr-2 h-4 w-4" /> Alterar senha
+                  <KeyRound className="mr-2 h-4 w-4" /> Nova senha provisória
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={alternarBloqueio}>
                   {u.bloqueado
@@ -188,58 +190,102 @@ function LinhaUsuario({ usuario: u, souEu, onSenha, onExcluir }: {
   );
 }
 
+// O link do acesso é sempre o do site publicado, mesmo quando o cadastro é feito pela prévia.
+const SITE = "https://pulsar.devalorepulsar.com.br";
+
+/** Depois de criar a conta ou dar senha nova: se o e-mail foi, e os dados para copiar. */
+function AcessoEnviado({ titulo, email, senha, resultado, onConcluir }: {
+  titulo: string; email: string; senha: string; resultado: ResultadoAcesso; onConcluir: () => void;
+}) {
+  const texto = `Acesso ao Pulsar\nSite: ${SITE}\nLogin: ${email}\nSenha provisória: ${senha}\n\nNo primeiro acesso, o Pulsar pede para criar a sua própria senha.`;
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(texto);
+      toast.success("Dados de acesso copiados.");
+    } catch {
+      toast.error("Não foi possível copiar. Selecione o texto e copie.");
+    }
+  };
+  return (
+    <DialogContent className="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>{titulo}</DialogTitle>
+        <DialogDescription>A senha é provisória: no próximo acesso, a pessoa cria a dela.</DialogDescription>
+      </DialogHeader>
+      {resultado.email_enviado ? (
+        <p className="flex items-start gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+          E-mail enviado para {email}, com o login, a senha provisória e o link de acesso.
+        </p>
+      ) : resultado.email_erro ? (
+        <p className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          O e-mail não foi enviado ({resultado.email_erro}). Copie os dados abaixo e envie para a pessoa.
+        </p>
+      ) : (
+        <p className="text-sm text-muted-foreground">Copie os dados abaixo e envie para a pessoa. A senha não aparece de novo.</p>
+      )}
+      <pre className="whitespace-pre-wrap rounded-md border bg-muted/40 p-3 text-sm">{texto}</pre>
+      <DialogFooter>
+        <Button variant="outline" onClick={onConcluir}>Fechar</Button>
+        <Button onClick={copiar}><Copy className="h-4 w-4" /> Copiar dados de acesso</Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+}
+
+/** Opção de mandar o acesso por e-mail; desligada (com o motivo) se o envio não foi configurado. */
+function EnviarPorEmail({ ligado, onChange }: { ligado: boolean; onChange: (v: boolean) => void }) {
+  const configurado = useUsuarios().data?.email_configurado ?? false;
+  return (
+    <label className={`flex items-center justify-between gap-3 rounded-md border px-3 py-2 ${configurado ? "cursor-pointer" : "opacity-60"}`}>
+      <span>
+        <span className="block text-sm font-medium">Enviar o acesso por e-mail</span>
+        <span className="block text-xs text-muted-foreground">
+          {configurado
+            ? "A pessoa recebe o login, a senha provisória e o link do Pulsar."
+            : "O envio de e-mail ainda não foi configurado. Copie os dados depois de salvar."}
+        </span>
+      </span>
+      <Switch checked={configurado && ligado} disabled={!configurado} onCheckedChange={onChange} />
+    </label>
+  );
+}
+
 function NovoUsuarioForm({ onConcluir }: { onConcluir: () => void }) {
   const criar = useCriarUsuario();
+  const configurado = useUsuarios().data?.email_configurado ?? false;
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState(gerarSenha);
   const [modulos, setModulos] = useState<ModuloLiberavel[]>([]);
-  const [criado, setCriado] = useState<{ email: string; senha: string } | null>(null);
+  const [enviar, setEnviar] = useState(true);
+  const [criado, setCriado] = useState<{ email: string; senha: string; resultado: ResultadoAcesso } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (senha.length < SENHA_MIN) { toast.error(`A senha precisa ter pelo menos ${SENHA_MIN} caracteres.`); return; }
     try {
-      await criar.mutateAsync({ nome: nome.trim(), email: email.trim(), senha, modulos });
-      setCriado({ email: email.trim().toLowerCase(), senha });
+      const resultado = await criar.mutateAsync({
+        nome: nome.trim(), email: email.trim(), senha, modulos, enviar_email: configurado && enviar,
+      });
+      setCriado({ email: email.trim().toLowerCase(), senha, resultado });
     } catch (err) {
       toast.error((err as Error).message);
     }
   };
 
   if (criado) {
-    const texto = `Acesso ao Pulsar\nSite: ${window.location.origin}\nLogin: ${criado.email}\nSenha: ${criado.senha}`;
-    const copiar = async () => {
-      try {
-        await navigator.clipboard.writeText(texto);
-        toast.success("Dados de acesso copiados.");
-      } catch {
-        toast.error("Não foi possível copiar. Selecione o texto e copie.");
-      }
-    };
-    return (
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Usuário criado</DialogTitle>
-          <DialogDescription>
-            Envie estes dados para a pessoa. A senha não aparece de novo; se perder, use "Alterar senha".
-          </DialogDescription>
-        </DialogHeader>
-        <pre className="whitespace-pre-wrap rounded-md border bg-muted/40 p-3 text-sm">{texto}</pre>
-        <DialogFooter>
-          <Button variant="outline" onClick={onConcluir}>Fechar</Button>
-          <Button onClick={copiar}><Copy className="h-4 w-4" /> Copiar dados de acesso</Button>
-        </DialogFooter>
-      </DialogContent>
-    );
+    return <AcessoEnviado titulo="Usuário criado" email={criado.email} senha={criado.senha}
+      resultado={criado.resultado} onConcluir={onConcluir} />;
   }
 
   return (
-    <DialogContent className="sm:max-w-md">
+    <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
       <form onSubmit={handleSubmit} className="space-y-4">
         <DialogHeader>
           <DialogTitle>Novo usuário</DialogTitle>
-          <DialogDescription>A pessoa entra no Pulsar com este e-mail e esta senha.</DialogDescription>
+          <DialogDescription>A pessoa entra com este e-mail e a senha provisória, e cria a dela no primeiro acesso.</DialogDescription>
         </DialogHeader>
         <div className="space-y-1.5">
           <Label htmlFor="u-nome">Nome</Label>
@@ -249,17 +295,7 @@ function NovoUsuarioForm({ onConcluir }: { onConcluir: () => void }) {
           <Label htmlFor="u-email">E-mail (login)</Label>
           <Input id="u-email" type="email" required autoComplete="off" value={email} onChange={(e) => setEmail(e.target.value)} />
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="u-senha">Senha</Label>
-          <div className="flex gap-2">
-            <Input id="u-senha" required minLength={SENHA_MIN} autoComplete="off" value={senha}
-              onChange={(e) => setSenha(e.target.value)} className="font-mono" />
-            <Button type="button" variant="outline" onClick={() => setSenha(gerarSenha())} title="Gerar outra senha">
-              <Wand2 className="h-4 w-4" />
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">Mínimo de {SENHA_MIN} caracteres. A pessoa pode trocar depois.</p>
-        </div>
+        <CampoSenha senha={senha} onChange={setSenha} />
         <div className="space-y-2">
           <Label>Módulos liberados</Label>
           {MODULOS_LIBERAVEIS.map((m) => (
@@ -275,9 +311,69 @@ function NovoUsuarioForm({ onConcluir }: { onConcluir: () => void }) {
             </label>
           ))}
         </div>
+        <EnviarPorEmail ligado={enviar} onChange={setEnviar} />
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onConcluir} disabled={criar.isPending}>Cancelar</Button>
           <Button type="submit" disabled={criar.isPending}>{criar.isPending ? "Criando..." : "Criar usuário"}</Button>
+        </DialogFooter>
+      </form>
+    </DialogContent>
+  );
+}
+
+function CampoSenha({ senha, onChange }: { senha: string; onChange: (s: string) => void }) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor="u-senha">Senha provisória</Label>
+      <div className="flex gap-2">
+        <Input id="u-senha" required minLength={SENHA_MIN} autoComplete="off" value={senha}
+          onChange={(e) => onChange(e.target.value)} className="font-mono" />
+        <Button type="button" variant="outline" onClick={() => onChange(gerarSenha())} title="Gerar outra senha">
+          <Wand2 className="h-4 w-4" />
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">Mínimo de {SENHA_MIN} caracteres. No primeiro acesso, a pessoa cria a dela.</p>
+    </div>
+  );
+}
+
+function SenhaProvisoriaForm({ usuario, onConcluir }: { usuario: Usuario; onConcluir: () => void }) {
+  const trocar = useSenhaProvisoria();
+  const configurado = useUsuarios().data?.email_configurado ?? false;
+  const [senha, setSenha] = useState(gerarSenha);
+  const [enviar, setEnviar] = useState(true);
+  const [feito, setFeito] = useState<ResultadoAcesso | null>(null);
+
+  const salvar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (senha.length < SENHA_MIN) { toast.error(`A senha precisa ter pelo menos ${SENHA_MIN} caracteres.`); return; }
+    try {
+      setFeito(await trocar.mutateAsync({ user_id: usuario.id, senha, enviar_email: configurado && enviar }));
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  };
+
+  if (feito) {
+    return <AcessoEnviado titulo="Senha provisória definida" email={usuario.email} senha={senha}
+      resultado={feito} onConcluir={onConcluir} />;
+  }
+
+  return (
+    <DialogContent className="sm:max-w-md">
+      <form onSubmit={salvar} className="space-y-4">
+        <DialogHeader>
+          <DialogTitle>Nova senha provisória</DialogTitle>
+          <DialogDescription>
+            {usuario.nome ? `${usuario.nome} · ` : ""}{usuario.email}. A pessoa é desconectada e, ao entrar com
+            esta senha, cria uma nova.
+          </DialogDescription>
+        </DialogHeader>
+        <CampoSenha senha={senha} onChange={setSenha} />
+        <EnviarPorEmail ligado={enviar} onChange={setEnviar} />
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onConcluir} disabled={trocar.isPending}>Cancelar</Button>
+          <Button type="submit" disabled={trocar.isPending}>{trocar.isPending ? "Salvando..." : "Salvar"}</Button>
         </DialogFooter>
       </form>
     </DialogContent>

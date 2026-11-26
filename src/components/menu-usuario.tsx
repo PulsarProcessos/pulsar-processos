@@ -68,7 +68,7 @@ export function MenuUsuario() {
       </DropdownMenu>
 
       <Dialog open={trocandoSenha} onOpenChange={setTrocandoSenha}>
-        {trocandoSenha && <TrocarSenhaForm alvo={{ email }} onConcluir={() => setTrocandoSenha(false)} />}
+        {trocandoSenha && <TrocarSenhaForm email={email} onConcluir={() => setTrocandoSenha(false)} />}
       </Dialog>
       <Dialog open={guiaAberto} onOpenChange={setGuiaAberto}>
         {guiaAberto && <GuiaCelular />}

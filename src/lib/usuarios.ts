@@ -35,7 +35,7 @@ export async function chamarUsuarios<T>(body: Record<string, unknown>): Promise<
 }
 
 export function mensagemErroSenha(codigo: string | undefined) {
-  if (codigo === "same_password") return "A nova senha precisa ser diferente da atual.";
+  if (codigo === "same_password") return "A nova senha precisa ser diferente da atual (ou da provisória).";
   if (codigo === "weak_password") return "Senha fraca. Use letras, números e símbolos.";
   return "Não foi possível alterar a senha.";
 }
@@ -52,20 +52,29 @@ const CHAVE = ["usuarios"];
 export function useUsuarios() {
   return useQuery({
     queryKey: CHAVE,
-    queryFn: () => chamarUsuarios<{ admin: boolean; usuarios: Usuario[] }>({ acao: "listar" }),
+    queryFn: () => chamarUsuarios<{ admin: boolean; email_configurado: boolean; usuarios: Usuario[] }>({ acao: "listar" }),
   });
 }
 
-function useAcaoAdmin<E>(montar: (e: E) => Record<string, unknown>) {
+/** Resposta de criar e de trocar senha: se o e-mail com o acesso foi enviado. */
+export type ResultadoAcesso = { ok: true; email_enviado: boolean; email_erro: string | null };
+
+function useAcaoAdmin<E, R = { ok: true }>(montar: (e: E) => Record<string, unknown>) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (e: E) => chamarUsuarios<{ ok: true }>(montar(e)),
+    mutationFn: (e: E) => chamarUsuarios<R>(montar(e)),
     onSettled: () => qc.invalidateQueries({ queryKey: CHAVE }),
   });
 }
 
 export const useCriarUsuario = () =>
-  useAcaoAdmin((e: { nome: string; email: string; senha: string; modulos: ModuloLiberavel[] }) => ({ acao: "criar", ...e }));
+  useAcaoAdmin<{ nome: string; email: string; senha: string; modulos: ModuloLiberavel[]; enviar_email: boolean }, ResultadoAcesso>(
+    (e) => ({ acao: "criar", ...e }));
+
+/** Senha provisória definida pelo administrador (a pessoa cria a dela no próximo acesso). */
+export const useSenhaProvisoria = () =>
+  useAcaoAdmin<{ user_id: string; senha: string; enviar_email: boolean }, ResultadoAcesso>(
+    (e) => ({ acao: "trocar_senha", ...e }));
 
 export const useAlterarModulos = () =>
   useAcaoAdmin((e: { user_id: string; modulos: ModuloLiberavel[] }) => ({ acao: "modulos", ...e }));
